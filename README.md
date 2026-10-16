@@ -16,9 +16,10 @@ Android 8.0 이상용 세로 화면 제작 에디터. 인터넷 없이 실행합
 - **선택지**: 없을 때만 선택 가능, 안 맞으면 숨김.
 - **보유 항목 → 이름 누르기**: 얻는 곳·쓰는 곳 모아 보기. 이름을 바꾸면 대사 속 참조도 함께 바뀝니다.
 - **예제 · 같은 골목, 다른 밤**: 변주만으로 만든 8장면 예제를 한 번 추가합니다.
+- **테마·글꼴**: 고운바탕·Pretendard·갈무리 글꼴, 테마별 본문 글씨체, 선택지 15px 박스형, SVG 마커, 가방 → 글자 크기, 멘탈 아이콘을 표정 얼굴로(수치에 따라 표정 변화). 근거는 [Theme-Research.md](Theme-Research.md).
 - 입력창의 오류 안내가 표시되지 않던 문제를 고쳤습니다.
 
-검증: `test-variations.cjs`, `test-variations-browser.cjs`(3개 모바일 크기).
+검증: `test-variations.cjs`, `test-variations-browser.cjs`, `test-typography-browser.cjs`(3개 모바일 크기).
 
 ## 0.1.17 기본 그림·대체 문구
 

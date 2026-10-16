@@ -16,6 +16,6 @@ const keys=['surface','ink','muted','edge','accent','choice','history','gain','g
 const catalog=rows.map(([id,name,description,variant,radius,colors])=>({id,name,description,variant,radius,colors:Object.fromEntries(keys.map((k,i)=>[k,colors[i]]))}));
 function get(id){return catalog.find(t=>t.id===id)||catalog[0];}
 function apply(el,id,transparency=0){if(!el)return;const t=get(id);el.dataset.gameTheme=t.id;el.dataset.themeStyle=t.variant;for(const [k,v]of Object.entries(t.colors))el.style.setProperty('--t-'+k,v);el.style.setProperty('--t-radius',t.radius+'px');const alpha=1-Math.max(0,Math.min(100,Number(transparency)||0))/100;const rgba=hex=>'rgba('+hex.slice(1).match(/../g).map(x=>parseInt(x,16)).join(',')+','+alpha+')';el.style.setProperty('--t-panel',rgba(t.colors.surface));el.style.setProperty('--t-choice-panel',rgba(t.colors.choice));el.style.setProperty('--t-panel-alpha',String(alpha));el.dataset.transparentPanel=String(alpha===0);}
-const ready=()=>typeof document==='undefined'||!document.fonts?Promise.resolve():Promise.all([document.fonts.load('16px StorySerif','한글'),document.fonts.load('700 13px ActionSans','한글')]).catch(()=>{});
+const ready=()=>typeof document==='undefined'||!document.fonts?Promise.resolve():Promise.all([document.fonts.load('16px StorySerif','한글'),document.fonts.load('600 15px ActionSans','한글'),document.fonts.load('15px StoryPixel','한글')]).catch(()=>{});
 const api={catalog,get,apply,ready,valid:id=>catalog.some(t=>t.id===id)};if(typeof module!=='undefined')module.exports=api;else root.GameThemes=api;
 })(globalThis);

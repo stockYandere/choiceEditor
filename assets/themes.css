@@ -1,220 +1,287 @@
+/*
+ * 게임 화면 테마 (0.1.24 개편)
+ *
+ * 큰 틀(위·아래 그림, 중앙 고정 대화창, 상태줄, 아래 도구 줄)은 그대로 두고
+ * 글씨체·글자 크기·선택지 모양·장식만 다시 정리했습니다. 근거는 Theme-Research.md.
+ *
+ *  - 본문: 테마마다 바탕(StorySerif · 고운바탕) / 고딕(ActionSans · Pretendard) / 픽셀(StoryPixel · 갈무리14)
+ *  - 이름·선택지·버튼: Pretendard 600. 선택지는 본문과 비슷한 15px로, 누를 수 있는 줄 모양
+ *  - 한국어 어절 단위 줄바꿈(word-break: keep-all)
+ *  - 장식은 기기 글꼴에 따라 깨질 수 있는 기호(❧ ✧ † ♡ ≈) 대신 SVG 마커(mask)로 그림
+ *  - 플레이어 글자 크기 설정: --story-scale (가방 → 글자 크기)
+ */
+
+/* ── 글꼴 ─────────────────────────────────────────── */
+@font-face{font-family:StorySerif;src:url('fonts/GowunBatang-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:ActionSans;src:url('fonts/PretendardVariable.woff2') format('woff2-variations'),url('fonts/PretendardVariable.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}
+@font-face{font-family:StoryPixel;src:url('fonts/Galmuri14.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+
 /* Presets are scoped to game surfaces. Editor forms keep their neutral palette. */
-[data-game-theme]{color:var(--t-ink);color-scheme:light}
+[data-game-theme]{
+  color:var(--t-ink);color-scheme:light;
+  --t-prose:StorySerif,'Noto Serif KR',serif;
+  --t-ui:ActionSans,system-ui,sans-serif;
+  --t-prose-size:16px;
+  --t-prose-spacing:0;
+  --t-choice-radius:min(var(--t-radius),12px);
+  --t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3C/svg%3E");
+}
 [data-game-theme]:is([data-game-theme=noir],[data-game-theme=forest],[data-game-theme=starlight],[data-game-theme=gothic]){color-scheme:dark}
-[data-game-theme] #box,[data-game-theme] .previewBox{background:var(--t-panel,var(--t-surface));color:var(--t-ink);border-color:var(--t-edge);border-radius:0;box-shadow:0 6px 18px #0003}
+
+/* ── 대화창 틀 ─────────────────────────────────────── */
+[data-game-theme] #box,[data-game-theme] .previewBox{background:var(--t-panel,var(--t-surface));color:var(--t-ink);border-color:var(--t-edge);border-radius:0;box-shadow:0 8px 24px #0004}
+[data-game-theme] #box{border-bottom:0;border-radius:0;padding:14px 15px 12px}
 [data-game-theme] #statusBar{background:var(--t-panel,var(--t-surface));color:var(--t-accent);border-color:var(--t-edge);border-radius:var(--t-radius) var(--t-radius) 0 0}
-[data-game-theme] #who,.themeSample b{color:var(--t-accent);letter-spacing:.04em}
 [data-game-theme] #bag{color:var(--t-accent)}
-[data-game-theme] #answers button{color:var(--t-ink);border-color:var(--t-edge);padding:10px 0}
-[data-game-theme] #answers button:active{background:var(--t-choice)}
-[data-game-theme] #answers button.locked{color:var(--t-muted);opacity:1}
-[data-game-theme] #answers .cost{color:var(--t-muted)}
-[data-game-theme] #answers .met,[data-game-theme] .gain{color:var(--t-gain)!important}
-[data-game-theme] #answers .missing,[data-game-theme] .loss{color:var(--t-loss)!important}
-[data-game-theme] #sceneTools button{background:var(--t-surface);color:var(--t-accent);border-color:var(--t-edge);border-radius:var(--t-radius)}
-[data-game-theme] :focus-visible{outline-color:var(--t-accent)}
-[data-game-theme] #acquisitionArt{border-color:var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);background:var(--t-surface)}
+[data-game-theme] :focus-visible{outline:2px solid var(--t-accent);outline-offset:2px}
+[data-game-theme] .art,[data-game-theme] .previewArt{background:var(--t-history);color:var(--t-muted)}
+
+/* ── 글자 ──────────────────────────────────────────── */
+#who,.themeSampleWho{font-family:var(--t-ui);font-weight:650;font-size:calc(13.5px * var(--story-scale,1) * var(--fit,1));letter-spacing:.02em;line-height:1.4}
+[data-game-theme] #who,.themeSampleWho{color:var(--t-accent);margin-bottom:7px}
+#dialogue,.historyEntry p,.themeSampleBody p{font-family:var(--t-prose,StorySerif,serif);font-weight:400;line-height:1.78;letter-spacing:var(--t-prose-spacing,0);word-break:keep-all;overflow-wrap:anywhere}
+[data-game-theme] #dialogue{font-size:calc(var(--t-prose-size) * var(--story-scale,1) * var(--fit,1));margin:0 0 4px}
+.historyEntry p{font-size:calc(16px * var(--story-scale,1))}
+#answers button>span,.historyEntry small,.themeSampleChoices>span{font-family:var(--t-ui,ActionSans,sans-serif);font-weight:600;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
+
+/* ── 선택지: 누를 수 있는 줄 ─────────────────────────── */
+#answers{margin-top:12px;counter-reset:theme-choice;display:flex;flex-direction:column;gap:6px}
+#answers button{counter-increment:theme-choice;min-height:46px;overflow-wrap:anywhere}
+[data-game-theme] #answers button{position:relative;display:block;width:100%;text-align:left;color:var(--t-ink);background:var(--t-choice);border:1px solid var(--t-edge);border-radius:var(--t-choice-radius);padding:9px 12px 9px 30px;font-size:calc(15px * var(--story-scale,1) * var(--fit,1));transition:transform .08s,filter .08s}
+[data-game-theme] #answers button>span{font-size:calc(15px * var(--story-scale,1) * var(--fit,1))}
+/* The marker sits beside the first line of the choice text, below any requirement tags. */
+[data-game-theme] #answers button>span{position:relative}
+[data-game-theme] #answers button>span::before,.themeSampleChoices>span::before{content:'';position:absolute;left:-19px;top:calc(15px * .725 * var(--story-scale,1) * var(--fit,1));width:10px;height:10px;transform:translateY(-50%);background:var(--t-accent);-webkit-mask:var(--t-mark) center/contain no-repeat;mask:var(--t-mark) center/contain no-repeat}
+[data-game-theme] #answers button:not(:disabled):active{transform:translateY(1px);filter:brightness(.95)}
+[data-game-theme] #answers button.locked,[data-game-theme] #answers button:disabled{background:transparent;border-style:dashed;color:var(--t-muted);opacity:1}
+[data-game-theme] #answers button.locked>span::before{background:var(--t-empty)}
+[data-theme-style=paper] #answers button.locked>span::before,[data-theme-style=mist] #answers button.locked>span::before{background:none;color:var(--t-muted)}
+[data-game-theme] #answers button.locked>span{color:var(--t-muted)}
+/* 조건·소모 표시: 작은 꼬리표 */
+#answers .requirement{display:inline-block;font-family:var(--t-ui,ActionSans,sans-serif);font-weight:600;font-size:calc(11.5px * var(--story-scale,1) * var(--fit,1));line-height:1.35;margin:0 5px 5px 0;padding:1px 7px;border-radius:999px;letter-spacing:0}
+[data-game-theme] #answers .met{color:var(--t-gain)!important;background:var(--t-gain-bg)}
+[data-game-theme] #answers .missing{color:var(--t-loss)!important;background:var(--t-loss-bg)}
+[data-game-theme] #answers .cost{color:var(--t-muted);background:transparent;box-shadow:inset 0 0 0 1px var(--t-edge)}
+[data-game-theme] .gain{color:var(--t-gain)!important}
+[data-game-theme] .loss{color:var(--t-loss)!important}
+[data-game-theme] #answers p.hint{font-family:var(--t-ui);font-size:13px;margin:4px 0 0}
+
+/* 낮은 화면(높이 620px 이하)에서는 글자를 6% 줄여 고정 대화창 안에서 더 많이 읽게 합니다. */
+@media(max-height:620px){[data-game-theme]{--fit:.94}[data-game-theme] #box{padding:11px 12px 10px}}
+
+/* ── 상태줄·아이콘 ─────────────────────────────────── */
 [data-game-theme] #statusBar.notice-gain,[data-game-theme] #statusBar[data-theme]{background:var(--t-gain-bg);color:var(--t-gain);border-color:var(--t-edge);box-shadow:inset 3px 0 0 var(--t-gain)}
 [data-game-theme] #statusBar.notice-loss,[data-game-theme] #statusBar.notice-error,[data-game-theme] #statusBar:is([data-theme=loss],[data-theme=death]){background:var(--t-loss-bg);color:var(--t-loss);box-shadow:inset 3px 0 0 var(--t-loss)}
 [data-game-theme] #statusBar.notice-info{background:var(--t-choice);color:var(--t-ink)}
 [data-game-theme] #statusBar[data-theme] #statusText{text-shadow:none}
+#statusText{font-family:ActionSans,system-ui,sans-serif;font-weight:600}
 [data-game-theme] #statusSymbol{background:transparent}
 [data-game-theme] .life.filled{color:var(--t-loss)}
 [data-game-theme] .resourceUnit.filled{color:var(--t-accent)}
 [data-game-theme] .life.empty,[data-game-theme] .resourceUnit.empty{color:var(--t-empty)}
 [data-game-theme] .life.lost,[data-game-theme] .resourceUnit.lost,[data-game-theme] .critical .resourceUnit.filled{color:var(--t-loss)}
 [data-game-theme] #money .resourceUnit.filled{color:var(--t-coin)}
-[data-game-theme] .hpMeter{background:var(--t-empty)}[data-game-theme] .hpMeter i{background:var(--t-loss)}
-#statusIcons .life svg{width:14px;height:18px}#statusIcons .resourceUnit svg{width:15px;height:18px}#statusIcons .iconGauge,#statusIcons .iconGauge svg{width:20px;height:22px}
+[data-game-theme] .hpMeter{background:var(--t-empty)}
+[data-game-theme] .hpMeter i{background:var(--t-loss)}
+#statusIcons .life svg{width:16px;height:18px}
+#statusIcons .resourceUnit svg{width:17px;height:18px}
+#statusIcons .iconGauge,#statusIcons .iconGauge svg{width:20px;height:22px}
 #sheetHealth .life svg{width:16px;height:18px}
-#mental .brainDetail{fill:none;stroke:var(--t-surface,#101b2f);stroke-width:1.3}
-#mental .empty .brainDetail,#mental .lost .brainDetail{stroke:currentColor}
-#historySheet[data-game-theme],#stateSheet[data-game-theme]{background:var(--t-history);color:var(--t-ink);border-color:var(--t-edge)}
+/* Empty units keep the silhouette as an outline so the count stays readable. */
+[data-game-theme] #health .life.empty svg{fill:none;stroke:currentColor;stroke-width:70}
+
+/* ── 아래 도구 줄 ─────────────────────────────────── */
+[data-game-theme] #sceneTools{top:100%;height:38px;display:grid;grid-template-columns:.9fr .9fr 1.7fr;gap:0;margin:0;border:1px solid var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);overflow:hidden;background:var(--t-panel,var(--t-surface))}
+[data-game-theme] #sceneTools button{height:36px;min-height:36px;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--t-accent);font-size:12px;white-space:nowrap;font-family:var(--t-ui);font-weight:600}
+[data-game-theme] #sceneTools button+button{border-left:1px solid var(--t-edge)}
+#opacityControl{position:relative;display:flex;align-items:center;gap:4px;margin:0;padding:0 6px;height:36px;min-width:0;font-size:10.5px;font-family:ActionSans,sans-serif;font-weight:600;color:var(--t-muted);border-left:1px solid var(--t-edge);background:transparent}
+#opacityControl>span{white-space:nowrap}
+#opacityControl input{flex:1;min-width:0;width:0;height:28px;margin:0;padding:0;accent-color:var(--t-accent)}
+[data-game-theme] input[type=range]{accent-color:var(--t-accent)}
+
+/* ── 획득 그림 ─────────────────────────────────────── */
+[data-game-theme] #acquisitionArt{border-color:var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);background:var(--t-surface)}
+
+/* ── 이전 대화·보유 상태 시트 ─────────────────────────── */
+#historySheet[data-game-theme],#stateSheet[data-game-theme]{background:var(--t-history);color:var(--t-ink);border-color:var(--t-edge);font-family:var(--t-ui)}
 [data-game-theme] .historyHead,[data-game-theme] .sheetHead,[data-game-theme] .historyEntry,[data-game-theme] .stateItem,[data-game-theme] .sheetResourceSummary,[data-game-theme] .recentChanges{border-color:var(--t-edge)}
-[data-game-theme] .historyEntry b{color:var(--t-accent)}
+[data-game-theme] .historyEntry b{color:var(--t-accent);font-family:var(--t-ui);font-weight:650}
 [data-game-theme] :is(.historyEntry small,.historyEmpty,.emptyState,.passiveInfo,.sheetResourceSummary,.recentChanges>small,.hint,.audioVolume,.stateItem>span:last-child,.stateItem>span:nth-child(3)){color:var(--t-muted)}
 [data-game-theme] .recentChanges p{color:var(--t-ink)}
-#stateSheet[data-game-theme] button,#historySheet[data-game-theme] button{background:var(--t-choice);color:var(--t-ink);border-color:var(--t-edge);border-radius:var(--t-radius)}
-#stateSheet[data-game-theme] button.active{background:var(--t-accent);color:var(--t-surface)}
+#stateSheet[data-game-theme] button,#historySheet[data-game-theme] button{background:var(--t-choice);color:var(--t-ink);border-color:var(--t-edge);border-radius:var(--t-choice-radius);font-family:var(--t-ui);font-weight:600}
+#stateSheet[data-game-theme] button.active,#stateSheet[data-game-theme] button[aria-pressed=true]{background:var(--t-accent);color:var(--t-surface)}
 [data-game-theme] .stateKind{background:var(--t-choice);color:var(--t-accent)}
-[data-game-theme] #playerSoundSettings{border-color:var(--t-edge)}[data-game-theme] #playerSoundSettings summary{color:var(--t-accent)}
-[data-game-theme] input[type=range]{accent-color:var(--t-accent)}
-/* One preview and a compact preset grid, inside the existing modal scroll area. */
+[data-game-theme] #playerSoundSettings,[data-game-theme] #playerTextSettings{border-color:var(--t-edge)}
+[data-game-theme] :is(#playerSoundSettings,#playerTextSettings) summary{color:var(--t-accent)}
+#playerTextSettings .textSizeRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+#playerTextSettings .textSizeRow button{min-height:44px}
+#playerTextSettings .textSizeRow button span{display:block;font-family:var(--t-prose);font-weight:400}
+
+/* ── 테마 고르기 (에디터) ───────────────────────────── */
 .themeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0}
 .themePreset{display:block;text-align:left;min-height:60px;padding:8px;border:1px solid #52647b;background:#1b2839;min-width:0}
-.themePreset b{display:block;font-size:12px;overflow-wrap:anywhere}.themePreset small{display:block;font-size:10px;color:#b8c7da;line-height:1.5;margin-top:3px}
-.themePreset[aria-pressed=true]{outline:2px solid #bcd5f4;outline-offset:-2px;background:#2d4360}.themeSwatches{display:flex;gap:3px;margin-top:5px}.themeSwatches i{width:17px;height:5px;border-radius:2px}
-[data-game-theme] .art,[data-game-theme] .previewArt{background:var(--t-history);color:var(--t-muted)}
+.themePreset b{display:block;font-size:12px;overflow-wrap:anywhere}
+.themePreset small{display:block;font-size:10.5px;color:#b8c7da;line-height:1.5;margin-top:3px}
+.themePreset[aria-pressed=true]{outline:2px solid #bcd5f4;outline-offset:-2px;background:#2d4360}
+.themeSwatches{display:flex;gap:3px;margin-top:5px}
+.themeSwatches i{width:17px;height:5px;border-radius:2px}
 
-@font-face{font-family:StorySerif;src:url('fonts/NanumMyeongjo-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:ActionSans;src:url('fonts/NotoSansKR-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
-/* Observed in Seoul2033's official screenshots: serif prose, bold sans choices, horizontal rules. */
-#dialogue,.historyEntry p,.themeSampleBody p{font-family:StorySerif,serif;font-weight:400;line-height:1.8;letter-spacing:0}
-#answers button>span,.historyEntry small,.themeSampleChoices>span{font-family:ActionSans,sans-serif;font-weight:700;line-height:1.65}
-#answers .requirement{font-family:ActionSans,sans-serif;font-weight:700;font-size:10px}
-#who,.themeSampleWho{font-family:ActionSans,sans-serif;font-weight:700}
-#answers{margin-top:16px;counter-reset:theme-choice}
-#answers button{counter-increment:theme-choice;min-height:42px;overflow-wrap:anywhere}
-/* The utility row joins the same frame edge to edge; no detached pills or gaps. */
-[data-game-theme] #box{border-bottom:0;border-radius:0}
-[data-game-theme] #sceneTools{top:100%;height:38px;display:grid;grid-template-columns:.9fr .9fr 1.7fr;gap:0;margin:0;border:1px solid var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);overflow:hidden;background:var(--t-panel,var(--t-surface))}
-[data-game-theme] #sceneTools button{height:36px;min-height:36px;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--t-accent);font-size:11px;white-space:nowrap;font-family:ActionSans,sans-serif;font-weight:700}
-[data-game-theme] #sceneTools button+button{border-left:1px solid var(--t-edge)}
-#opacityControl{position:relative;display:flex;align-items:center;gap:3px;margin:0;padding:0 5px;height:36px;min-width:0;font-size:9px;color:var(--t-muted);border-left:1px solid var(--t-edge);background:transparent}
-#opacityControl>span{white-space:nowrap}#opacityControl input{flex:1;min-width:0;width:0;height:28px;margin:0;padding:0;accent-color:var(--t-accent)}
-/* Miniature uses the same materials and choice motifs as the real window. */
+/* Miniature uses the same materials and choice markers as the real window. */
 .themeSample{margin:0 0 12px;color:var(--t-ink);background:linear-gradient(135deg,#60746a,#253643);border-radius:var(--t-radius);position:relative}
-.themeSampleBody{padding:10px 12px;background:var(--t-panel);border:1px solid var(--t-edge);border-bottom:0}
-.themeSampleBody p{font-size:15px;margin:8px 0 12px}
-.themeSampleWho{color:var(--t-accent);display:block;font-size:12px}
-.themeSampleChoices{counter-reset:theme-choice}.themeSampleChoices>span{display:block;counter-increment:theme-choice;border-top:1px solid var(--t-edge);padding:8px 0;font-size:12px}
+.themeSampleBody{padding:12px 14px;background:var(--t-panel);border:1px solid var(--t-edge);border-bottom:0}
+.themeSampleBody p{font-size:var(--t-prose-size,16px);margin:6px 0 12px}
+.themeSampleWho{display:block}
+.themeSampleChoices{counter-reset:theme-choice}
+.themeSampleChoices>span{position:relative;display:block;counter-increment:theme-choice;background:var(--t-choice);border:1px solid var(--t-edge);border-radius:var(--t-choice-radius);padding:9px 10px 9px 28px;font-size:14px}
+.themeSampleChoices>span::before{left:10px;top:50%}
 .themeSampleStatus{margin:0;padding:6px 12px;height:32px;border:1px solid var(--t-edge);border-bottom:0;border-radius:var(--t-radius) var(--t-radius) 0 0;background:var(--t-panel)}
-.themeSamplesIcons{display:flex;align-items:center;gap:8px}.themeSamplesIcons svg{width:17px;height:18px;fill:var(--t-loss)}.themeSamplesIcons .brainDetail{stroke:var(--t-surface);fill:none}.themeSamplesIcons span{font-size:10px;color:var(--t-muted)}
+.themeSamplesIcons{display:flex;align-items:center;gap:8px}
+.themeSamplesIcons svg{width:17px;height:18px;fill:var(--t-loss)}
+.themeSamplesIcons svg[data-icon=mood]{fill:var(--t-accent)!important}
+.themeSamplesIcons span{font-size:11px;color:var(--t-muted);font-family:ActionSans,sans-serif}
 .themeSampleTools{display:flex;background:var(--t-panel);border:1px solid var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);overflow:hidden}
-.themeSampleTools span{flex:1;text-align:center;padding:7px 2px;font-family:ActionSans,sans-serif;font-size:10px;color:var(--t-accent)}.themeSampleTools span+span{border-left:1px solid var(--t-edge)}.themeSampleTools .themeSampleSlider{flex:1.6;white-space:nowrap;font-size:9px}
+.themeSampleTools span{flex:1;text-align:center;padding:7px 2px;font-family:ActionSans,sans-serif;font-weight:600;font-size:11px;color:var(--t-accent)}
+.themeSampleTools span+span{border-left:1px solid var(--t-edge)}
+.themeSampleTools .themeSampleSlider{flex:1.6;white-space:nowrap;font-size:10px}
 
-/* 1. A cafe receipt: dotted folds, restrained ink and a coffee-coloured margin. */
-[data-theme-style=soft] :is(#box,.themeSampleBody){box-shadow:inset 4px 0 var(--t-edge);border-left-style:dashed}
-[data-theme-style=soft] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted}
-[data-theme-style=soft] :is(#answers button>span,.themeSampleChoices>span)::before{content:'› ';color:var(--t-accent)}
+/* ─────────────────────────────────────────────────────
+ * 테마별 재질
+ * 각 테마는 ① 본문 글씨체 ② 모서리 ③ 선 모양 ④ 선택지 마커 ⑤ 이름 표시 방식만 다릅니다.
+ * ───────────────────────────────────────────────────── */
+
+/* 1. 코지 크림 · 카페 영수증: 바탕체, 점선, 동그란 점 */
+[data-theme-style=soft]{--t-choice-radius:10px}
+[data-theme-style=soft] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),0 8px 24px #0003}
+[data-theme-style=soft] :is(#answers button,.themeSampleChoices>span){border-style:dotted;border-width:1.5px}
 [data-theme-style=soft] .historyEntry{border-bottom-style:dotted}
-/* 2. Love letter: scalloped stationery, centered sender and heart signposts. */
-[data-theme-style=romance] :is(#box,.themeSampleBody){background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge)}
-[data-theme-style=romance] :is(#who,.themeSampleWho){text-align:center;letter-spacing:.08em}
-[data-theme-style=romance] :is(#who,.themeSampleWho)::before{content:'♡ ';color:var(--t-accent)}
-[data-theme-style=romance] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed;text-align:center}
-[data-theme-style=romance] :is(#answers button>span,.themeSampleChoices>span)::before{content:'♡ ';color:var(--t-accent)}
+
+/* 2. 소프트 로맨스 · 편지지: 바탕체, 둥근 줄, 하트 */
+[data-theme-style=romance]{--t-choice-radius:16px;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.3l-1.4-1.3C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.6 11.5z'/%3E%3C/svg%3E")}
+[data-theme-style=romance] :is(#box,.themeSampleBody){background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge),0 8px 24px #0003}
 [data-theme-style=romance] .historyEntry{border-bottom-style:dashed;padding-left:12px;border-left:2px solid var(--t-edge)}
-/* 3. Field notebook: binding stripe, page ruling and numbered decisions. */
-[data-theme-style=paper] :is(#box,.themeSampleBody){background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 6px 0 var(--t-edge);padding-left:19px}
+
+/* 3. 탐험 수첩 · 야장: 바탕체, 줄 친 종이, 번호 */
+[data-theme-style=paper]{--t-choice-radius:3px}
+[data-theme-style=paper] :is(#box,.themeSampleBody){background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 5px 0 var(--t-edge),0 8px 24px #0003;padding-left:20px}
 [data-theme-style=paper] :is(#statusBar,.themeSampleStatus){border-top:3px double var(--t-accent);border-radius:0}
-[data-theme-style=paper] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed}
-[data-theme-style=paper] :is(#answers button>span,.themeSampleChoices>span)::before{content:counter(theme-choice,decimal-leading-zero) '. ';color:var(--t-accent)}
+[data-theme-style=paper] :is(#answers button,.themeSampleChoices>span){border-style:dashed;padding-left:38px}
+[data-theme-style=paper] :is(#answers button>span,.themeSampleChoices>span)::before{content:counter(theme-choice,decimal-leading-zero);-webkit-mask:none;mask:none;background:none;width:auto;height:auto;color:var(--t-accent);font:700 12px/1 ActionSans,sans-serif;font-variant-numeric:tabular-nums;left:-27px}
 [data-theme-style=paper] .historyEntry{border-left:3px double var(--t-edge);padding-left:14px}
-/* 4. Cyberpunk terminal: cyan technical frame and console prompts. */
-[data-theme-style=neon] :is(#box,.themeSampleBody){box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent);background-image:repeating-linear-gradient(transparent 0 3px,#66edff04 3px 4px)}
+
+/* 4. 네온 누아르 · 콘솔: 고딕, 청록 테두리, 꺾쇠 */
+[data-theme-style=neon]{--t-prose:ActionSans,system-ui,sans-serif;--t-prose-size:15.5px;--t-prose-spacing:-.005em;--t-choice-radius:2px;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 3.5l9 8.5-9 8.5-2.4-2.5 6.4-6-6.4-6z'/%3E%3C/svg%3E")}
+[data-theme-style=neon] :is(#box,.themeSampleBody){box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent),0 0 18px #66edff22;background-image:repeating-linear-gradient(transparent 0 3px,#66edff05 3px 4px)}
 [data-theme-style=neon] :is(#statusBar,.themeSampleStatus){border-radius:0;box-shadow:inset 0 3px var(--t-accent)}
-[data-theme-style=neon] :is(#who,.themeSampleWho)::before{content:'// ';color:var(--t-accent)}
-[data-theme-style=neon] :is(#answers button>span,.themeSampleChoices>span)::before{content:'>_ ';color:var(--t-accent)}
-[data-theme-style=neon] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted;padding-left:7px;border-left:2px solid var(--t-accent)}
+[data-theme-style=neon] :is(#who,.themeSampleWho){letter-spacing:.08em}
+[data-theme-style=neon] :is(#who,.themeSampleWho)::before{content:'// ';color:var(--t-muted)}
+[data-theme-style=neon] :is(#answers button,.themeSampleChoices>span){border-left:3px solid var(--t-accent)}
 [data-theme-style=neon] .historyEntry{border-left:2px solid var(--t-accent);padding-left:12px}
-/* 5. Blue glass: curved waves and a bright top reflection, without blur. */
-[data-theme-style=glass] :is(#box,.themeSampleBody){background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);box-shadow:inset 0 4px #fff5}
+
+/* 5. 바다 유리 · 수면: 고딕, 둥근 유리, 물방울 */
+[data-theme-style=glass]{--t-prose:ActionSans,system-ui,sans-serif;--t-prose-size:15.5px;--t-prose-spacing:-.005em;--t-choice-radius:14px;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5C9 7 5.5 10.6 5.5 14.5a6.5 6.5 0 0013 0c0-3.9-3.5-7.5-6.5-12z'/%3E%3C/svg%3E")}
+[data-theme-style=glass] :is(#box,.themeSampleBody){background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);box-shadow:inset 0 4px #fff6,0 8px 24px #0003}
 [data-theme-style=glass] :is(#statusBar,.themeSampleStatus){border-top:3px solid var(--t-accent)}
-[data-theme-style=glass] :is(#answers button>span,.themeSampleChoices>span)::before{content:'≈ ';color:var(--t-accent)}
-[data-theme-style=glass] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted}
 [data-theme-style=glass] .historyEntry{border-bottom:3px double var(--t-edge)}
-/* 6. A woodland journal: stitched leather and diagonal leaf motifs. */
-[data-theme-style=leaf] :is(#box,.themeSampleBody){border-left:1px dashed var(--t-edge);border-right:1px dashed var(--t-edge);box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730}
+
+/* 6. 숲의 숨결 · 숲의 책: 바탕체, 바느질 선, 잎사귀 */
+[data-theme-style=leaf]{--t-choice-radius:4px 14px;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20c0-9.4 6.2-16 16-16 0 9.8-6.6 16-16 16zm2.2-2.6c3.3-3.6 6.3-6.6 9.6-9.4l-.9-.9c-3.3 2.8-6.3 5.8-9.6 9.4z'/%3E%3C/svg%3E")}
+[data-theme-style=leaf] :is(#box,.themeSampleBody){border-left:1px dashed var(--t-edge);border-right:1px dashed var(--t-edge);box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730,0 8px 24px #0004}
 [data-theme-style=leaf] :is(#statusBar,.themeSampleStatus){border-radius:16px 3px 0 0;background-image:repeating-linear-gradient(135deg,transparent 0 12px,#87905712 12px 13px)}
-[data-theme-style=leaf] :is(#who,.themeSampleWho)::before{content:'❧ ';color:var(--t-accent)}
-[data-theme-style=leaf] :is(#answers button>span,.themeSampleChoices>span)::before{content:'❧ ';color:var(--t-accent)}
+[data-theme-style=leaf] :is(#answers button,.themeSampleChoices>span){border-style:dashed}
 [data-theme-style=leaf] .historyEntry{border-bottom-style:dashed}
-/* 7. A spellbook: royal violet, gilded double rules and star seals. */
-[data-theme-style=star] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge);background-image:radial-gradient(circle at 95% 5%,#f6d67a22 0 2px,transparent 3px)}
+
+/* 7. 별빛 판타지 · 마법 서책: 바탕체, 금빛 이중선, 네 갈래 별 */
+[data-theme-style=star]{--t-choice-radius:3px;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6-2.6 7.9-2.6-7.9L1.5 12l7.9-2.6z'/%3E%3C/svg%3E")}
+[data-theme-style=star] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge),0 8px 24px #0005;background-image:radial-gradient(circle at 95% 5%,#f6d67a22 0 2px,transparent 3px)}
 [data-theme-style=star] :is(#statusBar,.themeSampleStatus){border-top:3px double var(--t-accent)}
-[data-theme-style=star] :is(#who,.themeSampleWho){text-align:center;letter-spacing:.12em}
-[data-theme-style=star] :is(#who,.themeSampleWho)::before{content:'✦ ';color:var(--t-accent)}
-[data-theme-style=star] :is(#answers button,.themeSampleChoices>span){border-top:3px double var(--t-edge)}
-[data-theme-style=star] :is(#answers button>span,.themeSampleChoices>span)::before{content:'✧ ';color:var(--t-accent)}
+[data-theme-style=star] :is(#who,.themeSampleWho){letter-spacing:.1em}
+[data-theme-style=star] :is(#answers button,.themeSampleChoices>span){border:3px double var(--t-edge)}
 [data-theme-style=star] .historyEntry{border-bottom:3px double var(--t-edge)}
-/* 8. Horror record: near-black paper, red scratches and ritual tally marks. */
-[data-theme-style=gothic] :is(#box,.themeSampleBody){background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%);box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360}
+
+/* 8. 붉은 서약 · 공포 기록: 바탕체, 긁힌 붉은 선, 십자 */
+[data-theme-style=gothic]{--t-choice-radius:0;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10.3 2h3.4v5.6h5.1V11h-5.1v11h-3.4V11H5.2V7.6h5.1z'/%3E%3C/svg%3E")}
+[data-theme-style=gothic] :is(#box,.themeSampleBody){background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%);box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360,0 8px 24px #0006}
 [data-theme-style=gothic] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:3px solid var(--t-edge);background-image:repeating-linear-gradient(112deg,transparent 0 19px,#a14e4320 19px 20px)}
-[data-theme-style=gothic] :is(#who,.themeSampleWho){letter-spacing:.13em;border-bottom:1px solid var(--t-edge);padding-bottom:6px}
-[data-theme-style=gothic] :is(#who,.themeSampleWho)::before{content:'† ';color:var(--t-accent)}
-[data-theme-style=gothic] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed}
-[data-theme-style=gothic] :is(#answers button>span,.themeSampleChoices>span)::before{content:'† ';color:var(--t-accent)}
+[data-theme-style=gothic] :is(#who,.themeSampleWho){letter-spacing:.12em;border-bottom:1px solid var(--t-edge);padding-bottom:6px}
+[data-theme-style=gothic] :is(#answers button,.themeSampleChoices>span){border-style:dashed}
 [data-theme-style=gothic] .historyEntry{border-left:3px solid var(--t-edge);padding-left:12px}
-/* 9. Thriller dossier: monochrome file, evidence numbering and hazard edge. */
-[data-theme-style=mist] :is(#box,.themeSampleBody){box-shadow:inset 0 3px var(--t-ink);border-left:2px solid var(--t-ink);border-right:2px solid var(--t-ink)}
+
+/* 9. 기밀 사건철 · 스릴러: 고딕, 흑백 문서, [01] 증거 번호 */
+[data-theme-style=mist]{--t-prose:ActionSans,system-ui,sans-serif;--t-prose-size:15.5px;--t-prose-spacing:-.005em;--t-choice-radius:0}
+[data-theme-style=mist] :is(#box,.themeSampleBody){box-shadow:inset 0 3px var(--t-ink),0 8px 24px #0003;border-left:2px solid var(--t-ink);border-right:2px solid var(--t-ink)}
 [data-theme-style=mist] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:4px solid transparent;border-image:repeating-linear-gradient(135deg,#303b41 0 7px,#dec55b 7px 14px) 4}
-[data-theme-style=mist] :is(#who,.themeSampleWho){letter-spacing:.14em;text-align:right}
-[data-theme-style=mist] :is(#answers button>span,.themeSampleChoices>span)::before{content:'[' counter(theme-choice,decimal-leading-zero) '] ';color:var(--t-accent)}
-[data-theme-style=mist] :is(#answers button,.themeSampleChoices>span){border-top:2px solid var(--t-edge)}
+[data-theme-style=mist] :is(#who,.themeSampleWho){letter-spacing:.12em;text-transform:uppercase}
+[data-theme-style=mist] :is(#answers button,.themeSampleChoices>span){border-width:1px 1px 1px 2px;border-left-color:var(--t-ink);padding-left:44px}
+[data-theme-style=mist] :is(#answers button>span,.themeSampleChoices>span)::before{content:'[' counter(theme-choice,decimal-leading-zero) ']';-webkit-mask:none;mask:none;background:none;width:auto;height:auto;color:var(--t-accent);font:700 12px/1 ActionSans,sans-serif;font-variant-numeric:tabular-nums;left:-33px}
 [data-theme-style=mist] .historyEntry{border-left:4px solid var(--t-ink);padding-left:12px}
-/* 10. Handheld LCD: green monochrome, hard pixels and a decision cursor. */
+
+/* 10. 레트로 게임 · 휴대용 게임기: 갈무리 픽셀체, 각진 그림자, ▶ 커서 */
+[data-theme-style=pixel]{--t-prose:StoryPixel,ActionSans,monospace;--t-ui:StoryPixel,ActionSans,monospace;--t-prose-size:15px;--t-choice-radius:0;--t-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 3h3v3h3v3h3v6h-3v3H9v3H6z'/%3E%3C/svg%3E")}
 [data-theme-style=pixel] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge);background-image:repeating-linear-gradient(transparent 0 2px,#31482208 2px 3px)}
 [data-theme-style=pixel] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:4px solid var(--t-edge)}
-[data-theme-style=pixel] :is(#who,.themeSampleWho){letter-spacing:.12em}
-[data-theme-style=pixel] :is(#answers button,.themeSampleChoices>span){border-top:2px dashed var(--t-edge)}
-[data-theme-style=pixel] :is(#answers button>span,.themeSampleChoices>span)::before{content:'▶ ';color:var(--t-accent)}
+[data-theme-style=pixel] #who,[data-theme-style=pixel] .themeSampleWho,[data-theme-style=pixel] #answers button>span,[data-theme-style=pixel] .themeSampleChoices>span,[data-theme-style=pixel] #answers .requirement{font-weight:400}
+[data-theme-style=pixel] :is(#answers button,.themeSampleChoices>span){border:2px solid var(--t-edge);box-shadow:2px 2px 0 var(--t-edge)}
+[data-theme-style=pixel] #answers button.locked{box-shadow:none}
 [data-theme-style=pixel] .historyEntry{border-bottom:2px dashed var(--t-edge)}
-/* Keep muted/disabled requirements legible on every material. */
-[data-game-theme] #answers button.locked>span{color:var(--t-muted)}
 
+/* 반투명 창에서는 장식 무늬를 걷어 내 글자를 우선합니다. */
 [data-transparent-panel=true] :is(#box,.themeSampleBody,#statusBar:not([data-theme]),.themeSampleStatus){background-image:none;box-shadow:none}
-#opacityControl{font-family:ActionSans,sans-serif;font-weight:700}
 
-/* Main screen and export preview use this same themed component. */
+/* ─────────────────────────────────────────────────────
+ * 메인 화면 (게임 제목 카드)
+ * ───────────────────────────────────────────────────── */
 .titleFrame{position:relative;overflow:hidden;background:var(--t-history)}
 .titleCover,.titleFrame .titleShade{position:absolute;inset:0}
 .titleCover img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 35%}
 .titleShade{background:linear-gradient(transparent,#0005 65%,#0009);pointer-events:none}
-.titleFrame .titleCard{position:absolute;left:8%;bottom:9%;width:84%;max-height:min(400px,70dvh);display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--t-edge);border-radius:var(--t-radius);background:var(--t-surface);color:var(--t-ink)}
+.titleFrame .titleCard{position:absolute;left:8%;bottom:9%;width:84%;max-height:min(400px,70dvh);display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--t-edge);border-radius:var(--t-radius);background:var(--t-surface);color:var(--t-ink);box-shadow:0 10px 30px #0005}
 .titleCopy{min-height:0;overflow-y:auto;overscroll-behavior:contain;overflow-wrap:anywhere}
-.titleHeading{font-family:ActionSans,sans-serif;font-weight:700;font-size:25px;line-height:1.4;margin:0 0 10px;color:var(--t-accent);overflow-wrap:anywhere}
-.titleIntro{font-family:StorySerif,serif;font-size:15px;line-height:1.7;white-space:pre-wrap;margin:0 0 8px}
-.titleIntro:empty,.titleAuthor:empty{display:none}.titleAuthor{font-size:12px;color:var(--t-muted);font-family:ActionSans,sans-serif}
-.titleFrame .titleButton{min-height:42px;flex-shrink:0;min-width:0;padding:7px 9px;font-family:ActionSans,sans-serif;font-size:13px;font-weight:700;line-height:1.55;border:1px solid var(--t-edge);border-radius:var(--t-radius);background:var(--t-choice);color:var(--t-ink);overflow-wrap:anywhere}
+.titleHeading{font-family:var(--t-ui,ActionSans),sans-serif;font-weight:700;font-size:25px;line-height:1.35;margin:0 0 10px;color:var(--t-accent);overflow-wrap:anywhere;word-break:keep-all;letter-spacing:-.01em}
+.titleIntro{font-family:var(--t-prose,StorySerif),serif;font-size:15px;line-height:1.75;white-space:pre-wrap;margin:0 0 8px;word-break:keep-all}
+.titleIntro:empty,.titleAuthor:empty{display:none}
+.titleAuthor{font-size:12px;color:var(--t-muted);font-family:ActionSans,sans-serif}
+.titleFrame .titleButton{min-height:46px;flex-shrink:0;min-width:0;padding:8px 10px;font-family:var(--t-ui,ActionSans),sans-serif;font-size:15px;font-weight:600;line-height:1.45;border:1px solid var(--t-edge);border-radius:var(--t-choice-radius,var(--t-radius));background:var(--t-choice);color:var(--t-ink);overflow-wrap:anywhere}
 .titleFrame .titleButtonPrimary{background:var(--t-accent);color:var(--t-surface);border-color:var(--t-accent)}
-.titleActions{display:flex;gap:6px}.titleActions button{flex:1}.titleActions:not(:has(button:not([hidden]))){display:none}
-/* Receipt */
-[data-theme-style=soft].titleFrame .titleCard{border-left-style:dashed;box-shadow:inset 4px 0 var(--t-edge)}
+/* The start button carries the same marker as the theme's choices. */
+.titleFrame .titleButtonPrimary::before{content:'';display:inline-block;width:.68em;height:.68em;margin-right:.45em;vertical-align:-.04em;background:currentColor;-webkit-mask:var(--t-mark) center/contain no-repeat;mask:var(--t-mark) center/contain no-repeat}
+[data-theme-style=paper].titleFrame .titleButtonPrimary::before{content:'01';width:auto;height:auto;background:none;-webkit-mask:none;mask:none;font-variant-numeric:tabular-nums}
+[data-theme-style=mist].titleFrame .titleButtonPrimary::before{content:'[01]';width:auto;height:auto;background:none;-webkit-mask:none;mask:none;font-variant-numeric:tabular-nums}
+.titleActions{display:flex;gap:6px}
+.titleActions button{flex:1}
+.titleActions:not(:has(button:not([hidden]))){display:none}
+
+[data-theme-style=soft].titleFrame .titleCard{box-shadow:inset 4px 0 var(--t-edge),0 10px 30px #0005}
 [data-theme-style=soft].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
-[data-theme-style=soft].titleFrame .titleButton{border-style:dotted}
-[data-theme-style=soft].titleFrame .titleButtonPrimary::before{content:'› '}
-/* Love letter */
-[data-theme-style=romance].titleFrame .titleCard{background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge);text-align:center}
-[data-theme-style=romance].titleFrame .titleHeading{letter-spacing:.05em}
-[data-theme-style=romance].titleFrame .titleHeading::before{content:'♡ '}
-[data-theme-style=romance].titleFrame .titleButton{border-radius:24px;border-style:dashed}
-[data-theme-style=romance].titleFrame .titleButtonPrimary::before{content:'♡ '}
-/* Notebook */
-[data-theme-style=paper].titleFrame .titleCard{background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 6px 0 var(--t-edge);border-top:3px double var(--t-accent)}
+[data-theme-style=soft].titleFrame .titleButton{border-style:dotted;border-width:1.5px}
+[data-theme-style=romance].titleFrame .titleCard{background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge),0 10px 30px #0005;text-align:center}
+[data-theme-style=romance].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
+[data-theme-style=romance].titleFrame .titleButton{border-radius:24px}
+[data-theme-style=paper].titleFrame .titleCard{background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 6px 0 var(--t-edge),0 10px 30px #0005;border-top:3px double var(--t-accent)}
 [data-theme-style=paper].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
 [data-theme-style=paper].titleFrame .titleButton{border-radius:0;border-style:dashed}
-[data-theme-style=paper].titleFrame .titleButtonPrimary::before{content:'01. '}
-/* Console */
-[data-theme-style=neon].titleFrame .titleCard{border-radius:0;box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent);background-image:repeating-linear-gradient(transparent 0 3px,#66edff04 3px 4px)}
-[data-theme-style=neon].titleFrame .titleHeading{letter-spacing:.07em}
-[data-theme-style=neon].titleFrame .titleHeading::before{content:'// '}
+[data-theme-style=neon].titleFrame .titleCard{border-radius:0;box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent),0 0 24px #66edff22;background-image:repeating-linear-gradient(transparent 0 3px,#66edff05 3px 4px)}
+[data-theme-style=neon].titleFrame .titleHeading{letter-spacing:.04em}
 [data-theme-style=neon].titleFrame .titleButton{border-radius:0;border-left:3px solid var(--t-accent)}
 [data-theme-style=neon].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
-[data-theme-style=neon].titleFrame .titleButtonPrimary::before{content:'>_ '}
-/* Blue glass */
-[data-theme-style=glass].titleFrame .titleCard{background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);border-top:3px solid var(--t-accent);box-shadow:inset 0 4px #fff5}
-[data-theme-style=glass].titleFrame .titleHeading{text-align:center}
-[data-theme-style=glass].titleFrame .titleButton{border-radius:14px;border-bottom:3px double var(--t-edge)}
-[data-theme-style=glass].titleFrame .titleButtonPrimary::before{content:'≈ '}
-/* Forest journal */
-[data-theme-style=leaf].titleFrame .titleCard{border:1px dashed var(--t-edge);border-radius:16px 3px;box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730}
-[data-theme-style=leaf].titleFrame .titleHeading::before{content:'❧ '}
+[data-theme-style=glass].titleFrame .titleCard{background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);border-top:3px solid var(--t-accent);box-shadow:inset 0 4px #fff5,0 10px 30px #0004}
+[data-theme-style=glass].titleFrame .titleButton{border-radius:14px}
+[data-theme-style=leaf].titleFrame .titleCard{border:1px dashed var(--t-edge);border-radius:16px 3px;box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730,0 10px 30px #0005}
+[data-theme-style=leaf].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
 [data-theme-style=leaf].titleFrame .titleButton{border-radius:3px 14px;border-style:dashed}
-[data-theme-style=leaf].titleFrame .titleButtonPrimary::before{content:'❧ '}
-/* Gilded spellbook */
-[data-theme-style=star].titleFrame .titleCard{border:3px double var(--t-edge);box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge)}
-[data-theme-style=star].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.08em;text-align:center}
-[data-theme-style=star].titleFrame .titleHeading::before{content:'✦ '}
-[data-theme-style=star].titleFrame .titleButton{border:3px double var(--t-edge)}
-[data-theme-style=star].titleFrame .titleButtonPrimary::before{content:'✧ '}
-/* Horror record */
-[data-theme-style=gothic].titleFrame .titleCard{border-radius:0;box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360;background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%)}
-[data-theme-style=gothic].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.1em;border-bottom:1px solid var(--t-edge);padding-bottom:8px}
-[data-theme-style=gothic].titleFrame .titleHeading::before{content:'† '}
+[data-theme-style=star].titleFrame .titleCard{border:3px double var(--t-edge);box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge),0 10px 30px #0006}
+[data-theme-style=star].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.06em;text-align:center}
+[data-theme-style=star].titleFrame .titleButton{border:3px double var(--t-edge);border-radius:3px}
+[data-theme-style=gothic].titleFrame .titleCard{border-radius:0;box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360,0 10px 30px #0007;background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%)}
+[data-theme-style=gothic].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.08em;border-bottom:1px solid var(--t-edge);padding-bottom:8px}
 [data-theme-style=gothic].titleFrame .titleButton{border-radius:0;border-style:dashed}
 [data-theme-style=gothic].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
-[data-theme-style=gothic].titleFrame .titleButtonPrimary::before{content:'† '}
-/* Thriller dossier */
 [data-theme-style=mist].titleFrame .titleCard{border-radius:0;border-top:4px solid transparent;border-image:repeating-linear-gradient(135deg,#303b41 0 7px,#dec55b 7px 14px) 4;box-shadow:inset 2px 0 var(--t-ink),inset -2px 0 var(--t-ink)}
-[data-theme-style=mist].titleFrame .titleHeading{letter-spacing:.09em;text-align:right}
-[data-theme-style=mist].titleFrame .titleButton{border-radius:0;border-width:2px}
-[data-theme-style=mist].titleFrame .titleButtonPrimary::before{content:'[01] '}
-/* Handheld LCD */
+[data-theme-style=mist].titleFrame .titleHeading{letter-spacing:.06em}
+[data-theme-style=mist].titleFrame .titleButton{border-radius:0;border-width:1px 1px 1px 2px;border-left-color:var(--t-ink)}
 [data-theme-style=pixel].titleFrame .titleCard{border-radius:0;border:3px solid var(--t-edge);background-image:repeating-linear-gradient(transparent 0 2px,#31482208 2px 3px);box-shadow:3px 3px 0 var(--t-edge)}
-[data-theme-style=pixel].titleFrame .titleHeading{letter-spacing:.06em}
-[data-theme-style=pixel].titleFrame .titleButton{border-radius:0;border-width:2px;box-shadow:2px 2px 0 var(--t-edge)}
-[data-theme-style=pixel].titleFrame .titleButtonPrimary::before{content:'▶ '}
+[data-theme-style=pixel].titleFrame .titleHeading{font-weight:400;letter-spacing:.02em}
+[data-theme-style=pixel].titleFrame .titleButton{border-radius:0;border-width:2px;box-shadow:2px 2px 0 var(--t-edge);font-weight:400}
+
 /* The compact preview retains the full screen's typography family and decorations. */
 #landingCardPreview{height:210px;flex-shrink:0;margin-bottom:8px;border:1px solid var(--t-edge);border-radius:4px}
 .titleFrame[data-title-preview] .titleCard{bottom:8px;padding:10px;gap:5px;max-height:calc(100% - 16px)}
@@ -223,3 +290,8 @@
 .titleFrame[data-title-preview] .titleAuthor{font-size:9px}
 .titleFrame[data-title-preview] .titleButton{min-height:27px;padding:3px 6px;font-size:10px}
 .titleFrame[data-title-preview] .titleButton:disabled{opacity:1;cursor:default}
+.themeSampleChoices>span::before{left:10px!important}
+/* Material icons use a 960-unit grid: outline width for empty/lost units. */
+:is(.life,.themeSamplesIcons):is(.empty,.lost) svg{stroke-width:70}
+/* Mood faces carry their own outline variant; no stroke. */
+#mental .resourceUnit svg,.themeSamplesIcons svg[data-icon=mood]{stroke:none!important;fill:currentColor!important}

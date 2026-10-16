@@ -6,18 +6,23 @@ public static final String TEMPLATE_PACKAGE="com.eventvn.play.template";
 static final Set<String> JS=new HashSet<>(Arrays.asList("app.js","core.js","themes.js","themes.css","style.css","vault.js","saves.js","depot.js","history.js","audio.js","sound-editor.js","feedback.js","player-bootstrap.js","game-title.js","image-compose.js","game-management.js","creator-backup.js","variations.js","editor-variations.js"));
 public static String packageName(String gameId,X509Certificate cert)throws Exception{if(!gameId.matches("[a-zA-Z0-9_-]{1,100}"))throw new IOException("게임 ID 형식");MessageDigest m=MessageDigest.getInstance("SHA-256");m.update(cert.getPublicKey().getEncoded());m.update(gameId.getBytes(StandardCharsets.UTF_8));StringBuilder s=new StringBuilder("com.eventvn.play.g");for(byte b:m.digest())s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}
 public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert)throws Exception{build(shell,editor,data,output,work,pkg,title,version,key,cert,null);}
-public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon)throws Exception{
+public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon)throws Exception{build(shell,editor,data,output,work,pkg,title,version,key,cert,icon,null,null);}
+/** media: APK path (assets/media/<hash>.<ext>) to file; fonts: font file names the game uses, or null for all. */
+public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon,Map<String,File> media,Set<String> fonts)throws Exception{
  if(!pkg.matches("com\\.eventvn\\.play\\.g[a-f0-9]{64}")||title.isEmpty()||title.length()>100||version<1||data.length()>50000000)throw new IOException("APK 내보내기 설정");
  File unsigned=new File(work,"unsigned.apk");Set<String> names=new HashSet<>();
  try(ZipFile base=new ZipFile(shell);ZipFile runtime=new ZipFile(editor);CountStream count=new CountStream(new FileOutputStream(unsigned));ZipOutputStream out=new ZipOutputStream(count)){
   for(Enumeration<? extends ZipEntry> it=base.entries();it.hasMoreElements();){ZipEntry e=it.nextElement();if(e.isDirectory()||e.getName().startsWith("META-INF/"))continue;if(icon!=null&&e.getName().equals("res/drawable/icon.xml"))continue;byte[] bytes=read(base.getInputStream(e),20000000);if(e.getName().equals("AndroidManifest.xml"))bytes=manifest(bytes,pkg,title,version);else if(e.getName().equals("resources.arsc"))bytes=resources(bytes,pkg);if(icon!=null&&e.getName().equals("resources.arsc"))bytes=iconResource(bytes);put(out,count,e.getName(),bytes,e.getName().equals("resources.arsc"));names.add(e.getName());}
   for(Enumeration<? extends ZipEntry> it=runtime.entries();it.hasMoreElements();){ZipEntry e=it.nextElement();String n=e.getName();if(e.isDirectory()||!n.startsWith("assets/"))continue;String rel=n.substring(7),dest=n;
    if(rel.equals("player-index.html"))dest="assets/index.html";else if(!(JS.contains(rel)||rel.startsWith("fonts/")||rel.startsWith("sfx/")))continue;
+   if(fonts!=null&&rel.startsWith("fonts/")&&rel.endsWith(".woff2")&&!fonts.contains(rel.substring(6)))continue;
    put(out,count,dest,read(runtime.getInputStream(e),20000000),false);names.add(dest);
   }
   if(!names.contains("assets/index.html")||!names.contains("classes.dex")||!names.contains("assets/player-bootstrap.js"))throw new IOException("플레이어 구성 누락");
   if(icon!=null)put(out,count,"res/drawable/icon.png",read(new FileInputStream(icon),1000000),false);
   put(out,count,"assets/game.json",read(new FileInputStream(data),50000000),false);
+  // Already-compressed pictures and sounds are stored as-is and 4-byte aligned for direct asset reads.
+  if(media!=null){long total=0;for(Map.Entry<String,File> m:media.entrySet()){String n=m.getKey();if(!n.matches("assets/media/[a-f0-9]{32}\\.(webp|png|jpg|ogg|mp3|wav|m4a|aac|flac|webm)")||names.contains(n))throw new IOException("그림·소리 파일 형식");byte[] bytes=read(new FileInputStream(m.getValue()),40000000);total+=bytes.length;if(total>300000000L)throw new IOException("그림·소리 크기 제한");put(out,count,n,bytes,!n.endsWith(".wav"));names.add(n);}}
  }
  ApkSigner.SignerConfig signer=new ApkSigner.SignerConfig.Builder("game",key,Collections.singletonList(cert)).build();
  new ApkSigner.Builder(Collections.singletonList(signer)).setInputApk(unsigned).setOutputApk(output).setMinSdkVersion(26).setV1SigningEnabled(false).setV2SigningEnabled(true).setV3SigningEnabled(false).setV4SigningEnabled(false).setOtherSignersSignaturesPreserved(false).build().sign();

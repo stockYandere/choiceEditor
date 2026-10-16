@@ -52,7 +52,7 @@
 /* The marker sits beside the first line of the choice text, below any requirement tags. */
 [data-game-theme] #answers button>span{position:relative}
 [data-game-theme] #answers button>span::before,.themeSampleChoices>span::before{content:'';position:absolute;left:-19px;top:calc(15px * .725 * var(--story-scale,1) * var(--fit,1));width:10px;height:10px;transform:translateY(-50%);background:var(--t-accent);-webkit-mask:var(--t-mark) center/contain no-repeat;mask:var(--t-mark) center/contain no-repeat}
-[data-game-theme] #answers button:not(:disabled):active{transform:translateY(1px);filter:brightness(.95)}
+[data-game-theme] #answers button:not(:disabled):not(.locked):active{transform:translateY(1px);filter:brightness(.95)}
 [data-game-theme] #answers button.locked,[data-game-theme] #answers button:disabled{background:transparent;border-style:dashed;color:var(--t-muted);opacity:1}
 [data-game-theme] #answers button.locked>span::before{background:var(--t-empty)}
 [data-theme-style=paper] #answers button.locked>span::before,[data-theme-style=mist] #answers button.locked>span::before{background:none;color:var(--t-muted)}

@@ -234,7 +234,7 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 .sceneChoice.locked{border-style:dashed}
 .sceneChoice.hiddenChoice{opacity:.55;border-style:dotted}
 .sceneChoice .requirement.met{color:#8fe0a8}.sceneChoice .requirement.missing{color:#ffadad}
-.incoming .linkJump{display:flex;flex-direction:column;align-items:flex-start;white-space:normal;text-align:left;min-height:42px}
+.linkJump{display:flex;flex-direction:column;align-items:flex-start;white-space:normal;text-align:left;min-height:42px}
 .incoming .linkJump small{font-size:11px;color:#9fb0c6}
 .fieldHint{display:block;margin:-6px 0 8px;font-size:11px}
 .requiresExtra{align-items:center}
@@ -242,3 +242,19 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 .compareLine{font-size:12px;line-height:1.6;white-space:pre-wrap;border-left:3px solid #41546c;padding-left:8px;color:#d3deeb}
 .definitionName[data-usage-def]{cursor:pointer}
 .usageHead{font-size:13px;margin:14px 0 4px;color:#c6ddff}
+/* v0.1.28 mobile details */
+#moreCue{position:sticky;bottom:0;height:0;pointer-events:none;z-index:2}#moreCue::after{content:'▼ 더 보기';position:absolute;right:0;bottom:4px;padding:4px 10px;border-radius:999px;font:600 11.5px/1.3 ActionSans,system-ui,sans-serif;background:var(--t-accent,#8fb6e8);color:var(--t-surface,#101b2f);box-shadow:0 1px 4px #0007;opacity:0;transition:opacity .15s;pointer-events:none}#box.hasMore #moreCue::after{opacity:1;pointer-events:auto}#box.typing #moreCue::after{opacity:0;pointer-events:none}
+[data-low-panel=true] #who,[data-low-panel=true] #dialogue,[data-low-panel=true] #sceneTools button,[data-low-panel=true] #sceneTools label{background:color-mix(in srgb,var(--t-surface,#101b2f) 72%,transparent);border-radius:6px;text-shadow:0 0 3px var(--t-surface,#101b2f)}[data-low-panel=true] #who{display:inline-block;padding:1px 6px}[data-low-panel=true] #dialogue{padding:4px 7px}
+#answers .requirement{font-size:max(11px,calc(11.5px * var(--story-scale,1) * var(--fit,1)))}
+.saveSlot button{min-height:44px;min-width:44px}@media (max-height:620px){#stateSheet{height:min(84dvh,560px)}}
+#statusIcons{cursor:pointer}
+#toast[popover]{top:auto;right:auto;margin:0;border:0;overflow:visible}#toast:empty{display:none}
+#toast[popover]{top:auto;right:auto}
+summary{padding:13px 0;min-height:44px;box-sizing:border-box}#modalBody button,#cropControls button{min-height:44px}.full+.full{margin-top:8px}header .iconButton,#files{width:44px;min-width:44px}.listTop h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.listTop button{padding:6px 8px}
+.themeSample{position:sticky;top:-8px;z-index:2}
+#files[data-issue-level=warn]::after{background:#4b5d75;color:#e6eef8}
+.apkFooter small{white-space:normal}.apkFooter button{flex-shrink:0;min-width:120px}#makeGameApk.busy,#exportApk.busy{opacity:.9;background:#2e4766}#saveStatus.apkBusy::after{content:' · APK 만드는 중…';color:#9fc6ff}
+#modalBody .linkJump{text-align:left;align-items:flex-start}
+#modalBody input[type=checkbox],#modalBody input[type=radio]{min-height:0;width:20px;height:20px;flex-shrink:0;margin:0}#modalBody label:has(>input[type=checkbox]){display:flex;align-items:center;gap:10px;min-height:44px}
+body.keyboardOpen #editorNav{display:none}
+@supports (field-sizing:content){#copy{field-sizing:content;height:auto;max-height:50dvh}}

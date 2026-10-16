@@ -17,7 +17,8 @@ final PartitionStore content=new PartitionStore(getFilesDir());
 @JavascriptInterface public void finishGame(){runOnUiThread(()->finish());}
 }
 @Override public void onBackPressed(){handleBack();}
-void handleBack(){web.evaluateJavascript("window.appBack ? window.appBack() : 'EXIT'",v->{if(v==null||!v.contains("HANDLED"))finish();});}
+long backTime;
+void handleBack(){web.evaluateJavascript("window.appBack ? window.appBack() : 'EXIT'",v->{if(v!=null&&v.contains("HANDLED"))return;long now=System.currentTimeMillis();if(now-backTime<2000)finish();else{backTime=now;Toast.makeText(this,"뒤로 한 번 더 누르면 종료합니다",Toast.LENGTH_SHORT).show();}});}
 static class ModernBack {@android.annotation.TargetApi(33) static void register(PlayerActivity a){a.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,a::handleBack);}}
 @Override protected void onPause(){if(web!=null)web.evaluateJavascript("window.GameAudio && GameAudio.suspend();window.clearEffects && clearEffects();window.finishDialogue && finishDialogue();window.flushPersist && window.flushPersist()",null);super.onPause();}
 @Override protected void onResume(){super.onResume();if(web!=null)web.evaluateJavascript("window.GameAudio && GameAudio.resume()",null);}

@@ -92,10 +92,24 @@
     return { ok, label: text, hidden: !ok && c.hideLocked };
   }
 
-  function insertVariation(textarea, build) {
-    const start = textarea.selectionStart, end = textarea.selectionEnd, selection = textarea.value.slice(start, end);
-    const { text, from, to } = build(selection);
+  function finalConsonant(word) {
+    const code = word.charCodeAt(word.length - 1);
+    return code >= 0xAC00 && code <= 0xD7A3 ? (code - 0xAC00) % 28 : /[0136-8]$/.test(word) ? 1 : 0;
+  }
+
+  // Until the writer has put the caret somewhere, add to the end of the text, not before it.
+  function caret(textarea) {
+    if (textarea.dataset.caretPlaced) return [textarea.selectionStart, textarea.selectionEnd];
+    const n = textarea.value.length;
+    return [n, n];
+  }
+
+  function insertVariation(textarea, build, range) {
+    const [start, end] = range || caret(textarea), selection = textarea.value.slice(start, end);
+    const built = build(selection), lead = start === end && start > 0 && !/\s$/.test(textarea.value.slice(0, start)) ? ' ' : '';
+    const { text, from, to } = { text: lead + built.text, from: built.from + lead.length, to: built.to + lead.length };
     textarea.setRangeText(text, start, end, 'end');
+    textarea.dataset.caretPlaced = '1';
     textarea.focus();
     textarea.setSelectionRange(start + from, start + to);
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -118,7 +132,7 @@
     const group = (label, items) => items.length ? `<optgroup label="${label}">${items.join('')}</optgroup>` : '';
     const option = (value, text) => `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`;
     const defs = type => project.definitions.filter(d => d.type === type && !/[{}|?&!]/.test(d.name)).map(d => option(d.name, d.name));
-    const scenes = project.events.filter(x => x.id !== e.id && x.title.trim() && !/[{}|?&!]/.test(x.title)).slice(0, 80).map(x => option('@' + x.title.trim(), x.title.trim() + ' 을(를) 지나왔을 때'));
+    const scenes = project.events.filter(x => x.id !== e.id && x.title.trim() && !/[{}|?&!]/.test(x.title)).slice(0, 80).map(x => option('@' + x.title.trim(), x.title.trim() + (finalConsonant(x.title.trim()) ? '을' : '를') + ' 지나왔을 때'));
     return '<option value="">어떤 조건에서 달라질까요?</option>'
       + group('기억 · 지난 선택', defs('memory'))
       + group('능력', defs('ability')) + group('아이템', defs('item')) + group('상태', defs('state'))
@@ -172,7 +186,7 @@
     const pick = byId('varPick');
     let range = [0, 0];
     byId('varCondition').onclick = () => {
-      range = [textarea.selectionStart, textarea.selectionEnd];
+      range = caret(textarea);
       pick.hidden = false;
       pick.value = '';
       pick.focus();
@@ -186,6 +200,7 @@
       insertVariation(textarea, wrapCondition(condition));
     };
     pick.onblur = () => { if (!pick.value) pick.hidden = true; };
+    textarea.addEventListener('focus', () => { textarea.dataset.caretPlaced = '1'; });
     textarea.addEventListener('input', () => refresh(e));
     byId('speaker').addEventListener('input', () => refresh(e));
     refresh(e);

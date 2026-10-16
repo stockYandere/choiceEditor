@@ -79,9 +79,9 @@ const edges=new Map(events.map(e=>[e.id,new Set()]));edges.set('@storyHub',new S
 for(const e of events){
 const index=events.indexOf(e);
 if(e.audio?.bgmMode==='play'&&!e.audio.bgm)add(e,'재생할 BGM 파일을 선택하세요.','error');
-if(!e.title.trim())add(e,'장면 이름을 입력하세요.');
+if(!e.title.trim())add(e,'사건 이름을 입력하세요.');
 if(!e.text.trim())add(e,'대사·상황 설명이 비어 있습니다.');
-if(nameCounts.get(e.title.trim())>1)add(e,'같은 이름의 장면이 있어 연결할 때 헷갈릴 수 있습니다.');
+if(nameCounts.get(e.title.trim())>1)add(e,'같은 이름의 사건이 있어 연결할 때 헷갈릴 수 있습니다.');
 if(!e.choices.length)add(e,'선택지가 없어 진행할 수 없습니다.','error');
 if(e.choices.length&&e.choices.every(c=>c.requires||c.lose||c.money<0||c.branch?.lose||c.branch?.money<0))add(e,'모든 선택에 보유 조건·소모가 있습니다. 보유량에 따라 길이 막힐 수 있어요.');
 for(const c of e.choices){
@@ -90,12 +90,12 @@ for(const out of [c,...(c.branch?[c.branch]:[])]){
 const n=out.next;
 if(n==='random'){if(!pool.length)add(e,'랜덤 인카운터가 하나도 등록되지 않았습니다.','error',c.id);edges.get(e.id).add('@encounterHub');if(pool.length===1&&pool[0].id===e.id&&e.once)add(e,'이 사건이 유일한 인카운터라, 한 번 완료하면 다음 랜덤 사건이 없습니다.','warning',c.id);}
 else if(n==='sequence'){if(e.kind==='story'){const next=events.find((x,i)=>i>index&&x.kind==='story');if(next)edges.get(e.id).add(next.id);else add(e,'다음 스토리가 없어 여기서 이야기가 끝납니다. 의도한 끝인지 확인하세요.','warning',c.id);}else edges.get(e.id).add('@storyHub');}
-else if(n!=='end'){if(!ids.has(n))add(e,'다음 장면 연결이 끊겨 있습니다.','error',c.id);else edges.get(e.id).add(n);if(n===e.id)add(e,'이 선택은 같은 장면으로 돌아옵니다. 반복이 의도한 것인지 확인하세요.','warning',c.id);}
+else if(n!=='end'){if(!ids.has(n))add(e,'다음 사건 연결이 끊겨 있습니다.','error',c.id);else edges.get(e.id).add(n);if(n===e.id)add(e,'이 선택은 같은 사건으로 돌아옵니다. 반복이 의도한 것인지 확인하세요.','warning',c.id);}
 }
 }
 }
 const reachable=new Set(),todo=events[0]?[events[0].id]:[];while(todo.length){const id=todo.pop();if(reachable.has(id))continue;reachable.add(id);for(const n of edges.get(id)||[])todo.push(n);}
-for(const e of events)if(!reachable.has(e.id))add(e,'첫 장면에서 이 장면으로 오는 경로가 없습니다.');
+for(const e of events)if(!reachable.has(e.id))add(e,'첫 사건에서 이 사건으로 오는 경로가 없습니다.');
 // Conservative path analysis: warns only when no structural route can supply a used item.
 const allOutcomes=events.flatMap(e=>e.choices.flatMap(c=>[c,...(c.branch?[c.branch]:[])]));
 // Text variations: report broken braces and unknown names, and count names used in lines.

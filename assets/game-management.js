@@ -1,0 +1,6 @@
+(function(root){'use strict';const WEEK=7*86400000;
+function expire(store,now=Date.now()){const before=store.trash?.length||0;store.trash=(store.trash||[]).filter(t=>now-t.deletedAt<WEEK);return before!==store.trash.length;}
+function remove(store,id,now=Date.now()){expire(store,now);const i=store.games.findIndex(g=>g.id===id);if(i<0)throw Error('게임을 찾지 못했습니다.');const [game]=store.games.splice(i,1);const forms=Object.fromEntries(Object.entries(store.formDrafts||{}).filter(([k])=>k.startsWith(id+':')));for(const k of Object.keys(forms))delete store.formDrafts[k];store.trash.push({game,deletedAt:now,formDrafts:forms});if(store.active===id)store.active=store.games[0]?.id||'';return game;}
+function restore(store,id,now=Date.now()){expire(store,now);const i=store.trash.findIndex(t=>t.game.id===id);if(i<0)throw Error('복구 기간이 지났습니다.');if(store.games.length>=100)throw Error('게임은 최대 100개까지 보관할 수 있습니다.');if(store.games.some(g=>g.id===id))throw Error('같은 게임이 이미 있습니다.');const [t]=store.trash.splice(i,1);store.games.push(t.game);store.formDrafts={...store.formDrafts,...t.formDrafts};store.active=id;return t.game;}
+root.GameManagement={expire,remove,restore};if(typeof module!=='undefined')module.exports=root.GameManagement;
+})(globalThis);

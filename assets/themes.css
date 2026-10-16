@@ -1,0 +1,225 @@
+/* Presets are scoped to game surfaces. Editor forms keep their neutral palette. */
+[data-game-theme]{color:var(--t-ink);color-scheme:light}
+[data-game-theme]:is([data-game-theme=noir],[data-game-theme=forest],[data-game-theme=starlight],[data-game-theme=gothic]){color-scheme:dark}
+[data-game-theme] #box,[data-game-theme] .previewBox{background:var(--t-panel,var(--t-surface));color:var(--t-ink);border-color:var(--t-edge);border-radius:0;box-shadow:0 6px 18px #0003}
+[data-game-theme] #statusBar{background:var(--t-panel,var(--t-surface));color:var(--t-accent);border-color:var(--t-edge);border-radius:var(--t-radius) var(--t-radius) 0 0}
+[data-game-theme] #who,.themeSample b{color:var(--t-accent);letter-spacing:.04em}
+[data-game-theme] #bag{color:var(--t-accent)}
+[data-game-theme] #answers button{color:var(--t-ink);border-color:var(--t-edge);padding:10px 0}
+[data-game-theme] #answers button:active{background:var(--t-choice)}
+[data-game-theme] #answers button.locked{color:var(--t-muted);opacity:1}
+[data-game-theme] #answers .cost{color:var(--t-muted)}
+[data-game-theme] #answers .met,[data-game-theme] .gain{color:var(--t-gain)!important}
+[data-game-theme] #answers .missing,[data-game-theme] .loss{color:var(--t-loss)!important}
+[data-game-theme] #sceneTools button{background:var(--t-surface);color:var(--t-accent);border-color:var(--t-edge);border-radius:var(--t-radius)}
+[data-game-theme] :focus-visible{outline-color:var(--t-accent)}
+[data-game-theme] #acquisitionArt{border-color:var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);background:var(--t-surface)}
+[data-game-theme] #statusBar.notice-gain,[data-game-theme] #statusBar[data-theme]{background:var(--t-gain-bg);color:var(--t-gain);border-color:var(--t-edge);box-shadow:inset 3px 0 0 var(--t-gain)}
+[data-game-theme] #statusBar.notice-loss,[data-game-theme] #statusBar.notice-error,[data-game-theme] #statusBar:is([data-theme=loss],[data-theme=death]){background:var(--t-loss-bg);color:var(--t-loss);box-shadow:inset 3px 0 0 var(--t-loss)}
+[data-game-theme] #statusBar.notice-info{background:var(--t-choice);color:var(--t-ink)}
+[data-game-theme] #statusBar[data-theme] #statusText{text-shadow:none}
+[data-game-theme] #statusSymbol{background:transparent}
+[data-game-theme] .life.filled{color:var(--t-loss)}
+[data-game-theme] .resourceUnit.filled{color:var(--t-accent)}
+[data-game-theme] .life.empty,[data-game-theme] .resourceUnit.empty{color:var(--t-empty)}
+[data-game-theme] .life.lost,[data-game-theme] .resourceUnit.lost,[data-game-theme] .critical .resourceUnit.filled{color:var(--t-loss)}
+[data-game-theme] #money .resourceUnit.filled{color:var(--t-coin)}
+[data-game-theme] .hpMeter{background:var(--t-empty)}[data-game-theme] .hpMeter i{background:var(--t-loss)}
+#statusIcons .life svg{width:14px;height:18px}#statusIcons .resourceUnit svg{width:15px;height:18px}#statusIcons .iconGauge,#statusIcons .iconGauge svg{width:20px;height:22px}
+#sheetHealth .life svg{width:16px;height:18px}
+#mental .brainDetail{fill:none;stroke:var(--t-surface,#101b2f);stroke-width:1.3}
+#mental .empty .brainDetail,#mental .lost .brainDetail{stroke:currentColor}
+#historySheet[data-game-theme],#stateSheet[data-game-theme]{background:var(--t-history);color:var(--t-ink);border-color:var(--t-edge)}
+[data-game-theme] .historyHead,[data-game-theme] .sheetHead,[data-game-theme] .historyEntry,[data-game-theme] .stateItem,[data-game-theme] .sheetResourceSummary,[data-game-theme] .recentChanges{border-color:var(--t-edge)}
+[data-game-theme] .historyEntry b{color:var(--t-accent)}
+[data-game-theme] :is(.historyEntry small,.historyEmpty,.emptyState,.passiveInfo,.sheetResourceSummary,.recentChanges>small,.hint,.audioVolume,.stateItem>span:last-child,.stateItem>span:nth-child(3)){color:var(--t-muted)}
+[data-game-theme] .recentChanges p{color:var(--t-ink)}
+#stateSheet[data-game-theme] button,#historySheet[data-game-theme] button{background:var(--t-choice);color:var(--t-ink);border-color:var(--t-edge);border-radius:var(--t-radius)}
+#stateSheet[data-game-theme] button.active{background:var(--t-accent);color:var(--t-surface)}
+[data-game-theme] .stateKind{background:var(--t-choice);color:var(--t-accent)}
+[data-game-theme] #playerSoundSettings{border-color:var(--t-edge)}[data-game-theme] #playerSoundSettings summary{color:var(--t-accent)}
+[data-game-theme] input[type=range]{accent-color:var(--t-accent)}
+/* One preview and a compact preset grid, inside the existing modal scroll area. */
+.themeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0}
+.themePreset{display:block;text-align:left;min-height:60px;padding:8px;border:1px solid #52647b;background:#1b2839;min-width:0}
+.themePreset b{display:block;font-size:12px;overflow-wrap:anywhere}.themePreset small{display:block;font-size:10px;color:#b8c7da;line-height:1.5;margin-top:3px}
+.themePreset[aria-pressed=true]{outline:2px solid #bcd5f4;outline-offset:-2px;background:#2d4360}.themeSwatches{display:flex;gap:3px;margin-top:5px}.themeSwatches i{width:17px;height:5px;border-radius:2px}
+[data-game-theme] .art,[data-game-theme] .previewArt{background:var(--t-history);color:var(--t-muted)}
+
+@font-face{font-family:StorySerif;src:url('fonts/NanumMyeongjo-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:ActionSans;src:url('fonts/NotoSansKR-Bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
+/* Observed in Seoul2033's official screenshots: serif prose, bold sans choices, horizontal rules. */
+#dialogue,.historyEntry p,.themeSampleBody p{font-family:StorySerif,serif;font-weight:400;line-height:1.8;letter-spacing:0}
+#answers button>span,.historyEntry small,.themeSampleChoices>span{font-family:ActionSans,sans-serif;font-weight:700;line-height:1.65}
+#answers .requirement{font-family:ActionSans,sans-serif;font-weight:700;font-size:10px}
+#who,.themeSampleWho{font-family:ActionSans,sans-serif;font-weight:700}
+#answers{margin-top:16px;counter-reset:theme-choice}
+#answers button{counter-increment:theme-choice;min-height:42px;overflow-wrap:anywhere}
+/* The utility row joins the same frame edge to edge; no detached pills or gaps. */
+[data-game-theme] #box{border-bottom:0;border-radius:0}
+[data-game-theme] #sceneTools{top:100%;height:38px;display:grid;grid-template-columns:.9fr .9fr 1.7fr;gap:0;margin:0;border:1px solid var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);overflow:hidden;background:var(--t-panel,var(--t-surface))}
+[data-game-theme] #sceneTools button{height:36px;min-height:36px;border:0;border-radius:0;box-shadow:none;background:transparent;color:var(--t-accent);font-size:11px;white-space:nowrap;font-family:ActionSans,sans-serif;font-weight:700}
+[data-game-theme] #sceneTools button+button{border-left:1px solid var(--t-edge)}
+#opacityControl{position:relative;display:flex;align-items:center;gap:3px;margin:0;padding:0 5px;height:36px;min-width:0;font-size:9px;color:var(--t-muted);border-left:1px solid var(--t-edge);background:transparent}
+#opacityControl>span{white-space:nowrap}#opacityControl input{flex:1;min-width:0;width:0;height:28px;margin:0;padding:0;accent-color:var(--t-accent)}
+/* Miniature uses the same materials and choice motifs as the real window. */
+.themeSample{margin:0 0 12px;color:var(--t-ink);background:linear-gradient(135deg,#60746a,#253643);border-radius:var(--t-radius);position:relative}
+.themeSampleBody{padding:10px 12px;background:var(--t-panel);border:1px solid var(--t-edge);border-bottom:0}
+.themeSampleBody p{font-size:15px;margin:8px 0 12px}
+.themeSampleWho{color:var(--t-accent);display:block;font-size:12px}
+.themeSampleChoices{counter-reset:theme-choice}.themeSampleChoices>span{display:block;counter-increment:theme-choice;border-top:1px solid var(--t-edge);padding:8px 0;font-size:12px}
+.themeSampleStatus{margin:0;padding:6px 12px;height:32px;border:1px solid var(--t-edge);border-bottom:0;border-radius:var(--t-radius) var(--t-radius) 0 0;background:var(--t-panel)}
+.themeSamplesIcons{display:flex;align-items:center;gap:8px}.themeSamplesIcons svg{width:17px;height:18px;fill:var(--t-loss)}.themeSamplesIcons .brainDetail{stroke:var(--t-surface);fill:none}.themeSamplesIcons span{font-size:10px;color:var(--t-muted)}
+.themeSampleTools{display:flex;background:var(--t-panel);border:1px solid var(--t-edge);border-radius:0 0 var(--t-radius) var(--t-radius);overflow:hidden}
+.themeSampleTools span{flex:1;text-align:center;padding:7px 2px;font-family:ActionSans,sans-serif;font-size:10px;color:var(--t-accent)}.themeSampleTools span+span{border-left:1px solid var(--t-edge)}.themeSampleTools .themeSampleSlider{flex:1.6;white-space:nowrap;font-size:9px}
+
+/* 1. A cafe receipt: dotted folds, restrained ink and a coffee-coloured margin. */
+[data-theme-style=soft] :is(#box,.themeSampleBody){box-shadow:inset 4px 0 var(--t-edge);border-left-style:dashed}
+[data-theme-style=soft] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted}
+[data-theme-style=soft] :is(#answers button>span,.themeSampleChoices>span)::before{content:'› ';color:var(--t-accent)}
+[data-theme-style=soft] .historyEntry{border-bottom-style:dotted}
+/* 2. Love letter: scalloped stationery, centered sender and heart signposts. */
+[data-theme-style=romance] :is(#box,.themeSampleBody){background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge)}
+[data-theme-style=romance] :is(#who,.themeSampleWho){text-align:center;letter-spacing:.08em}
+[data-theme-style=romance] :is(#who,.themeSampleWho)::before{content:'♡ ';color:var(--t-accent)}
+[data-theme-style=romance] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed;text-align:center}
+[data-theme-style=romance] :is(#answers button>span,.themeSampleChoices>span)::before{content:'♡ ';color:var(--t-accent)}
+[data-theme-style=romance] .historyEntry{border-bottom-style:dashed;padding-left:12px;border-left:2px solid var(--t-edge)}
+/* 3. Field notebook: binding stripe, page ruling and numbered decisions. */
+[data-theme-style=paper] :is(#box,.themeSampleBody){background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 6px 0 var(--t-edge);padding-left:19px}
+[data-theme-style=paper] :is(#statusBar,.themeSampleStatus){border-top:3px double var(--t-accent);border-radius:0}
+[data-theme-style=paper] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed}
+[data-theme-style=paper] :is(#answers button>span,.themeSampleChoices>span)::before{content:counter(theme-choice,decimal-leading-zero) '. ';color:var(--t-accent)}
+[data-theme-style=paper] .historyEntry{border-left:3px double var(--t-edge);padding-left:14px}
+/* 4. Cyberpunk terminal: cyan technical frame and console prompts. */
+[data-theme-style=neon] :is(#box,.themeSampleBody){box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent);background-image:repeating-linear-gradient(transparent 0 3px,#66edff04 3px 4px)}
+[data-theme-style=neon] :is(#statusBar,.themeSampleStatus){border-radius:0;box-shadow:inset 0 3px var(--t-accent)}
+[data-theme-style=neon] :is(#who,.themeSampleWho)::before{content:'// ';color:var(--t-accent)}
+[data-theme-style=neon] :is(#answers button>span,.themeSampleChoices>span)::before{content:'>_ ';color:var(--t-accent)}
+[data-theme-style=neon] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted;padding-left:7px;border-left:2px solid var(--t-accent)}
+[data-theme-style=neon] .historyEntry{border-left:2px solid var(--t-accent);padding-left:12px}
+/* 5. Blue glass: curved waves and a bright top reflection, without blur. */
+[data-theme-style=glass] :is(#box,.themeSampleBody){background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);box-shadow:inset 0 4px #fff5}
+[data-theme-style=glass] :is(#statusBar,.themeSampleStatus){border-top:3px solid var(--t-accent)}
+[data-theme-style=glass] :is(#answers button>span,.themeSampleChoices>span)::before{content:'≈ ';color:var(--t-accent)}
+[data-theme-style=glass] :is(#answers button,.themeSampleChoices>span){border-top-style:dotted}
+[data-theme-style=glass] .historyEntry{border-bottom:3px double var(--t-edge)}
+/* 6. A woodland journal: stitched leather and diagonal leaf motifs. */
+[data-theme-style=leaf] :is(#box,.themeSampleBody){border-left:1px dashed var(--t-edge);border-right:1px dashed var(--t-edge);box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730}
+[data-theme-style=leaf] :is(#statusBar,.themeSampleStatus){border-radius:16px 3px 0 0;background-image:repeating-linear-gradient(135deg,transparent 0 12px,#87905712 12px 13px)}
+[data-theme-style=leaf] :is(#who,.themeSampleWho)::before{content:'❧ ';color:var(--t-accent)}
+[data-theme-style=leaf] :is(#answers button>span,.themeSampleChoices>span)::before{content:'❧ ';color:var(--t-accent)}
+[data-theme-style=leaf] .historyEntry{border-bottom-style:dashed}
+/* 7. A spellbook: royal violet, gilded double rules and star seals. */
+[data-theme-style=star] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge);background-image:radial-gradient(circle at 95% 5%,#f6d67a22 0 2px,transparent 3px)}
+[data-theme-style=star] :is(#statusBar,.themeSampleStatus){border-top:3px double var(--t-accent)}
+[data-theme-style=star] :is(#who,.themeSampleWho){text-align:center;letter-spacing:.12em}
+[data-theme-style=star] :is(#who,.themeSampleWho)::before{content:'✦ ';color:var(--t-accent)}
+[data-theme-style=star] :is(#answers button,.themeSampleChoices>span){border-top:3px double var(--t-edge)}
+[data-theme-style=star] :is(#answers button>span,.themeSampleChoices>span)::before{content:'✧ ';color:var(--t-accent)}
+[data-theme-style=star] .historyEntry{border-bottom:3px double var(--t-edge)}
+/* 8. Horror record: near-black paper, red scratches and ritual tally marks. */
+[data-theme-style=gothic] :is(#box,.themeSampleBody){background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%);box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360}
+[data-theme-style=gothic] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:3px solid var(--t-edge);background-image:repeating-linear-gradient(112deg,transparent 0 19px,#a14e4320 19px 20px)}
+[data-theme-style=gothic] :is(#who,.themeSampleWho){letter-spacing:.13em;border-bottom:1px solid var(--t-edge);padding-bottom:6px}
+[data-theme-style=gothic] :is(#who,.themeSampleWho)::before{content:'† ';color:var(--t-accent)}
+[data-theme-style=gothic] :is(#answers button,.themeSampleChoices>span){border-top-style:dashed}
+[data-theme-style=gothic] :is(#answers button>span,.themeSampleChoices>span)::before{content:'† ';color:var(--t-accent)}
+[data-theme-style=gothic] .historyEntry{border-left:3px solid var(--t-edge);padding-left:12px}
+/* 9. Thriller dossier: monochrome file, evidence numbering and hazard edge. */
+[data-theme-style=mist] :is(#box,.themeSampleBody){box-shadow:inset 0 3px var(--t-ink);border-left:2px solid var(--t-ink);border-right:2px solid var(--t-ink)}
+[data-theme-style=mist] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:4px solid transparent;border-image:repeating-linear-gradient(135deg,#303b41 0 7px,#dec55b 7px 14px) 4}
+[data-theme-style=mist] :is(#who,.themeSampleWho){letter-spacing:.14em;text-align:right}
+[data-theme-style=mist] :is(#answers button>span,.themeSampleChoices>span)::before{content:'[' counter(theme-choice,decimal-leading-zero) '] ';color:var(--t-accent)}
+[data-theme-style=mist] :is(#answers button,.themeSampleChoices>span){border-top:2px solid var(--t-edge)}
+[data-theme-style=mist] .historyEntry{border-left:4px solid var(--t-ink);padding-left:12px}
+/* 10. Handheld LCD: green monochrome, hard pixels and a decision cursor. */
+[data-theme-style=pixel] :is(#box,.themeSampleBody){box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge);background-image:repeating-linear-gradient(transparent 0 2px,#31482208 2px 3px)}
+[data-theme-style=pixel] :is(#statusBar,.themeSampleStatus){border-radius:0;border-top:4px solid var(--t-edge)}
+[data-theme-style=pixel] :is(#who,.themeSampleWho){letter-spacing:.12em}
+[data-theme-style=pixel] :is(#answers button,.themeSampleChoices>span){border-top:2px dashed var(--t-edge)}
+[data-theme-style=pixel] :is(#answers button>span,.themeSampleChoices>span)::before{content:'▶ ';color:var(--t-accent)}
+[data-theme-style=pixel] .historyEntry{border-bottom:2px dashed var(--t-edge)}
+/* Keep muted/disabled requirements legible on every material. */
+[data-game-theme] #answers button.locked>span{color:var(--t-muted)}
+
+[data-transparent-panel=true] :is(#box,.themeSampleBody,#statusBar:not([data-theme]),.themeSampleStatus){background-image:none;box-shadow:none}
+#opacityControl{font-family:ActionSans,sans-serif;font-weight:700}
+
+/* Main screen and export preview use this same themed component. */
+.titleFrame{position:relative;overflow:hidden;background:var(--t-history)}
+.titleCover,.titleFrame .titleShade{position:absolute;inset:0}
+.titleCover img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 35%}
+.titleShade{background:linear-gradient(transparent,#0005 65%,#0009);pointer-events:none}
+.titleFrame .titleCard{position:absolute;left:8%;bottom:9%;width:84%;max-height:min(400px,70dvh);display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--t-edge);border-radius:var(--t-radius);background:var(--t-surface);color:var(--t-ink)}
+.titleCopy{min-height:0;overflow-y:auto;overscroll-behavior:contain;overflow-wrap:anywhere}
+.titleHeading{font-family:ActionSans,sans-serif;font-weight:700;font-size:25px;line-height:1.4;margin:0 0 10px;color:var(--t-accent);overflow-wrap:anywhere}
+.titleIntro{font-family:StorySerif,serif;font-size:15px;line-height:1.7;white-space:pre-wrap;margin:0 0 8px}
+.titleIntro:empty,.titleAuthor:empty{display:none}.titleAuthor{font-size:12px;color:var(--t-muted);font-family:ActionSans,sans-serif}
+.titleFrame .titleButton{min-height:42px;flex-shrink:0;min-width:0;padding:7px 9px;font-family:ActionSans,sans-serif;font-size:13px;font-weight:700;line-height:1.55;border:1px solid var(--t-edge);border-radius:var(--t-radius);background:var(--t-choice);color:var(--t-ink);overflow-wrap:anywhere}
+.titleFrame .titleButtonPrimary{background:var(--t-accent);color:var(--t-surface);border-color:var(--t-accent)}
+.titleActions{display:flex;gap:6px}.titleActions button{flex:1}.titleActions:not(:has(button:not([hidden]))){display:none}
+/* Receipt */
+[data-theme-style=soft].titleFrame .titleCard{border-left-style:dashed;box-shadow:inset 4px 0 var(--t-edge)}
+[data-theme-style=soft].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
+[data-theme-style=soft].titleFrame .titleButton{border-style:dotted}
+[data-theme-style=soft].titleFrame .titleButtonPrimary::before{content:'› '}
+/* Love letter */
+[data-theme-style=romance].titleFrame .titleCard{background-image:radial-gradient(circle at right top,#cf7da322 0 40px,transparent 41px);box-shadow:inset 0 3px var(--t-edge);text-align:center}
+[data-theme-style=romance].titleFrame .titleHeading{letter-spacing:.05em}
+[data-theme-style=romance].titleFrame .titleHeading::before{content:'♡ '}
+[data-theme-style=romance].titleFrame .titleButton{border-radius:24px;border-style:dashed}
+[data-theme-style=romance].titleFrame .titleButtonPrimary::before{content:'♡ '}
+/* Notebook */
+[data-theme-style=paper].titleFrame .titleCard{background-image:repeating-linear-gradient(transparent 0 28px,#31533a0d 28px 29px);box-shadow:inset 6px 0 var(--t-edge);border-top:3px double var(--t-accent)}
+[data-theme-style=paper].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400}
+[data-theme-style=paper].titleFrame .titleButton{border-radius:0;border-style:dashed}
+[data-theme-style=paper].titleFrame .titleButtonPrimary::before{content:'01. '}
+/* Console */
+[data-theme-style=neon].titleFrame .titleCard{border-radius:0;box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent);background-image:repeating-linear-gradient(transparent 0 3px,#66edff04 3px 4px)}
+[data-theme-style=neon].titleFrame .titleHeading{letter-spacing:.07em}
+[data-theme-style=neon].titleFrame .titleHeading::before{content:'// '}
+[data-theme-style=neon].titleFrame .titleButton{border-radius:0;border-left:3px solid var(--t-accent)}
+[data-theme-style=neon].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
+[data-theme-style=neon].titleFrame .titleButtonPrimary::before{content:'>_ '}
+/* Blue glass */
+[data-theme-style=glass].titleFrame .titleCard{background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);border-top:3px solid var(--t-accent);box-shadow:inset 0 4px #fff5}
+[data-theme-style=glass].titleFrame .titleHeading{text-align:center}
+[data-theme-style=glass].titleFrame .titleButton{border-radius:14px;border-bottom:3px double var(--t-edge)}
+[data-theme-style=glass].titleFrame .titleButtonPrimary::before{content:'≈ '}
+/* Forest journal */
+[data-theme-style=leaf].titleFrame .titleCard{border:1px dashed var(--t-edge);border-radius:16px 3px;box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730}
+[data-theme-style=leaf].titleFrame .titleHeading::before{content:'❧ '}
+[data-theme-style=leaf].titleFrame .titleButton{border-radius:3px 14px;border-style:dashed}
+[data-theme-style=leaf].titleFrame .titleButtonPrimary::before{content:'❧ '}
+/* Gilded spellbook */
+[data-theme-style=star].titleFrame .titleCard{border:3px double var(--t-edge);box-shadow:inset 3px 0 var(--t-edge),inset -3px 0 var(--t-edge)}
+[data-theme-style=star].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.08em;text-align:center}
+[data-theme-style=star].titleFrame .titleHeading::before{content:'✦ '}
+[data-theme-style=star].titleFrame .titleButton{border:3px double var(--t-edge)}
+[data-theme-style=star].titleFrame .titleButtonPrimary::before{content:'✧ '}
+/* Horror record */
+[data-theme-style=gothic].titleFrame .titleCard{border-radius:0;box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360;background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%)}
+[data-theme-style=gothic].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.1em;border-bottom:1px solid var(--t-edge);padding-bottom:8px}
+[data-theme-style=gothic].titleFrame .titleHeading::before{content:'† '}
+[data-theme-style=gothic].titleFrame .titleButton{border-radius:0;border-style:dashed}
+[data-theme-style=gothic].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
+[data-theme-style=gothic].titleFrame .titleButtonPrimary::before{content:'† '}
+/* Thriller dossier */
+[data-theme-style=mist].titleFrame .titleCard{border-radius:0;border-top:4px solid transparent;border-image:repeating-linear-gradient(135deg,#303b41 0 7px,#dec55b 7px 14px) 4;box-shadow:inset 2px 0 var(--t-ink),inset -2px 0 var(--t-ink)}
+[data-theme-style=mist].titleFrame .titleHeading{letter-spacing:.09em;text-align:right}
+[data-theme-style=mist].titleFrame .titleButton{border-radius:0;border-width:2px}
+[data-theme-style=mist].titleFrame .titleButtonPrimary::before{content:'[01] '}
+/* Handheld LCD */
+[data-theme-style=pixel].titleFrame .titleCard{border-radius:0;border:3px solid var(--t-edge);background-image:repeating-linear-gradient(transparent 0 2px,#31482208 2px 3px);box-shadow:3px 3px 0 var(--t-edge)}
+[data-theme-style=pixel].titleFrame .titleHeading{letter-spacing:.06em}
+[data-theme-style=pixel].titleFrame .titleButton{border-radius:0;border-width:2px;box-shadow:2px 2px 0 var(--t-edge)}
+[data-theme-style=pixel].titleFrame .titleButtonPrimary::before{content:'▶ '}
+/* The compact preview retains the full screen's typography family and decorations. */
+#landingCardPreview{height:210px;flex-shrink:0;margin-bottom:8px;border:1px solid var(--t-edge);border-radius:4px}
+.titleFrame[data-title-preview] .titleCard{bottom:8px;padding:10px;gap:5px;max-height:calc(100% - 16px)}
+.titleFrame[data-title-preview] .titleHeading{font-size:16px;margin-bottom:5px;line-height:1.4}
+.titleFrame[data-title-preview] .titleIntro{font-size:11px;line-height:1.7;margin-bottom:4px}
+.titleFrame[data-title-preview] .titleAuthor{font-size:9px}
+.titleFrame[data-title-preview] .titleButton{min-height:27px;padding:3px 6px;font-size:10px}
+.titleFrame[data-title-preview] .titleButton:disabled{opacity:1;cursor:default}

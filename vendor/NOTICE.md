@@ -1,0 +1,1 @@
+Android Open Source Project apksig, Apache-2.0. Extracted com.android.apksig classes from Android build-tools 35 apksigner.jar. CLI and Conscrypt classes are excluded. https://android.googlesource.com/platform/tools/apksig/

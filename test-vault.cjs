@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),C=require('./assets/core.js'),V=require('./assets/vault.js');
+const p=C.fresh();p.randomStart=0;p.title='첫 게임';p.events=[C.event(),C.event()];p.events[0].id='start';p.events[0].text='시작';p.events[1].id='finish';p.events[1].text='끝';p.events[0].choices[0].next='finish';p.events[1].choices[0].next='end';
+p.sampleImage='data:image/png;base64,'+'A'.repeat(100000);
+const s=V.create(C.validate(p),true),g=s.games[0];const r=new C.Run(JSON.parse(JSON.stringify(p)));r.choose(p.events[0].choices[0].id);g.progress={project:r.p,state:r.snapshot(),savedAt:g.savedAt};
+s.games.push(V.game({...p,title:'두 번째 게임'},true));
+const raw=V.encode(s),file=JSON.parse(raw);assert.equal(file.images.length,1);assert(raw.length<115000);
+const copy=V.decode(raw),restored=V.resume(copy.games[0]);assert.equal(restored.current,'finish');assert.equal(restored.turn,1);assert(restored.visited.has('start'));assert.equal(restored.p.sampleImage,p.sampleImage);assert.equal(copy.games[1].progress,null);
+copy.games[0].published.title='수정 버전';assert.equal(V.resume(copy.games[0]).p.title,'첫 게임');assert.equal(copy.games[1].published.title,'두 번째 게임');
+const legacy=V.decode(JSON.stringify(p));assert.equal(legacy.games[0].draft.title,p.title);assert.equal(legacy.games[0].published.title,p.title);assert.equal(legacy.games.length,1);
+copy.games[0].progress.state.current='missing';assert.throws(()=>V.resume(copy.games[0]));assert.throws(()=>V.decode('{broken'));file.images=[];assert.throws(()=>V.decode(JSON.stringify(file)));
+console.log('PASS: shared-image game storage, legacy migration, separate game progress, resumed scene/state/visited, preserved play edition, corrupt progress/image rejection.');

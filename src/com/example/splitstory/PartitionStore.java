@@ -1,0 +1,13 @@
+package com.example.splitstory;
+import java.io.*;import java.nio.charset.StandardCharsets;import java.nio.file.*;import java.util.*;import org.json.*;
+/** Immutable hashed chunks are written and synced before the index can reference them. */
+final class PartitionStore {
+final File root,chunks;PartitionStore(File dir){root=dir;chunks=new File(dir,"content");}
+static boolean id(String id){return id!=null&&id.matches("[a-f0-9]{64}");}
+synchronized String readChunk(String id){if(!id(id))return "";try{return new String(Files.readAllBytes(new File(chunks,id).toPath()),StandardCharsets.UTF_8);}catch(Exception e){return "";}}
+synchronized boolean saveChunks(String raw){if(raw==null||raw.length()>100000000)return false;try{JSONObject files=new JSONObject(raw);chunks.mkdirs();Iterator<String> it=files.keys();while(it.hasNext()){String id=it.next();if(!id(id))return false;String value=files.getString(id);java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");StringBuilder hex=new StringBuilder();for(byte b:digest.digest(value.getBytes(StandardCharsets.UTF_8)))hex.append(String.format(java.util.Locale.ROOT,"%02x",b&255));if(!hex.toString().equals(id))return false;File f=new File(chunks,id);if(!f.exists()||!Arrays.equals(Files.readAllBytes(f.toPath()),value.getBytes(StandardCharsets.UTF_8)))atomic(f,value);}return true;}catch(Exception e){return false;}}
+synchronized boolean pruneChunks(String raw){try{// Corrupt archives are deliberately retained for recovery.
+File[] archives=root.listFiles((d,n)->n.startsWith("project.corrupt."));if(archives!=null&&archives.length>0)return true;Set<String> keep=new HashSet<>();JSONArray a=new JSONArray(raw);for(int i=0;i<a.length();i++){String id=a.getString(i);if(!id(id))return false;keep.add(id);}File[] fs=chunks.listFiles();if(fs!=null)for(File f:fs)if(id(f.getName())&&!keep.contains(f.getName()))f.delete();return true;}catch(Exception e){return false;}}
+synchronized boolean saveIndex(String value){if(value==null||value.length()>100000000)return false;try{File current=new File(root,"project.json");if(current.exists())atomic(new File(root,"project.backup.json"),new String(Files.readAllBytes(current.toPath()),StandardCharsets.UTF_8));atomic(current,value);return true;}catch(Exception e){return false;}}
+static void atomic(File target,String value)throws IOException{File tmp=new File(target.getParentFile(),target.getName()+".tmp");try(FileOutputStream out=new FileOutputStream(tmp)){out.write(value.getBytes(StandardCharsets.UTF_8));out.getFD().sync();}Files.move(tmp.toPath(),target.toPath(),StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);}
+}

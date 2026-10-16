@@ -1,0 +1,12 @@
+# build outputs
+classes/
+dex/
+player-classes/
+player-dex/
+unsigned.apk
+aligned.apk
+*-Event-Game-Editor.apk
+preview-*.png
+node_modules/
+# local signing key (keep it out of the repository)
+signing.jks

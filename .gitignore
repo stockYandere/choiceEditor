@@ -15,3 +15,4 @@ saves-*.png
 export-qa/authored-game.json
 export-qa/game.json
 export-qa/player/
+*.apk.idsig

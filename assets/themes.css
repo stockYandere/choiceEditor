@@ -47,7 +47,7 @@
 /* ── 선택지: 누를 수 있는 줄 ─────────────────────────── */
 #answers{margin-top:12px;counter-reset:theme-choice;display:flex;flex-direction:column;gap:6px}
 #answers button{counter-increment:theme-choice;min-height:46px;overflow-wrap:anywhere}
-[data-game-theme] #answers button{position:relative;display:block;width:100%;text-align:left;color:var(--t-ink);background:var(--t-choice);border:1px solid var(--t-edge);border-radius:var(--t-choice-radius);padding:9px 12px 9px 30px;font-size:calc(15px * var(--story-scale,1) * var(--fit,1));transition:transform .08s,filter .08s}
+[data-game-theme] #answers button{position:relative;display:block;width:100%;text-align:left;color:var(--t-ink);background:var(--t-choice-panel,var(--t-choice));border:1px solid var(--t-edge);border-radius:var(--t-choice-radius);padding:9px 12px 9px 30px;font-size:calc(15px * var(--story-scale,1) * var(--fit,1));transition:transform .08s,filter .08s}
 [data-game-theme] #answers button>span{font-size:calc(15px * var(--story-scale,1) * var(--fit,1))}
 /* The marker sits beside the first line of the choice text, below any requirement tags. */
 [data-game-theme] #answers button>span{position:relative}
@@ -262,7 +262,7 @@
 [data-theme-style=neon].titleFrame .titleCard{border-radius:0;box-shadow:inset 2px 0 var(--t-accent),inset -2px 0 var(--t-accent),0 0 24px #66edff22;background-image:repeating-linear-gradient(transparent 0 3px,#66edff05 3px 4px)}
 [data-theme-style=neon].titleFrame .titleHeading{letter-spacing:.04em}
 [data-theme-style=neon].titleFrame .titleButton{border-radius:0;border-left:3px solid var(--t-accent)}
-[data-theme-style=neon].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
+[data-theme-style=neon].titleFrame .titleButtonPrimary{background:var(--t-accent);color:var(--t-surface);border-color:var(--t-accent)}
 [data-theme-style=glass].titleFrame .titleCard{background-image:radial-gradient(ellipse at 130% 0,#4b99bf20 0 30%,transparent 31%);border-top:3px solid var(--t-accent);box-shadow:inset 0 4px #fff5,0 10px 30px #0004}
 [data-theme-style=glass].titleFrame .titleButton{border-radius:14px}
 [data-theme-style=leaf].titleFrame .titleCard{border:1px dashed var(--t-edge);border-radius:16px 3px;box-shadow:inset 4px 0 #87905730,inset -4px 0 #87905730,0 10px 30px #0005}
@@ -274,7 +274,7 @@
 [data-theme-style=gothic].titleFrame .titleCard{border-radius:0;box-shadow:inset 3px 0 #a14e4380,inset 0 4px #a14e4360,0 10px 30px #0007;background-image:linear-gradient(112deg,transparent 0 98%,#a14e4340 98%)}
 [data-theme-style=gothic].titleFrame .titleHeading{font-family:StorySerif,serif;font-weight:400;letter-spacing:.08em;border-bottom:1px solid var(--t-edge);padding-bottom:8px}
 [data-theme-style=gothic].titleFrame .titleButton{border-radius:0;border-style:dashed}
-[data-theme-style=gothic].titleFrame .titleButtonPrimary{background:var(--t-choice);color:var(--t-accent)}
+[data-theme-style=gothic].titleFrame .titleButtonPrimary{background:var(--t-accent);color:var(--t-surface);border-color:var(--t-accent);border-style:solid}
 [data-theme-style=mist].titleFrame .titleCard{border-radius:0;border-top:4px solid transparent;border-image:repeating-linear-gradient(135deg,#303b41 0 7px,#dec55b 7px 14px) 4;box-shadow:inset 2px 0 var(--t-ink),inset -2px 0 var(--t-ink)}
 [data-theme-style=mist].titleFrame .titleHeading{letter-spacing:.06em}
 [data-theme-style=mist].titleFrame .titleButton{border-radius:0;border-width:1px 1px 1px 2px;border-left-color:var(--t-ink)}
@@ -283,7 +283,9 @@
 [data-theme-style=pixel].titleFrame .titleButton{border-radius:0;border-width:2px;box-shadow:2px 2px 0 var(--t-edge);font-weight:400}
 
 /* The compact preview retains the full screen's typography family and decorations. */
-#landingCardPreview{height:210px;flex-shrink:0;margin-bottom:8px;border:1px solid var(--t-edge);border-radius:4px}
+#landingCardWrap{width:180px;height:380px;margin:0 auto 8px;overflow:hidden;border:1px solid #41546c;border-radius:12px;flex-shrink:0}
+/* Laid out at phone size, then scaled, so crops and text wrap like the real main screen. */
+#landingCardPreview{width:360px;height:760px;transform:scale(.5);transform-origin:0 0}
 .titleFrame[data-title-preview] .titleCard{bottom:8px;padding:10px;gap:5px;max-height:calc(100% - 16px)}
 .titleFrame[data-title-preview] .titleHeading{font-size:16px;margin-bottom:5px;line-height:1.4}
 .titleFrame[data-title-preview] .titleIntro{font-size:11px;line-height:1.7;margin-bottom:4px}

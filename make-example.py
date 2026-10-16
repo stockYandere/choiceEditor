@@ -24,7 +24,10 @@ def alternate(when,next='sequence',count=1,**kw):
 events=[]
 def scene(id,title,text,choices,kind='branch',mode='both',picture='night',speaker='유나',voice='voice-soft',bgm='keep',once=True):
     audio=dict(bgmMode=bgm)
-    if voice: audio['dialogue']=sound(voice,45)
+    if voice:
+        audio['dialogue']=sound(voice,45)
+        # Ambience in the scene slot plays to its end; spoken lines stop when the player skips.
+        if voice in ['rain','thunder','door','radio-static']: audio['dialogue']['kind']='effect'
     if bgm in ['night','tension','dawn']:
         audio.update(bgmMode='play',bgm=sound(bgm,32,True))
     e=dict(id=id,title=title,text=text,speaker=speaker,kind=kind,once=once,mode=mode,

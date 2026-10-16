@@ -6,7 +6,7 @@ for(const viewport of [{width:412,height:850},{width:360,height:640},{width:320,
  const p=await browser.newPage({viewport,hasTouch:true,isMobile:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto(url);await p.waitForFunction(()=>!document.getElementById('openPlayer').disabled);
  const example=await p.evaluate(()=>store.games.find(g=>g.builtinExample===ExampleGames.release).id);
- assert.equal(await p.evaluate(()=>store.games.length),2);
+ assert.equal(await p.evaluate(()=>store.games.length),3);
  if(process.env.QA_FONT){await p.addStyleTag({content:'@font-face{font-family:QA;src:url(data:font/ttf;base64,'+fs.readFileSync(process.env.QA_FONT).toString('base64')+')} :root{font-family:QA,sans-serif}'});await p.evaluate(()=>document.fonts.ready);}
  await p.locator('#openPlayer').tap();await p.locator('[data-play-game="'+example+'"]').tap();
  await p.waitForFunction(()=>GameAudio.getState().bgm&&!GameAudio.getState().bgm.paused);

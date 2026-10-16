@@ -10,3 +10,8 @@ preview-*.png
 node_modules/
 # local signing key (keep it out of the repository)
 signing.jks
+# test outputs
+saves-*.png
+export-qa/authored-game.json
+export-qa/game.json
+export-qa/player/

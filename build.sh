@@ -12,7 +12,7 @@ for folder in ['classes','player-classes','dex','player-dex']:
 CLEAN
 java -jar "$TASK/ecj.jar" -nowarn -8 -bootclasspath "$ANDROID:$SDK/core-lambda-stubs.jar" -d "$TASK/player-classes" "$TASK/src/com/example/splitstory/PlayerActivity.java" "$TASK/src/com/example/splitstory/PartitionStore.java"
 "$SDK/d8" --lib "$ANDROID" --min-api 26 --output "$TASK/player-dex" "$TASK"/player-classes/com/example/splitstory/*.class
-"$SDK/aapt" package -f -M "$TASK/player-shell/AndroidManifest.xml" -S "$TASK/res" -I "$ANDROID" -F "$TASK/assets/player-shell.apk"
+"$SDK/aapt" package -f -M "$TASK/player-shell/AndroidManifest.xml" -S "$TASK/player-res" -I "$ANDROID" -F "$TASK/assets/player-shell.apk"
 TASK_DIR="$TASK" python3 - <<'SHELL'
 import zipfile,os
 from pathlib import Path
@@ -38,6 +38,6 @@ PY
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi
-"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.26-Event-Game-Editor.apk" "$TASK/aligned.apk"
-"$SDK/apksigner" verify --verbose "$TASK/v0.1.26-Event-Game-Editor.apk"
-"$SDK/aapt" dump badging "$TASK/v0.1.26-Event-Game-Editor.apk"
+"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.27-Event-Game-Editor.apk" "$TASK/aligned.apk"
+"$SDK/apksigner" verify --verbose "$TASK/v0.1.27-Event-Game-Editor.apk"
+"$SDK/aapt" dump badging "$TASK/v0.1.27-Event-Game-Editor.apk"

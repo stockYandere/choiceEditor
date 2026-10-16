@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Game app icon. The export replaces icon_art.png with the game's own 432px picture. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/icon_art"/><foreground android:drawable="@android:color/transparent"/></adaptive-icon>

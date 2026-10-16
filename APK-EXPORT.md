@@ -22,7 +22,7 @@
 업데이트 후 진행은 시작한 버전을 유지하고 처음부터를 선택하면 새 버전으로 시작합니다. 상세 사용법과 저장/백업 한계는 RELEASE-v0.1.22.md를 보세요.
 
 ## 구현 및 검증
-`ApkExportEngine.java`는 플레이어 전용 DEX가 들어 있는 작은 셸에 현재 편집본과 플레이 런타임을 붙입니다. 메인 그림 또는 별도 그림에서 생성한 PNG 아이콘도 APK 리소스에 포함합니다. AndroidManifest 문자열 풀의 앱 ID/이름/버전을 갱신하고, resources.arsc를 STORED/4바이트 정렬로 기록합니다. v2 서명은 AOSP apksig가 생성·검증합니다. 네트워크, 외부 컴파일러 또는 빌드 서버를 호출하지 않습니다.
+`ApkExportEngine.java`는 플레이어 전용 DEX가 들어 있는 작은 셸에 현재 편집본과 플레이 런타임을 붙입니다. 메인 그림 또는 별도 그림에서 생성한 432×432 PNG 아이콘은 셸의 적응형 아이콘(`res/drawable/icon.xml`, `<adaptive-icon>`)의 배경 층 `res/drawable-nodpi-v4/icon_art.png`를 바꿔 넣습니다(v0.1.27). 셸 리소스는 `player-res/`에 있습니다. AndroidManifest 문자열 풀의 앱 ID/이름/버전을 갱신하고, resources.arsc를 STORED/4바이트 정렬로 기록합니다. v2 서명은 AOSP apksig가 생성·검증합니다. 네트워크, 외부 컴파일러 또는 빌드 서버를 호출하지 않습니다.
 
 템플릿에는 PlayerActivity만 있고, 프로젝트 가져오기·APK 내보내기 브리지가 없습니다. 공통 HTML/JS에 편집용 코드 일부가 함께 들어 있지만 게임 APK에서는 에디터 UI와 편집 경로를 사용할 수 없으며, 다른 게임 데이터는 없습니다. 모든 게임 콘텐츠를 읽기 전용으로 숨기거나 암호화하는 기능은 아닙니다.
 

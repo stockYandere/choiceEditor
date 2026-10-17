@@ -8,16 +8,18 @@ static final String ICON_ART="res/drawable-nodpi-v4/icon_art.png";
 static final Set<String> JS=new HashSet<>(Arrays.asList("app.js","core.js","themes.js","themes.css","style.css","vault.js","saves.js","depot.js","history.js","audio.js","sound-editor.js","feedback.js","player-bootstrap.js","game-title.js","image-compose.js","game-management.js","creator-backup.js","variations.js","editor-variations.js","stage-fx.js"));
 public static String packageName(String gameId,X509Certificate cert)throws Exception{if(!gameId.matches("[a-zA-Z0-9_-]{1,100}"))throw new IOException("게임 ID 형식");MessageDigest m=MessageDigest.getInstance("SHA-256");m.update(cert.getPublicKey().getEncoded());m.update(gameId.getBytes(StandardCharsets.UTF_8));StringBuilder s=new StringBuilder("com.eventvn.play.g");for(byte b:m.digest())s.append(String.format(Locale.ROOT,"%02x",b&255));return s.toString();}
 public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert)throws Exception{build(shell,editor,data,output,work,pkg,title,version,key,cert,null);}
-public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon)throws Exception{build(shell,editor,data,output,work,pkg,title,version,key,cert,icon,null,null);}
-/** media: APK path (assets/media/<hash>.<ext>) to file; fonts: font file names the game uses, or null for all. */
-public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon,Map<String,File> media,Set<String> fonts)throws Exception{
+public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon)throws Exception{build(shell,editor,data,output,work,pkg,title,version,key,cert,icon,null,null,null);}
+/** media: APK path (assets/media/<hash>.<ext>) to file; fonts: font file names the game uses, or null for all;
+ * sounds: built-in sound ids (assets/sounds/<id>.ogg) the game uses, or null for all. */
+public static void build(File shell,File editor,File data,File output,File work,String pkg,String title,int version,PrivateKey key,X509Certificate cert,File icon,Map<String,File> media,Set<String> fonts,Set<String> sounds)throws Exception{
  if(!pkg.matches("com\\.eventvn\\.play\\.g[a-f0-9]{64}")||title.isEmpty()||title.length()>100||version<1||data.length()>50000000)throw new IOException("APK 내보내기 설정");
  File unsigned=new File(work,"unsigned.apk");Set<String> names=new HashSet<>();boolean iconPlaced=false;
  try(ZipFile base=new ZipFile(shell);ZipFile runtime=new ZipFile(editor);CountStream count=new CountStream(new FileOutputStream(unsigned));ZipOutputStream out=new ZipOutputStream(count)){
   for(Enumeration<? extends ZipEntry> it=base.entries();it.hasMoreElements();){ZipEntry e=it.nextElement();if(e.isDirectory()||e.getName().startsWith("META-INF/"))continue;byte[] bytes=read(base.getInputStream(e),20000000);if(icon!=null&&e.getName().equals(ICON_ART)){bytes=read(new FileInputStream(icon),2000000);iconPlaced=true;}if(e.getName().equals("AndroidManifest.xml"))bytes=manifest(bytes,pkg,title,version);else if(e.getName().equals("resources.arsc"))bytes=resources(bytes,pkg);put(out,count,e.getName(),bytes,e.getName().equals("resources.arsc"));names.add(e.getName());}
   for(Enumeration<? extends ZipEntry> it=runtime.entries();it.hasMoreElements();){ZipEntry e=it.nextElement();String n=e.getName();if(e.isDirectory()||!n.startsWith("assets/"))continue;String rel=n.substring(7),dest=n;
-   if(rel.equals("player-index.html"))dest="assets/index.html";else if(!(JS.contains(rel)||rel.startsWith("fonts/")||rel.startsWith("sfx/")))continue;
+   if(rel.equals("player-index.html"))dest="assets/index.html";else if(!(JS.contains(rel)||rel.startsWith("fonts/")||rel.startsWith("sfx/")||rel.startsWith("sounds/")))continue;
    if(fonts!=null&&rel.startsWith("fonts/")&&rel.endsWith(".woff2")&&!fonts.contains(rel.substring(6)))continue;
+   if(rel.startsWith("sounds/")&&(!rel.matches("sounds/[a-z0-9-]{1,40}\\.ogg")||sounds!=null&&!sounds.contains(rel.substring(7,rel.length()-4))))continue;
    put(out,count,dest,read(runtime.getInputStream(e),20000000),false);names.add(dest);
   }
   if(!names.contains("assets/index.html")||!names.contains("classes.dex")||!names.contains("assets/player-bootstrap.js"))throw new IOException("플레이어 구성 누락");

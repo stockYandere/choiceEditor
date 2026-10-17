@@ -1,10 +1,10 @@
 {
- "versionCode": 38,
- "versionName": "0.1.37",
+ "versionCode": 39,
+ "versionName": "0.1.38",
  "apk": "editor.apk",
- "size": 8851043,
- "sha256": "3a40514e28b46e98be96cf4298643c05faf72d0d70010ee347d723060035982d",
- "notes": "사건 게임 에디터 v0.1.37 — 비스듬한 비·낙엽이 화면 끝까지",
+ "size": 11956137,
+ "sha256": "891909e117e13b4a7c07e8d7166bfa78efe0960ce34bec00e448e31b45abadaa",
+ "notes": "사건 게임 에디터 v0.1.38 — 연출 효과음 · 기본 소리 모음",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-17"
 }

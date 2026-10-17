@@ -45,6 +45,21 @@ const CAMERA={
 const ENTER={fade:[{opacity:0},{opacity:1}],slideLeft:[{opacity:0,translate:'-40% 0'},{opacity:1,translate:'0 0'}],slideRight:[{opacity:0,translate:'40% 0'},{opacity:1,translate:'0 0'}],rise:[{opacity:0,translate:'0 18%'},{opacity:1,translate:'0 0'}],pop:[{opacity:0,scale:'.6'},{opacity:1,scale:'1.06',offset:.7},{opacity:1,scale:'1'}],drop:[{opacity:0,translate:'0 -30%'},{opacity:1,translate:'0 2%',offset:.75},{opacity:1,translate:'0 0'}]};
 const MOTION={breathe:{k:[{scale:'1 1'},{scale:'1 1.015'}],d:2600},bob:{k:[{translate:'0 0'},{translate:'0 -1.6%'}],d:900},sway:{k:[{rotate:'-1.2deg'},{rotate:'1.2deg'}],d:2400},float:{k:[{translate:'0 1.5%'},{translate:'0 -2.5%'}],d:3200},tremble:{k:[{translate:'-0.4% 0'},{translate:'0.4% 0'}],d:90}};
 
+// ---- Sounds that go with an effect: files in sounds/ (built-in library), played by whoever sets StageFX.onSound(kind,id,root).
+// 'loops' gives the full list of ambience loops for a root (an empty list stops them); 'once' plays a one-shot. An area with sound:false stays silent.
+const SOUNDS={weather:{rain:'rain',storm:'storm',snow:'wind-winter',fog:'wind-eerie',dust:'wind',embers:'fire',petals:'birds',leaves:'leaves',fireflies:'crickets',stars:'night',bubbles:'underwater',ash:'wind-dark'},
+ weatherOnce:{sparkles:'sparkle'},bolt:'thunder',
+ fx:{flash:'flash',whiteFlash:'shine',redFlash:'hit',blackout:'boom-low',shake:'thud',bigShake:'quake',pulse:'heartbeat',glitch:'glitch',zoomPunch:'impact',lightning:'thunder',blur:'whoosh',tint:'freeze'},
+ transition:{wipeLeft:'swoosh',wipeRight:'swoosh',wipeDown:'swoosh',wipeUp:'swoosh',slide:'whoosh',zoom:'whoosh',glitch:'glitch',flashCut:'shutter',blinds:'cloth'},
+ enter:{pop:'pop',drop:'thud',slideLeft:'cloth',slideRight:'cloth',rise:'cloth'}};
+function emit(kind,rootEl,arg){if(typeof api.onSound!=='function')return;if(kind==='once'&&!arg)return;try{api.onSound(kind,arg,rootEl);}catch(e){}}
+const audible=(stage,area)=>stage?.[area]?.sound!==false;
+// Every sound file a scene's staging can play (for packing an exported game).
+function soundsFor(scene){const stage=areas(scene?.stage),out=new Set(),add=id=>id&&out.add(id);
+ for(const area of AREAS){const a=stage[area];if(!a||!audible(stage,area))continue;add(SOUNDS.weather[a.weather]);add(SOUNDS.weatherOnce[a.weather]);if(a.weather==='storm')add(SOUNDS.bolt);add(SOUNDS.transition[a.transition]);for(const b of a.beats||[])add(SOUNDS.fx[b.fx]);}
+ for(const k of ['top','bottom']){const l=stage.layers?.[k];if(l&&audible(stage,k))add(SOUNDS.enter[l.enter]);}
+ return [...out];}
+
 // ---- Particles: one engine, many looks.
 const PARTICLES={
  rain:{n:110,shape:'line',vy:[900,1300],vx:[-140,-80],size:[14,26],w:1.1,color:'205,222,255',a:[.3,.6]},
@@ -81,7 +96,7 @@ function startParticles(st,area,kind,amount,reduced){const cfg=PARTICLES[kind],p
   for(let i=0;i<list.length;i++){const p=list[i];p.x+=(p.vx+(p.sw?Math.sin(t*p.sw+p.ph)*18:0))*dt;p.y+=p.vy*dt;if(cfg.spin)p.rot+=dt*p.sw;if(cfg.fade)p.life-=dt*.25;
    const out=p.y>h+40||p.y<-40||p.x<-p.s-60&&p.vx<=0||p.x>w+p.s+60&&p.vx>=0||(cfg.fade&&p.life<=0);if(out)list[i]=spawn(cfg,w,h,false);drawParticle(ctx,cfg,p,t);}
   ctx.globalCompositeOperation='source-over';
-  if(cfg.lightning&&!reduced&&now>nextBolt){nextBolt=now+rand(4000,9000);flashLayer(st,area,'rgba(235,240,255,1)',[0,.85,.1,.6,0],650);}}
+  if(cfg.lightning&&!reduced&&now>nextBolt){nextBolt=now+rand(4000,9000);flashLayer(st,area,'rgba(235,240,255,1)',[0,.85,.1,.6,0],650);if(!st.quiet?.[area])emit('once',st.root,SOUNDS.bolt);}}
  handle.ro=ro;handle.raf=requestAnimationFrame(frame);size();return handle;}
 function stopParticles(p){if(!p)return;cancelAnimationFrame(p.raf);p.ro?.disconnect();p.canvas.remove();}
 
@@ -109,25 +124,26 @@ function ensureCam(slot){let cam=slot.querySelector(':scope>.fxCam');if(!cam){ca
 const AREAS=['all','top','bottom'];
 function areas(stage){if(!stage)return {};if(stage.all||stage.top||stage.bottom)return stage;const flat={...stage};delete flat.layers;const t=flat.cameraTarget;delete flat.cameraTarget;if(t==='top'||t==='bottom'){const cam={camera:flat.camera,cameraSpeed:flat.cameraSpeed};flat.camera='none';return {all:flat,[t]:cam,layers:stage.layers};}return {all:flat,layers:stage.layers};}
 
-function clear(rootEl){const st=state.get(rootEl);if(!st)return;for(const p of st.particles)stopParticles(p);st.particles=[];for(const a of st.anims)a.cancel();st.anims=[];for(const el of st.extra)el.remove();st.extra=[];for(const s of slots(rootEl)){s.style.filter='';s.classList.remove('fxSlot');s.querySelectorAll(':scope>.fxCam').forEach(c=>{c.getAnimations?.().forEach(a=>a.cancel());});s.querySelectorAll('.fxCharacter').forEach(x=>x.remove());}rootEl.removeAttribute('data-fx');}
+function clear(rootEl){const st=state.get(rootEl);if(!st)return;emit('loops',rootEl,[]);for(const p of st.particles)stopParticles(p);st.particles=[];for(const a of st.anims)a.cancel();st.anims=[];for(const el of st.extra)el.remove();st.extra=[];for(const s of slots(rootEl)){s.style.filter='';s.classList.remove('fxSlot');s.querySelectorAll(':scope>.fxCam').forEach(c=>{c.getAnimations?.().forEach(a=>a.cancel());});s.querySelectorAll('.fxCharacter').forEach(x=>x.remove());}rootEl.removeAttribute('data-fx');}
 
 // Apply a scene's staging to rootEl. Same key = same visit (re-render): continue motions, no transition or start beats.
 function enter(rootEl,{scene,key='',transition=true,front}={}){if(!rootEl)return;ensureWarps();const old=state.get(rootEl),now=performance.now(),same=!!old&&old.key===key;
  clear(rootEl);const stage=areas(scene?.stage),st={root:rootEl,key,started:same?old.started:now,anims:[],extra:[],particles:[],reduced:reducedMotion(),front:front||rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};state.set(rootEl,st);
- if(!scene?.stage)return st;rootEl.setAttribute('data-fx','');const elapsed=now-st.started,reduced=st.reduced;
+ if(!scene?.stage)return st;rootEl.setAttribute('data-fx','');const elapsed=now-st.started,reduced=st.reduced;st.quiet=Object.fromEntries(AREAS.map(k=>[k,!audible(stage,k)]));const loops=[];
  // Pictures: mood and warp filters add up (whole stage first, then the slot's own); the slot's camera wins over the whole-stage camera.
  for(const s of slots(rootEl)){const k=s.dataset.fxSlot,cam=ensureCam(s),own=stage[k],all=stage.all;s.classList.add('fxSlot');
   s.style.filter=[all,own].filter(Boolean).map(a=>[a.warp&&a.warp!=='none'?'url(#fx-'+a.warp+')':'',moodFilter(a.mood,a.moodStrength??100)].filter(Boolean).join(' ')).filter(Boolean).join(' ');
   const pick=own&&own.camera&&own.camera!=='none'?own:all,cfg=CAMERA[pick?.camera];
   if(cfg&&!reduced){const d=(SPEED[pick.cameraSpeed]||SPEED.normal)*(cfg.rate||1);const a=cam.animate(cfg.k,cfg.once?{duration:d,fill:'forwards',easing:'ease-in-out'}:{duration:d,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});a.currentTime=elapsed;st.anims.push(a);}
   const l=stage.layers?.[k];if(l){const img=new Image();img.className='fxCharacter';img.alt='';img.src=l.image;img.style.cssText=`left:${l.x}%;bottom:${100-l.y}%;height:${l.scale}%;transform:translateX(-50%)${l.flip?' scaleX(-1)':''}`;cam.append(img);
-   if(!same&&l.enter!=='none'&&ENTER[l.enter]){const a=img.animate(ENTER[l.enter],{duration:reduced?200:650,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});st.anims.push(a);}
+   if(!same&&l.enter!=='none'&&ENTER[l.enter]){const a=img.animate(ENTER[l.enter],{duration:reduced?200:650,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});st.anims.push(a);if(!st.quiet[k])emit('once',rootEl,SOUNDS.enter[l.enter]);}
    const m=MOTION[l.motion];if(m&&!reduced){const a=img.animate(m.k,{duration:m.d,iterations:Infinity,direction:'alternate',easing:'ease-in-out',composite:'add'});a.currentTime=elapsed;st.anims.push(a);}}}
  for(const area of AREAS){const a=stage[area];if(!a||!host(st,area))continue;
   const mood=MOODS[a.mood],k=(a.moodStrength??100)/100;if(mood?.tint){const t=layer(st,area,'fxTint','background:'+mood.tint+';mix-blend-mode:'+mood.blend+';opacity:'+k);if(mood.pulse&&!reduced){const an=t.animate([{opacity:k*.7},{opacity:k}],{duration:1800,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});an.currentTime=elapsed;st.anims.push(an);}}
   for(const o of a.overlays||[]){const def=OVERLAYS[o];if(!def)continue;const el=layer(st,area,'fxOverlay fx-'+o,typeof def.css==='function'?def.css():def.css||'');if(def.html)el.innerHTML=def.html;if(def.anim&&!reduced){const an=el.animate(...def.anim);an.currentTime=elapsed;st.anims.push(an);}if(o==='letterbox'&&!same)el.querySelectorAll('.fxBar').forEach(b=>st.anims.push(b.animate([{transform:'scaleY(0)'},{transform:'scaleY(1)'}],{duration:500,easing:'ease-out'})));}
-  if(a.weather&&a.weather!=='none'){const p=startParticles(st,area,a.weather,a.weatherAmount||2,reduced);if(p)st.particles.push(p);}
-  if(!same&&transition&&a.transition&&a.transition!=='cut')runTransition(st,area,a.transition);}
+  if(a.weather&&a.weather!=='none'){const p=startParticles(st,area,a.weather,a.weatherAmount||2,reduced);if(p)st.particles.push(p);if(!st.quiet[area]){if(SOUNDS.weather[a.weather])loops.push(SOUNDS.weather[a.weather]);if(!same)emit('once',rootEl,SOUNDS.weatherOnce[a.weather]);}}
+  if(!same&&transition&&a.transition&&a.transition!=='cut'){runTransition(st,area,a.transition);if(!st.quiet[area])emit('once',rootEl,SOUNDS.transition[a.transition]);}}
+ emit('loops',rootEl,[...new Set(loops)]);
  if(!same)beat(rootEl,scene,'start');
  return st;}
 
@@ -151,7 +167,7 @@ function runTransition(st,area,kind){const r=st.reduced,d=r?300:650,ease='cubic-
  case 'blinds':{const el=layer(st,area,'fxBlinds','');if(!el)break;for(let i=0;i<8;i++){const b=document.createElement('i');b.style.top=(i*12.5)+'%';el.append(b);b.animate([{transform:'scaleY(1)'},{transform:'scaleY(0)'}],{duration:d,delay:i*40,easing:ease,fill:'forwards'});}setTimeout(()=>el.remove(),d+400);break;}}}
 
 // One beat effect in an area, e.g. for the editor's test buttons. 'all' beats may cover the dialogue; slot beats stay in the slot.
-function runBeat(rootEl,fx,area='all'){const st=state.get(rootEl)||{root:rootEl,anims:[],extra:[],particles:[],reduced:reducedMotion(),front:rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};const r=st.reduced;
+function runBeat(rootEl,fx,area='all',withSound=true){if(withSound)emit('once',rootEl,SOUNDS.fx[fx]);const st=state.get(rootEl)||{root:rootEl,anims:[],extra:[],particles:[],reduced:reducedMotion(),front:rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};const r=st.reduced;
  const shake=(amp,dur,rot=0)=>{const k=[];for(let i=0;i<10;i++)k.push({transform:`translate(${rand(-amp,amp).toFixed(1)}px,${rand(-amp,amp).toFixed(1)}px) rotate(${rand(-rot,rot).toFixed(2)}deg)`});k.push({transform:'none'});if(area==='all')rootEl.animate(k,{duration:dur,easing:'linear'});else camAnim(st,area,k,{duration:dur,easing:'linear'});};
  const fl=(c,o,d,over=true)=>flashLayer(st,area,c,o,d,over);
  switch(fx){case 'flash':fl('#fff',[.85,0],380);break;case 'whiteFlash':fl('#fff',[1,.9,0],1000);break;case 'redFlash':fl('rgb(200,0,20)',[.6,0],600);break;
@@ -162,12 +178,12 @@ function runBeat(rootEl,fx,area='all'){const st=state.get(rootEl)||{root:rootEl,
  case 'lightning':fl('rgba(235,240,255,1)',[0,.9,.1,.7,0],650);break;
  case 'blur':camAnim(st,area,[{filter:'blur(8px)'},{filter:'blur(0)'}],{duration:700,easing:'ease-out'});break;
  case 'tint':fl('rgba(70,130,220,.9)',[0,.45,0],1300,false);break;}}
-function beat(rootEl,scene,when){const stage=areas(scene?.stage);for(const area of AREAS)for(const b of stage[area]?.beats||[])if(b.when===when)runBeat(rootEl,b.fx,area);}
+function beat(rootEl,scene,when){const stage=areas(scene?.stage);for(const area of AREAS)for(const b of stage[area]?.beats||[])if(b.when===when)runBeat(rootEl,b.fx,area,audible(stage,area));}
 // After a choice in `scene`: its choice beats, then gain/loss beats for what changed.
 function react(rootEl,scene,change,dead){if(!scene?.stage)return;beat(rootEl,scene,'choice');const items=change?.items||[],gain=change&&(change.hp>0||change.mental>0||change.money>0||items.some(i=>i.delta>0)),loss=dead||change&&(change.hp<0||change.mental<0||change.money<0||items.some(i=>i.delta<0));if(gain)beat(rootEl,scene,'gain');if(loss)beat(rootEl,scene,'loss');}
 // Editor: play the scene's entrance again.
 function replay(rootEl,scene){const st=state.get(rootEl);if(st)st.key='';enter(rootEl,{scene,key:'replay:'+performance.now()});}
 
-const api={enter,clear,beat,react,runBeat,replay,areas,AREAS,MOODS,PARTICLES,moodFilter,spawn};
+const api={enter,clear,beat,react,runBeat,replay,areas,AREAS,MOODS,PARTICLES,SOUNDS,soundsFor,moodFilter,spawn,onSound:null};
 root.StageFX=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

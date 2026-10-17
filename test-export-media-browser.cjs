@@ -1,7 +1,7 @@
 // APK export media: WebP import, export-time recompression and WAV→Opus, media files in a real signed APK,
 // theme-based font selection, and the exported player reading pictures and sounds from media/ files.
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),{execFileSync}=require('node:child_process');
-const TOOLS=process.env.ANDROID_TOOLS,EDITOR_APK=path.join(__dirname,'v0.1.37-Event-Game-Editor.apk'),work=path.join(__dirname,'export-qa/media-work'),player=path.join(work,'player');
+const TOOLS=process.env.ANDROID_TOOLS,EDITOR_APK=path.join(__dirname,'v0.1.38-Event-Game-Editor.apk'),work=path.join(__dirname,'export-qa/media-work'),player=path.join(work,'player');
 function wav(sec,channels,rate){const n=Math.round(sec*rate),b=Buffer.alloc(44+n*channels*2);b.write('RIFF',0);b.writeUInt32LE(36+n*channels*2,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(channels,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*channels*2,28);b.writeUInt16LE(channels*2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*channels*2,40);
  for(let i=0;i<n;i++)for(let c=0;c<channels;c++)b.writeInt16LE(Math.round(Math.sin(i/rate*2*Math.PI*(220+c*110))*12000),44+(i*channels+c)*2);return 'data:audio/wav;base64,'+b.toString('base64');}
 (async()=>{fs.rmSync(work,{recursive:true,force:true});fs.mkdirSync(path.join(work,'media'),{recursive:true});
@@ -49,11 +49,11 @@ assert.ok((await b.newPage().then(async q=>{await q.goto(require('node:url').pat
 for(const [k,v]of Object.entries(bytes))fs.writeFileSync(path.join(work,'media',k),v);fs.writeFileSync(path.join(work,'game.json'),captured.data);fs.writeFileSync(path.join(work,'icon.png'),iconPng);
 const classes=path.join(work,'classes'),cp=[path.join(__dirname,'classes'),path.join(__dirname,'vendor/apksig.jar')].join(path.delimiter),apk=path.join(work,'game.apk');
 execFileSync('javac',['-nowarn','-cp',cp,'-d',classes,path.join(__dirname,'export-qa/NativeExportHost.java')],{stdio:'inherit'});
-execFileSync('java',['-Deditor='+EDITOR_APK,'-cp',[classes,cp].join(path.delimiter),'com.example.splitstory.NativeExportHost',path.join(work,'game.json'),apk,captured.id,'미디어 게임','1',path.join(work,'icon.png'),path.join(work,'media'),file.exportFonts.join(',')],{cwd:__dirname,stdio:['ignore','ignore','inherit']});
+execFileSync('java',['-Deditor='+EDITOR_APK,'-cp',[classes,cp].join(path.delimiter),'com.example.splitstory.NativeExportHost',path.join(work,'game.json'),apk,captured.id,'미디어 게임','1',path.join(work,'icon.png'),path.join(work,'media'),file.exportFonts.join(','),'rain,thunder'],{cwd:__dirname,stdio:['ignore','ignore','inherit']});
 if(TOOLS){execFileSync(path.join(TOOLS,'apksigner'),['verify',apk],{stdio:['ignore','ignore','inherit']});execFileSync(path.join(TOOLS,'zipalign'),['-c','-p','4',apk]);}
 const listing=execFileSync('unzip',['-Zv',apk]).toString(),entries=execFileSync('unzip',['-Z1',apk]).toString().trim().split('\n');
 for(const name of Object.keys(bytes)){assert.ok(entries.includes('assets/media/'+name),name);const block=listing.split('Central directory entry').find(x=>x.includes('assets/media/'+name+'\n'));assert.match(block,/compression method:\s+none \(stored\)/);}
-assert.ok(entries.includes('assets/fonts/PretendardVariable.woff2'));assert.ok(!entries.includes('assets/fonts/Galmuri14.woff2'),'unused pixel font left out');assert.ok(!entries.includes('assets/media-pack.js'));
+assert.ok(entries.includes('assets/fonts/PretendardVariable.woff2'));assert.ok(Array.isArray(file.exportSounds),'the editor names the built-in sounds the game needs');assert.ok(entries.includes('assets/sounds/rain.ogg')&&entries.includes('assets/sounds/thunder.ogg'));assert.ok(!entries.includes('assets/sounds/fire.ogg'),'unused built-in sounds stay out');assert.ok(!entries.includes('assets/sound-library.js'));assert.ok(!entries.includes('assets/fonts/Galmuri14.woff2'),'unused pixel font left out');assert.ok(!entries.includes('assets/media-pack.js'));
 assert.ok(execFileSync('unzip',['-p',apk,'res/drawable-nodpi-v4/icon_art.png']).equals(iconPng),'game picture replaces the adaptive icon layer');assert.ok(entries.includes('res/drawable/icon.xml'));
 if(TOOLS)assert.match(execFileSync(path.join(TOOLS,'aapt'),['dump','xmltree',apk,'res/drawable/icon.xml']).toString(),/E: adaptive-icon/);
 const apkSize=fs.statSync(apk).size;assert.ok(apkSize<6*1024*1024,'whole game APK '+apkSize);

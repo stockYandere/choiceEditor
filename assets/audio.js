@@ -16,8 +16,8 @@ function stopVoice(){pendingVoice=null;dispose(voice);voice=null;voiceSlot=null;
 function skipVoice(){if((pendingVoice||voiceSlot)?.kind==='effect')return;stopVoice();}
 function stopPreview(){dispose(preview);preview=null;document.querySelectorAll('[data-audio-preview]').forEach(b=>{b.textContent='▶';b.setAttribute('aria-pressed','false');});}
 function stopBgm(){dispose(bgm);bgm=null;bgmRef='';}
-function stopAll(){capture(context);stopVoice();stopEffect();stopBgm();stopPreview();context=null;key='';}
-function setEnabled(v){enabled=!!v;if(!enabled){stopVoice();stopEffect();bgm?.pause();}else if(context&&bgm&&bgm.paused&&!bgm.ended)safePlay(bgm,'BGM');}
+function stopAll(){capture(context);stopVoice();stopEffect();stopBgm();stopPreview();stopStage();context=null;key='';}
+function setEnabled(v){enabled=!!v;if(!enabled){stopVoice();stopEffect();bgm?.pause();pauseStage();}else{if(context&&bgm&&bgm.paused&&!bgm.ended)safePlay(bgm,'BGM');resumeStage();}}
 function configure(p,prefs){project=p||{};preferences=prefs||{};setEnabled(preferences.soundEnabled!==false);volume();}
 function capture(run){if(run&&run===context&&run.audioState&&bgm)run.audioState.position=Number.isFinite(bgm.currentTime)?bgm.currentTime:0;}
 function resolve(ref){return ref==='@default'?track(project.audio?.bgm):track(project.events?.find(e=>e.id===ref)?.audio?.bgm);}
@@ -45,9 +45,28 @@ function previewSound(slot,fallback,button){
  const source=track(slot)||{src:'sfx/'+fallback+'.wav',volume:60};preview=create(source,'미리 듣기');const a=preview;a._button=button;a.volume=level(source.volume,60);a.loop=false;
  a.onended=()=>{if(preview===a)stopPreview();};if(button){button.textContent='■';button.setAttribute('aria-pressed','true');}safePlay(a,'미리 듣기');
 }
-function suspend(){capture(context);suspended=true;stopVoice();stopEffect();stopPreview();bgm?.pause();}
-function resume(){suspended=false;if(context&&enabled&&!document.hidden&&bgm&&!bgm.ended)safePlay(bgm,'BGM');}
-function unlock(){if(!context||!enabled||suspended)return;if(bgm&&bgm.paused&&!bgm.ended)safePlay(bgm,'BGM');if(voice&&voice.paused&&!voice.ended)safePlay(voice,'대사');}
+// 연출 sounds (StageFX.onSound): ambience loops per stage element and overlapping one-shots, from the built-in sounds/ folder.
+// A stage's loop list is applied a moment later, so a re-render (clear, then enter again) keeps a running loop instead of restarting it.
+const stageWanted=new Map(),stagePlaying=new Map(),stageShots=new Set();let stageTimer=0;
+const stageVolume=o=>level(o?.volume,70)*level(preferences.effectsVolume);
+function stageSource(id){return 'sounds/'+id+'.ogg';}
+function applyStage(){stageTimer=0;
+ for(const [root,want] of stageWanted){const now=stagePlaying.get(root)||new Map();
+  for(const [id,a] of now)if(!want.on||!want.ids.includes(id)){dispose(a);now.delete(id);}
+  if(want.on)for(const id of want.ids){let a=now.get(id);if(!a){a=create({src:stageSource(id),volume:100},'연출 효과음');a.loop=true;now.set(id,a);}a.volume=stageVolume(want);if(enabled&&a.paused)safePlay(a,'연출 효과음');}
+  if(now.size)stagePlaying.set(root,now);else stagePlaying.delete(root);if(!want.ids.length)stageWanted.delete(root);}}
+function stageSound(kind,arg,root,options={}){
+ const on=options.on!==false;
+ if(kind==='loops'){stageWanted.set(root,{ids:Array.isArray(arg)?arg:[],on,volume:options.volume});if(!stageTimer)stageTimer=setTimeout(applyStage,0);return;}
+ if(kind!=='once'||!on||!enabled||suspended||document.hidden)return;
+ const a=create({src:stageSource(arg),volume:100},'연출 효과음');a.volume=stageVolume(options);stageShots.add(a);a.onended=()=>{stageShots.delete(a);dispose(a);};
+ if(stageShots.size>6){const old=stageShots.values().next().value;stageShots.delete(old);dispose(old);}safePlay(a,'연출 효과음');}
+function stopStage(){clearTimeout(stageTimer);stageTimer=0;stageWanted.clear();for(const m of stagePlaying.values())for(const a of m.values())dispose(a);stagePlaying.clear();for(const a of stageShots)dispose(a);stageShots.clear();}
+function pauseStage(){for(const m of stagePlaying.values())for(const a of m.values())a.pause();for(const a of stageShots)dispose(a);stageShots.clear();}
+function resumeStage(){if(!enabled||suspended||document.hidden)return;for(const m of stagePlaying.values())for(const a of m.values())if(a.paused)safePlay(a,'연출 효과음');}
+function suspend(){capture(context);suspended=true;stopVoice();stopEffect();stopPreview();bgm?.pause();pauseStage();}
+function resume(){suspended=false;if(context&&enabled&&!document.hidden&&bgm&&!bgm.ended)safePlay(bgm,'BGM');resumeStage();}
+function unlock(){resumeStage();if(!context||!enabled||suspended)return;if(bgm&&bgm.paused&&!bgm.ended)safePlay(bgm,'BGM');if(voice&&voice.paused&&!voice.ended)safePlay(voice,'대사');}
 document.addEventListener('pointerdown',unlock,true);
-root.GameAudio={cues,prepareEffects,configure,setEnabled,enterScene,releaseVoice,stopVoice,skipVoice,stopEffect,playEffect,previewSound,stopPreview,stopAll,suspend,resume,capture,voiceActive:()=>!!voice&&!voice.paused,getState:()=>({voice,bgm,effect,preview,bgmRef,pending:!!pendingVoice})};
+root.GameAudio={cues,prepareEffects,configure,setEnabled,enterScene,releaseVoice,stopVoice,skipVoice,stopEffect,playEffect,previewSound,stopPreview,stopAll,stageSound,stopStage,suspend,resume,capture,voiceActive:()=>!!voice&&!voice.paused,getState:()=>({voice,bgm,effect,preview,bgmRef,pending:!!pendingVoice,stageLoops:[...stagePlaying.values()].flatMap(m=>[...m.keys()]),stageShots:[...stageShots].map(a=>a.src.split('/').pop())})};
 })(globalThis);

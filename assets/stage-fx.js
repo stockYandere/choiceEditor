@@ -69,18 +69,18 @@ function drawParticle(ctx,cfg,p,t){let a=p.a;if(cfg.twinkle)a*=.45+.55*Math.abs(
  case 'petal':ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(0,0,p.s,p.s*.5,0,0,6.283);ctx.fill();ctx.restore();break;
  case 'star':ctx.fillStyle=c;ctx.beginPath();for(let i=0;i<8;i++){const r=i%2?p.s*.35:p.s*1.6,ang=i*Math.PI/4+p.rot;ctx.lineTo(p.x+Math.cos(ang)*r,p.y+Math.sin(ang)*r);}ctx.fill();break;
  default:ctx.fillStyle=c;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,6.283);ctx.fill();}}
-function startParticles(st,host,kind,amount,reduced){stopParticles(st);const cfg=PARTICLES[kind];if(!cfg)return;const canvas=document.createElement('canvas');canvas.className='fxParticles';canvas.setAttribute('aria-hidden','true');host.parentNode.insertBefore(canvas,host);
+function startParticles(st,area,kind,amount,reduced){const cfg=PARTICLES[kind],place=host(st,area);if(!cfg||!place)return null;const canvas=document.createElement('canvas');canvas.className='fxParticles';canvas.setAttribute('aria-hidden','true');place.parent.insertBefore(canvas,place.before);const handle={canvas,ro:null,raf:0};
  const ctx=canvas.getContext('2d'),dpr=Math.min(2,root.devicePixelRatio||1);let w=0,h=0,list=[],last=performance.now(),nextBolt=performance.now()+rand(2500,6000);const speed=reduced?.55:1;
  function size(){const r=canvas.getBoundingClientRect();if(!r.width||!r.height)return;w=r.width;h=r.height;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const n=Math.round(cfg.n*(AMOUNT[amount]||1)*(reduced?.5:1)*Math.min(1.4,Math.max(.6,w*h/(360*640))));while(list.length<n)list.push(spawn(cfg,w,h,true));list.length=n;}
  const ro=typeof ResizeObserver==='function'?new ResizeObserver(size):null;ro?.observe(canvas);
- function frame(now){if(!canvas.isConnected){stopParticles(st);return;}st.particles.raf=requestAnimationFrame(frame);if(document.hidden){last=now;return;}if(!w)size();const dt=Math.min(.05,(now-last)/1000)*speed,t=now/1000;last=now;ctx.clearRect(0,0,w,h);
+ function frame(now){if(!canvas.isConnected){stopParticles(handle);return;}handle.raf=requestAnimationFrame(frame);if(document.hidden){last=now;return;}if(!w)size();const dt=Math.min(.05,(now-last)/1000)*speed,t=now/1000;last=now;ctx.clearRect(0,0,w,h);
   if(cfg.glow){ctx.globalCompositeOperation='lighter';}
   for(let i=0;i<list.length;i++){const p=list[i];p.x+=(p.vx+(p.sw?Math.sin(t*p.sw+p.ph)*18:0))*dt;p.y+=p.vy*dt;if(cfg.spin)p.rot+=dt*p.sw;if(cfg.fade)p.life-=dt*.25;
    const out=p.y>h+40||p.y<-40||p.x<-p.s-60||p.x>w+p.s+60||(cfg.fade&&p.life<=0);if(out)list[i]=spawn(cfg,w,h,false);drawParticle(ctx,cfg,p,t);}
   ctx.globalCompositeOperation='source-over';
-  if(cfg.lightning&&!reduced&&now>nextBolt){nextBolt=now+rand(4000,9000);flashLayer(st,'rgba(235,240,255,1)',[0,.85,.1,.6,0],650);}}
- st.particles={canvas,ro,raf:requestAnimationFrame(frame)};size();}
-function stopParticles(st){const p=st.particles;if(!p)return;cancelAnimationFrame(p.raf);p.ro?.disconnect();p.canvas.remove();st.particles=null;}
+  if(cfg.lightning&&!reduced&&now>nextBolt){nextBolt=now+rand(4000,9000);flashLayer(st,area,'rgba(235,240,255,1)',[0,.85,.1,.6,0],650);}}
+ handle.ro=ro;handle.raf=requestAnimationFrame(frame);size();return handle;}
+function stopParticles(p){if(!p)return;cancelAnimationFrame(p.raf);p.ro?.disconnect();p.canvas.remove();}
 
 // ---- Overlays.
 let grainTile='';
@@ -94,66 +94,77 @@ const OVERLAYS={vignette:{css:'background:radial-gradient(ellipse at center,tran
  glow:{css:'background:radial-gradient(ellipse at 50% 40%,rgba(255,245,225,.32),rgba(255,245,225,0) 70%);mix-blend-mode:screen'},
  frame:{css:'box-shadow:inset 0 0 0 6px rgba(0,0,0,.55),inset 0 0 0 8px rgba(255,255,255,.45)'}};
 
-function layer(st,cls,css){const el=document.createElement('div');el.className='fxLayerFill '+cls;el.setAttribute('aria-hidden','true');if(css)el.style.cssText=css;st.front.parentNode.insertBefore(el,st.front);st.extra.push(el);return el;}
-function flashLayer(st,color,opacities,duration,top=true){if(!st.root.isConnected)return;const el=document.createElement('div');el.className='fxFlash';el.setAttribute('aria-hidden','true');el.style.background=color;if(top)st.root.append(el);else{el.classList.add('fxUnder');st.front.parentNode.insertBefore(el,st.front);}const a=el.animate(opacities.map(o=>({opacity:o*(st.reduced?.5:1)})),{duration,easing:'ease-out'});a.onfinish=a.oncancel=()=>el.remove();return a;}
-
-function slots(rootEl){return ['top','bottom'].map(k=>rootEl.querySelector('[data-fx-slot='+k+']')).filter(Boolean);}
+// Where an area draws: 'all' = the whole stage under the dialogue; 'top'/'bottom' = inside that picture slot only.
+function slots(rootEl,area='all'){return ['top','bottom'].filter(k=>area==='all'||area===k).map(k=>rootEl.querySelector('[data-fx-slot='+k+']')).filter(Boolean);}
+function host(st,area){if(area==='all')return {parent:st.front.parentNode,before:st.front};const slot=slots(st.root,area)[0];return slot?{parent:slot,before:null}:null;}
+function layer(st,area,cls,css){const h=host(st,area);if(!h)return null;const el=document.createElement('div');el.className='fxLayerFill '+cls;el.setAttribute('aria-hidden','true');if(css)el.style.cssText=css;h.parent.insertBefore(el,h.before);st.extra.push(el);return el;}
+// over=true covers the dialogue too (only for 'all' beats); otherwise it stays under the dialogue / inside the slot.
+function flashLayer(st,area,color,opacities,duration,over=true){if(!st.root.isConnected)return;const h=host(st,area);if(!h)return;const el=document.createElement('div');el.className='fxFlash';el.setAttribute('aria-hidden','true');el.style.background=color;if(area==='all'&&over)st.root.append(el);else{el.classList.add('fxUnder');h.parent.insertBefore(el,h.before);}const a=el.animate(opacities.map(o=>({opacity:o*(st.reduced?.5:1)})),{duration,easing:'ease-out'});a.onfinish=a.oncancel=()=>el.remove();return a;}
 function ensureCam(slot){let cam=slot.querySelector(':scope>.fxCam');if(!cam){cam=document.createElement('div');cam.className='fxCam';cam.append(...slot.childNodes);slot.append(cam);}return cam;}
 
-function clear(rootEl){const st=state.get(rootEl);if(!st)return;stopParticles(st);for(const a of st.anims)a.cancel();st.anims=[];for(const el of st.extra)el.remove();st.extra=[];for(const s of slots(rootEl)){s.style.filter='';s.classList.remove('fxSlot');s.querySelectorAll(':scope>.fxCam').forEach(c=>{c.getAnimations?.().forEach(a=>a.cancel());});s.querySelectorAll('.fxCharacter').forEach(x=>x.remove());}rootEl.removeAttribute('data-fx');}
+// Old saves kept one flat setting; it means the whole stage (a camera target becomes that slot's area).
+const AREAS=['all','top','bottom'];
+function areas(stage){if(!stage)return {};if(stage.all||stage.top||stage.bottom)return stage;const flat={...stage};delete flat.layers;const t=flat.cameraTarget;delete flat.cameraTarget;if(t==='top'||t==='bottom'){const cam={camera:flat.camera,cameraSpeed:flat.cameraSpeed};flat.camera='none';return {all:flat,[t]:cam,layers:stage.layers};}return {all:flat,layers:stage.layers};}
+
+function clear(rootEl){const st=state.get(rootEl);if(!st)return;for(const p of st.particles)stopParticles(p);st.particles=[];for(const a of st.anims)a.cancel();st.anims=[];for(const el of st.extra)el.remove();st.extra=[];for(const s of slots(rootEl)){s.style.filter='';s.classList.remove('fxSlot');s.querySelectorAll(':scope>.fxCam').forEach(c=>{c.getAnimations?.().forEach(a=>a.cancel());});s.querySelectorAll('.fxCharacter').forEach(x=>x.remove());}rootEl.removeAttribute('data-fx');}
 
 // Apply a scene's staging to rootEl. Same key = same visit (re-render): continue motions, no transition or start beats.
 function enter(rootEl,{scene,key='',transition=true,front}={}){if(!rootEl)return;ensureWarps();const old=state.get(rootEl),now=performance.now(),same=!!old&&old.key===key;
- clear(rootEl);const stage=scene?.stage,st={root:rootEl,key,started:same?old.started:now,anims:[],extra:[],particles:null,reduced:reducedMotion(),front:front||rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};state.set(rootEl,st);
- if(!stage)return st;rootEl.setAttribute('data-fx','');const elapsed=now-st.started,reduced=st.reduced;
- const filters=[stage.warp&&stage.warp!=='none'?'url(#fx-'+stage.warp+')':'',moodFilter(stage.mood,stage.moodStrength??100)].filter(Boolean).join(' ');
- for(const s of slots(rootEl)){s.classList.add('fxSlot');s.style.filter=filters;const k=s.dataset.fxSlot,cam=ensureCam(s);
-  const cfg=CAMERA[stage.camera];if(cfg&&!reduced&&(stage.cameraTarget==='both'||stage.cameraTarget===k)){const d=(SPEED[stage.cameraSpeed]||SPEED.normal)*(cfg.rate||1);const a=cam.animate(cfg.k,cfg.once?{duration:d,fill:'forwards',easing:'ease-in-out'}:{duration:d,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});a.currentTime=elapsed;st.anims.push(a);}
+ clear(rootEl);const stage=areas(scene?.stage),st={root:rootEl,key,started:same?old.started:now,anims:[],extra:[],particles:[],reduced:reducedMotion(),front:front||rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};state.set(rootEl,st);
+ if(!scene?.stage)return st;rootEl.setAttribute('data-fx','');const elapsed=now-st.started,reduced=st.reduced;
+ // Pictures: mood and warp filters add up (whole stage first, then the slot's own); the slot's camera wins over the whole-stage camera.
+ for(const s of slots(rootEl)){const k=s.dataset.fxSlot,cam=ensureCam(s),own=stage[k],all=stage.all;s.classList.add('fxSlot');
+  s.style.filter=[all,own].filter(Boolean).map(a=>[a.warp&&a.warp!=='none'?'url(#fx-'+a.warp+')':'',moodFilter(a.mood,a.moodStrength??100)].filter(Boolean).join(' ')).filter(Boolean).join(' ');
+  const pick=own&&own.camera&&own.camera!=='none'?own:all,cfg=CAMERA[pick?.camera];
+  if(cfg&&!reduced){const d=(SPEED[pick.cameraSpeed]||SPEED.normal)*(cfg.rate||1);const a=cam.animate(cfg.k,cfg.once?{duration:d,fill:'forwards',easing:'ease-in-out'}:{duration:d,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});a.currentTime=elapsed;st.anims.push(a);}
   const l=stage.layers?.[k];if(l){const img=new Image();img.className='fxCharacter';img.alt='';img.src=l.image;img.style.cssText=`left:${l.x}%;bottom:${100-l.y}%;height:${l.scale}%;transform:translateX(-50%)${l.flip?' scaleX(-1)':''}`;cam.append(img);
    if(!same&&l.enter!=='none'&&ENTER[l.enter]){const a=img.animate(ENTER[l.enter],{duration:reduced?200:650,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});st.anims.push(a);}
    const m=MOTION[l.motion];if(m&&!reduced){const a=img.animate(m.k,{duration:m.d,iterations:Infinity,direction:'alternate',easing:'ease-in-out',composite:'add'});a.currentTime=elapsed;st.anims.push(a);}}}
- const mood=MOODS[stage.mood];if(mood?.tint){const t=layer(st,'fxTint','background:'+mood.tint+';mix-blend-mode:'+mood.blend+';opacity:'+((stage.moodStrength??100)/100));if(mood.pulse&&!reduced){const a=t.animate([{opacity:(stage.moodStrength??100)/100*.7},{opacity:(stage.moodStrength??100)/100}],{duration:1800,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});a.currentTime=elapsed;st.anims.push(a);}}
- for(const o of stage.overlays||[]){const def=OVERLAYS[o];if(!def)continue;const el=layer(st,'fxOverlay fx-'+o,typeof def.css==='function'?def.css():def.css||'');if(def.html)el.innerHTML=def.html;if(def.anim&&!reduced){const a=el.animate(...def.anim);a.currentTime=elapsed;st.anims.push(a);}if(o==='letterbox'&&!same)el.querySelectorAll('.fxBar').forEach((b,i)=>st.anims.push(b.animate([{transform:'scaleY(0)'},{transform:'scaleY(1)'}],{duration:500,easing:'ease-out'})));}
- if(stage.weather&&stage.weather!=='none')startParticles(st,st.front,stage.weather,stage.weatherAmount||2,reduced);
- if(!same){if(transition&&stage.transition&&stage.transition!=='cut')runTransition(st,stage.transition);beat(rootEl,scene,'start');}
+ for(const area of AREAS){const a=stage[area];if(!a||!host(st,area))continue;
+  const mood=MOODS[a.mood],k=(a.moodStrength??100)/100;if(mood?.tint){const t=layer(st,area,'fxTint','background:'+mood.tint+';mix-blend-mode:'+mood.blend+';opacity:'+k);if(mood.pulse&&!reduced){const an=t.animate([{opacity:k*.7},{opacity:k}],{duration:1800,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});an.currentTime=elapsed;st.anims.push(an);}}
+  for(const o of a.overlays||[]){const def=OVERLAYS[o];if(!def)continue;const el=layer(st,area,'fxOverlay fx-'+o,typeof def.css==='function'?def.css():def.css||'');if(def.html)el.innerHTML=def.html;if(def.anim&&!reduced){const an=el.animate(...def.anim);an.currentTime=elapsed;st.anims.push(an);}if(o==='letterbox'&&!same)el.querySelectorAll('.fxBar').forEach(b=>st.anims.push(b.animate([{transform:'scaleY(0)'},{transform:'scaleY(1)'}],{duration:500,easing:'ease-out'})));}
+  if(a.weather&&a.weather!=='none'){const p=startParticles(st,area,a.weather,a.weatherAmount||2,reduced);if(p)st.particles.push(p);}
+  if(!same&&transition&&a.transition&&a.transition!=='cut')runTransition(st,area,a.transition);}
+ if(!same)beat(rootEl,scene,'start');
  return st;}
 
-function slotAnim(st,keyframes,options){for(const s of slots(st.root)){const a=s.animate(keyframes,options);st.anims.push(a);}}
-function camAnim(st,keyframes,options){for(const s of slots(st.root)){const cam=s.querySelector(':scope>.fxCam');if(cam)cam.animate(keyframes,{...options,composite:'add'});}}
+function slotAnim(st,area,keyframes,options){for(const s of slots(st.root,area)){const a=s.animate(keyframes,options);st.anims.push(a);}}
+function camAnim(st,area,keyframes,options){for(const s of slots(st.root,area)){const cam=s.querySelector(':scope>.fxCam');if(cam)cam.animate(keyframes,{...options,composite:'add'});}}
 function glitchFrames(){const f=[];for(let i=0;i<8;i++){const top=Math.round(rand(0,80)),h=Math.round(rand(6,24));f.push({clipPath:`inset(${top}% 0 ${Math.max(0,100-top-h)}% 0)`,transform:`translateX(${rand(-6,6).toFixed(1)}%)`});f.push({clipPath:'inset(0 0 0 0)',transform:`translateX(${rand(-1.5,1.5).toFixed(1)}%)`});}f.push({clipPath:'inset(0 0 0 0)',transform:'none'});return f;}
-function runTransition(st,kind){const r=st.reduced,d=r?300:650,ease='cubic-bezier(.3,.7,.2,1)';if(r&&['slide','zoom','glitch','blinds','dissolve'].includes(kind))kind='fade';
- switch(kind){case 'fade':slotAnim(st,[{opacity:0},{opacity:1}],{duration:d,easing:ease});break;
- case 'blackFade':flashLayer(st,'#000',[1,1,0],d+250,false);break;
- case 'whiteFade':flashLayer(st,'#fff',[1,1,0],d+250,false);break;
- case 'flashCut':flashLayer(st,'#fff',[1,0],280,false);break;
- case 'wipeLeft':slotAnim(st,[{clipPath:'inset(0 0 0 100%)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
- case 'wipeRight':slotAnim(st,[{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
- case 'wipeDown':slotAnim(st,[{clipPath:'inset(0 0 100% 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
- case 'wipeUp':slotAnim(st,[{clipPath:'inset(100% 0 0 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
- case 'iris':slotAnim(st,[{clipPath:'circle(0% at 50% 50%)'},{clipPath:'circle(75% at 50% 50%)'}],{duration:d+150,easing:ease});break;
- case 'slide':slotAnim(st,[{transform:'translateX(100%)'},{transform:'translateX(0)'}],{duration:d,easing:ease});break;
- case 'zoom':slotAnim(st,[{opacity:0,transform:'scale(1.25)'},{opacity:1,transform:'scale(1)'}],{duration:d+100,easing:ease});break;
- case 'glitch':slotAnim(st,glitchFrames(),{duration:520,easing:'steps(17)'});break;
- case 'dissolve':slotAnim(st,[{opacity:0,filter:'blur(10px)'},{opacity:1,filter:'blur(0)'}],{duration:d+300,easing:'steps(8)'});break;
- case 'blinds':{const el=layer(st,'fxBlinds','');for(let i=0;i<8;i++){const b=document.createElement('i');b.style.top=(i*12.5)+'%';el.append(b);b.animate([{transform:'scaleY(1)'},{transform:'scaleY(0)'}],{duration:d,delay:i*40,easing:ease,fill:'forwards'});}setTimeout(()=>el.remove(),d+400);break;}}}
+function runTransition(st,area,kind){const r=st.reduced,d=r?300:650,ease='cubic-bezier(.3,.7,.2,1)';if(r&&['slide','zoom','glitch','blinds','dissolve'].includes(kind))kind='fade';const sa=(k,o)=>slotAnim(st,area,k,o);
+ switch(kind){case 'fade':sa([{opacity:0},{opacity:1}],{duration:d,easing:ease});break;
+ case 'blackFade':flashLayer(st,area,'#000',[1,1,0],d+250,false);break;
+ case 'whiteFade':flashLayer(st,area,'#fff',[1,1,0],d+250,false);break;
+ case 'flashCut':flashLayer(st,area,'#fff',[1,0],280,false);break;
+ case 'wipeLeft':sa([{clipPath:'inset(0 0 0 100%)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
+ case 'wipeRight':sa([{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
+ case 'wipeDown':sa([{clipPath:'inset(0 0 100% 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
+ case 'wipeUp':sa([{clipPath:'inset(100% 0 0 0)'},{clipPath:'inset(0 0 0 0)'}],{duration:d,easing:ease});break;
+ case 'iris':sa([{clipPath:'circle(0% at 50% 50%)'},{clipPath:'circle(75% at 50% 50%)'}],{duration:d+150,easing:ease});break;
+ case 'slide':sa([{transform:'translateX(100%)'},{transform:'translateX(0)'}],{duration:d,easing:ease});break;
+ case 'zoom':sa([{opacity:0,transform:'scale(1.25)'},{opacity:1,transform:'scale(1)'}],{duration:d+100,easing:ease});break;
+ case 'glitch':sa(glitchFrames(),{duration:520,easing:'steps(17)'});break;
+ case 'dissolve':sa([{opacity:0,filter:'blur(10px)'},{opacity:1,filter:'blur(0)'}],{duration:d+300,easing:'steps(8)'});break;
+ case 'blinds':{const el=layer(st,area,'fxBlinds','');if(!el)break;for(let i=0;i<8;i++){const b=document.createElement('i');b.style.top=(i*12.5)+'%';el.append(b);b.animate([{transform:'scaleY(1)'},{transform:'scaleY(0)'}],{duration:d,delay:i*40,easing:ease,fill:'forwards'});}setTimeout(()=>el.remove(),d+400);break;}}}
 
-// One beat effect, e.g. for the editor's test buttons.
-function runBeat(rootEl,fx){const st=state.get(rootEl)||{root:rootEl,anims:[],extra:[],reduced:reducedMotion(),front:rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};const r=st.reduced;
- const shake=(amp,dur,rot=0)=>{const k=[];for(let i=0;i<10;i++)k.push({transform:`translate(${rand(-amp,amp).toFixed(1)}px,${rand(-amp,amp).toFixed(1)}px) rotate(${rand(-rot,rot).toFixed(2)}deg)`});k.push({transform:'none'});rootEl.animate(k,{duration:dur,easing:'linear'});};
- switch(fx){case 'flash':flashLayer(st,'#fff',[.85,0],380);break;case 'whiteFlash':flashLayer(st,'#fff',[1,.9,0],1000);break;case 'redFlash':flashLayer(st,'rgb(200,0,20)',[.6,0],600);break;
- case 'blackout':flashLayer(st,'#000',[0,1,1,0],1000);break;case 'shake':shake(r?2:7,380);break;case 'bigShake':shake(r?4:15,720,r?0:1.2);break;
- case 'pulse':camAnim(st,[{transform:'scale(1)'},{transform:'scale(1.05)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});break;
- case 'glitch':if(r){flashLayer(st,'#fff',[.4,0],200);break;}for(const s of slots(rootEl))s.animate(glitchFrames(),{duration:380,easing:'steps(17)'});break;
- case 'zoomPunch':camAnim(st,[{transform:'scale(1)'},{transform:`scale(${r?1.03:1.14})`,offset:.25},{transform:'scale(1)'}],{duration:620,easing:'ease-out'});break;
- case 'lightning':flashLayer(st,'rgba(235,240,255,1)',[0,.9,.1,.7,0],650);break;
- case 'blur':camAnim(st,[{filter:'blur(8px)'},{filter:'blur(0)'}],{duration:700,easing:'ease-out'});break;
- case 'tint':flashLayer(st,'rgba(70,130,220,.9)',[0,.45,0],1300,false);break;}}
-function beat(rootEl,scene,when){for(const b of scene?.stage?.beats||[])if(b.when===when)runBeat(rootEl,b.fx);}
+// One beat effect in an area, e.g. for the editor's test buttons. 'all' beats may cover the dialogue; slot beats stay in the slot.
+function runBeat(rootEl,fx,area='all'){const st=state.get(rootEl)||{root:rootEl,anims:[],extra:[],particles:[],reduced:reducedMotion(),front:rootEl.querySelector('[data-fx-front]')||rootEl.lastElementChild};const r=st.reduced;
+ const shake=(amp,dur,rot=0)=>{const k=[];for(let i=0;i<10;i++)k.push({transform:`translate(${rand(-amp,amp).toFixed(1)}px,${rand(-amp,amp).toFixed(1)}px) rotate(${rand(-rot,rot).toFixed(2)}deg)`});k.push({transform:'none'});if(area==='all')rootEl.animate(k,{duration:dur,easing:'linear'});else camAnim(st,area,k,{duration:dur,easing:'linear'});};
+ const fl=(c,o,d,over=true)=>flashLayer(st,area,c,o,d,over);
+ switch(fx){case 'flash':fl('#fff',[.85,0],380);break;case 'whiteFlash':fl('#fff',[1,.9,0],1000);break;case 'redFlash':fl('rgb(200,0,20)',[.6,0],600);break;
+ case 'blackout':fl('#000',[0,1,1,0],1000);break;case 'shake':shake(r?2:7,380);break;case 'bigShake':shake(r?4:15,720,r?0:1.2);break;
+ case 'pulse':camAnim(st,area,[{transform:'scale(1)'},{transform:'scale(1.05)'},{transform:'scale(1)'}],{duration:420,easing:'ease-out'});break;
+ case 'glitch':if(r){fl('#fff',[.4,0],200);break;}for(const s of slots(rootEl,area))s.animate(glitchFrames(),{duration:380,easing:'steps(17)'});break;
+ case 'zoomPunch':camAnim(st,area,[{transform:'scale(1)'},{transform:`scale(${r?1.03:1.14})`,offset:.25},{transform:'scale(1)'}],{duration:620,easing:'ease-out'});break;
+ case 'lightning':fl('rgba(235,240,255,1)',[0,.9,.1,.7,0],650);break;
+ case 'blur':camAnim(st,area,[{filter:'blur(8px)'},{filter:'blur(0)'}],{duration:700,easing:'ease-out'});break;
+ case 'tint':fl('rgba(70,130,220,.9)',[0,.45,0],1300,false);break;}}
+function beat(rootEl,scene,when){const stage=areas(scene?.stage);for(const area of AREAS)for(const b of stage[area]?.beats||[])if(b.when===when)runBeat(rootEl,b.fx,area);}
 // After a choice in `scene`: its choice beats, then gain/loss beats for what changed.
 function react(rootEl,scene,change,dead){if(!scene?.stage)return;beat(rootEl,scene,'choice');const items=change?.items||[],gain=change&&(change.hp>0||change.mental>0||change.money>0||items.some(i=>i.delta>0)),loss=dead||change&&(change.hp<0||change.mental<0||change.money<0||items.some(i=>i.delta<0));if(gain)beat(rootEl,scene,'gain');if(loss)beat(rootEl,scene,'loss');}
 // Editor: play the scene's entrance again.
 function replay(rootEl,scene){const st=state.get(rootEl);if(st)st.key='';enter(rootEl,{scene,key:'replay:'+performance.now()});}
 
-const api={enter,clear,beat,react,runBeat,replay,MOODS,PARTICLES,moodFilter};
+const api={enter,clear,beat,react,runBeat,replay,areas,AREAS,MOODS,PARTICLES,moodFilter};
 root.StageFX=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

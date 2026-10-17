@@ -3,7 +3,9 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
 const C=require('./assets/core.js');
 {const p=C.fresh();p.events.push(C.event());p.events[0].choices[0].next='end';p.events[0].stage={camera:'zoomIn',mood:'night',weather:'rain',weatherAmount:9,overlays:['vignette','bogus'],beats:[{when:'gain',fx:'flash'},{when:'x',fx:'flash'}],transition:'iris'};C.validate(p);
- assert.deepEqual(p.events[0].stage.overlays,['vignette']);assert.equal(p.events[0].stage.weatherAmount,3);assert.deepEqual(p.events[0].stage.beats,[{when:'gain',fx:'flash'}]);
+ const all=p.events[0].stage.all;assert.deepEqual(all.overlays,['vignette']);assert.equal(all.weatherAmount,3);assert.deepEqual(all.beats,[{when:'gain',fx:'flash'}]);
+ // An older flat setting with a camera target moves that camera to its slot; empty slot areas are dropped.
+ assert.deepEqual(Object.keys(C.stageSettings({camera:'zoomIn',cameraTarget:'top',mood:'night'})),['all','top']);assert.equal(C.stageSettings({all:{},top:{},bottom:{weather:'snow'}}).top,undefined);
  p.events[0].stage={layers:{top:{image:'not-an-image'}}};assert.throws(()=>C.validate(p),/연출 인물/);p.events[0].stage={};p.stagePresets=[{name:'',stage:{}}];assert.throws(()=>C.validate(p),/프리셋/);}
 (async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 for(const viewport of [{width:360,height:740},{width:320,height:568}]){
@@ -15,14 +17,20 @@ await p.evaluate(async()=>{const g=C.fresh();g.randomStart=0;g.definitions=[{id:
 // Editor: controls write a sanitized stage; empty staging is removed.
 await p.evaluate(()=>document.querySelectorAll('.stageEditor details').forEach(d=>d.open=true));await p.selectOption('#fxCamera','zoomIn');await p.selectOption('#fxMood','night');await p.selectOption('#fxWeather','snow');await p.locator('[data-overlay=vignette]').check();await p.selectOption('#fxTransition','iris');
 await p.locator('#fxAddBeat').click();await p.selectOption('[data-beat-when="0"]','gain');await p.selectOption('[data-beat-fx="0"]','flash');
-let stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.camera,'zoomIn');assert.equal(stage.mood,'night');assert.equal(stage.weather,'snow');assert.deepEqual(stage.overlays,['vignette']);assert.equal(stage.transition,'iris');assert.deepEqual(stage.beats,[{when:'gain',fx:'flash'}]);
+let stage=await p.evaluate(()=>project.events[0].stage.all);assert.equal(stage.camera,'zoomIn');assert.equal(stage.mood,'night');assert.equal(stage.weather,'snow');assert.deepEqual(stage.overlays,['vignette']);assert.equal(stage.transition,'iris');assert.deepEqual(stage.beats,[{when:'gain',fx:'flash'}]);
 assert.equal(await p.locator('#fxPreview .fxParticles').count(),1,'preview draws particles');assert.match(await p.locator('#fxPreview .previewUpper').evaluate(x=>x.style.filter),/brightness/);
 // Presets: save a user preset, apply a built-in (keeps character layers), delete the user preset.
 await p.locator('#fxPresetName').fill('내 눈밤');await p.locator('#fxSavePreset').click();assert.equal(await p.evaluate(()=>project.stagePresets[0].name),'내 눈밤');assert.equal(await p.evaluate(()=>project.stagePresets[0].stage.weather),'snow');
 await p.evaluate(img=>{project.events[0].stage.layers={top:{image:img,x:30,y:100,scale:80,enter:'slideLeft',motion:'bob',flip:false}};persist();renderEditor();},pixel);
-assert.equal(await p.locator('#fxBeats select').first().isVisible(),true,'sections stay open after a re-render');await p.selectOption('#fxPreset','b4');await p.locator('#fxApplyPreset').click();stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.weather,'storm');assert.equal(stage.layers.top.x,30,'preset keeps the character');
+assert.equal(await p.locator('#fxBeats select').first().isVisible(),true,'sections stay open after a re-render');await p.selectOption('#fxPreset','b4');await p.locator('#fxApplyPreset').click();stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.all.weather,'storm');assert.equal(stage.layers.top.x,30,'preset keeps the character');
 await p.selectOption('#fxPreset','u0');await p.evaluate(()=>{window.confirm=()=>true;});await p.locator('#fxDeletePreset').click();assert.equal(await p.evaluate(()=>project.stagePresets),undefined);
-await p.locator('#fxClear').click();assert.equal(await p.evaluate(()=>project.events[0].stage),undefined);await p.evaluate(()=>$('undoEdit').click());assert.equal(await p.evaluate(()=>project.events[0].stage?.weather),'storm','undo restores staging');
+await p.locator('#fxClear').click();assert.equal(await p.evaluate(()=>project.events[0].stage),undefined);await p.evaluate(()=>$('undoEdit').click());assert.equal(await p.evaluate(()=>project.events[0].stage?.all.weather),'storm','undo restores staging');
+// Areas: the top tab edits only the top picture; its particles and shake stay inside that slot.
+await p.evaluate(()=>{project.events[0].stage={all:{},layers:project.events[0].stage.layers};persist();renderEditor();});await p.locator('[data-fx-area=top]').click();await p.selectOption('#fxWeather','rain');await p.selectOption('#fxMood','dusk');
+stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.top.weather,'rain');assert.equal(stage.all.weather,'none');assert.equal(stage.bottom,undefined);
+assert.equal(await p.locator('#fxPreview .previewUpper .fxParticles').count(),1);assert.equal(await p.locator('#fxPreview > .fxParticles').count(),0);assert.match(await p.locator('[data-fx-area=top]').innerText(),/•/);
+assert.equal(await p.evaluate(()=>{StageFX.runBeat($('fxPreview'),'bigShake','top');return $('fxPreview').getAnimations().length+':'+$('fxPreview').querySelector('.previewLower .fxCam').getAnimations().length;}),'0:0','a top-only shake leaves the frame and the bottom picture still');
+await p.locator('[data-fx-area=all]').click();await p.evaluate(()=>{project.events[0].stage=C.stageSettings({mood:'night',weather:'storm',layers:project.events[0].stage?.layers});persist();});
 // Play: staging applies on the stage, continues across re-renders, beats fire on gain, cleanup on leaving.
 await p.evaluate(()=>{project.events[0].stage={...C.stageSettings({camera:'drift',mood:'memory',weather:'rain',overlays:['vignette','grain','letterbox'],warp:'water',transition:'fade',beats:[{when:'gain',fx:'flash'},{when:'start',fx:'shake'}]}),layers:project.events[0].stage.layers};persist();startTest(project.events[0].id);});
 await p.waitForFunction(()=>playing||page==='test');await p.waitForTimeout(300);
@@ -41,7 +49,7 @@ await p.evaluate(()=>switchPage('story'));assert.equal(await p.locator('#stage .
 await p.emulateMedia({reducedMotion:'reduce'});await p.evaluate(()=>startTest(project.events[0].id));await p.waitForTimeout(200);assert.equal(await p.locator('#upper .fxCam').evaluate(x=>x.getAnimations().length),0);assert.equal(await p.locator('#stage .fxParticles').count(),1);
 await p.emulateMedia({reducedMotion:'no-preference'});await p.evaluate(()=>switchPage('story'));
 assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),viewport.width);assert.deepEqual(errors,[]);await p.close();
-console.log('PASS',viewport,'staging editor, presets, undo, play camera/mood/warp/particles/overlays/layers, gain beat, cleanup, reduced motion.');}
+console.log('PASS',viewport,'staging editor, areas (all/top/bottom), presets, undo, play camera/mood/warp/particles/overlays/layers, gain beat, cleanup, reduced motion.');}
 await b.close();
 // The exported player carries the runtime but not the editor tab.
 const html=fs.readFileSync(path.join(__dirname,'assets/player-index.html'),'utf8');assert.match(html,/stage-fx\.js/);assert.doesNotMatch(html,/stage-editor\.js/);

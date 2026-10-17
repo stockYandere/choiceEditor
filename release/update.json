@@ -1,8 +1,8 @@
 {
- "versionCode": 35,
- "versionName": "0.1.34",
+ "versionCode": 36,
+ "versionName": "0.1.35",
  "apk": "editor.apk",
  "size": 8846947,
- "sha256": "d9428d1dd7d00bb46d544ed45448ef95cd73a747bec3582ee93df3ad6a737e09",
- "notes": "사건 게임 에디터 v0.1.34 — 앱을 켜면 바로 업데이트 확인"
+ "sha256": "c65717680eaf2994fde659115985734bcd51284796609fa8408664de7f9cd1bb",
+ "notes": "사건 게임 에디터 v0.1.35 — 연출 탭을 도구 아이콘 방식으로"
 }

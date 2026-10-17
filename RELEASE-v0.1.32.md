@@ -28,6 +28,11 @@
 - `publish-release.sh`가 빌드한 APK를 `release/editor.apk`와 `release/update.json`으로 올립니다.
 - `release/signing-cert.sha256`에 고정한 서명키가 아니면 올리지 않습니다. 다른 키로 서명된 버전은 설치된 에디터가 받아 주지 않기 때문입니다.
 
+## 서명키 보관
+- 서명키는 저장소에 암호로 잠근 `signing.jks.enc`로만 둡니다. 원래 `signing.jks`는 올리지 않습니다.
+- 새 작업 환경에서는 `SIGNING_PASSPHRASE=… sh signing-key.sh open`으로 연 다음 `build.sh`와 `publish-release.sh`를 실행합니다.
+- 키가 없으면 `build.sh`가 새 키를 만들지 않고 멈춥니다.
+
 ## 검증
 - 전체 검사 39개 중 37개 통과. 실패 2개(`test-example-browser.cjs`, `test-rogue-browser.cjs`)는 이전부터 있던 대화창 높이 1px 반올림 문제입니다.
 - `test-app-update-browser.cjs`(새 검사)

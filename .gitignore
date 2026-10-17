@@ -18,3 +18,4 @@ export-qa/player/
 *.apk.idsig
 export-qa/media-work/
 .sound-cache/
+__pycache__/

@@ -16,6 +16,8 @@ boolean silentPossible(){if(Build.VERSION.SDK_INT<31)return false;try{return act
 String status(){try{JSONObject j=new JSONObject();PackageInfo p=self();j.put("enabled",enabled());j.put("current",p.versionName);j.put("currentCode",p.versionCode);j.put("checking",checking);j.put("installing",installing);j.put("ready",ready!=null);j.put("readyName",readyName);j.put("notes",notes);j.put("canInstall",canInstall());j.put("silent",silentPossible());j.put("lastCheck",prefs.getLong("last",0));j.put("error",error.isEmpty()?prefs.getString("installError",""):error);return j.toString();}catch(Exception e){return "{}";}}
 void notifyJs(){final String s=status();activity.runOnUiThread(()->{if(activity.web!=null)activity.web.evaluateJavascript("window.onAppUpdate && window.onAppUpdate("+s+")",null);});}
 
+// Every app start looks for a new version right away (when auto-update is on); returning to the app checks at most hourly.
+void checkOnStart(){if(enabled())check(true);}
 void check(boolean force){if(!force&&(!enabled()||System.currentTimeMillis()-prefs.getLong("last",0)<CHECK_EVERY))return;if(checking||installing)return;checking=true;error="";notifyJs();
  new Thread(()->{try{JSONObject j=new JSONObject(new String(get(FEED,200000),"UTF-8"));prefs.edit().putLong("last",System.currentTimeMillis()).apply();int code=j.getInt("versionCode");
   if(code<=self().versionCode){ready=null;cleanup(-1);return;}

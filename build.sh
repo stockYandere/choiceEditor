@@ -40,6 +40,6 @@ if [ ! -f "$TASK/signing.jks" ] && [ -f "$TASK/signing.jks.enc" ]; then echo "si
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi
-"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.38-Event-Game-Editor.apk" "$TASK/aligned.apk"
-"$SDK/apksigner" verify --verbose "$TASK/v0.1.38-Event-Game-Editor.apk"
-"$SDK/aapt" dump badging "$TASK/v0.1.38-Event-Game-Editor.apk"
+"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.39-Event-Game-Editor.apk" "$TASK/aligned.apk"
+"$SDK/apksigner" verify --verbose "$TASK/v0.1.39-Event-Game-Editor.apk"
+"$SDK/aapt" dump badging "$TASK/v0.1.39-Event-Game-Editor.apk"

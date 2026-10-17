@@ -43,11 +43,11 @@ assert.equal(await p.evaluate(()=>project.events[0].stage.all.sound),false);asse
 await p.locator('#fxMore').click();await p.locator('#fxGameSound').uncheck();assert.equal(await p.evaluate(()=>project.audio.stageSound),false);await p.locator('#fxGameSound').check();assert.equal(await p.evaluate(()=>project.audio.stageSound),undefined);await p.locator('#closeModal').click();
 // 소리 tab: pick a bundled effect, then hosted music with its credit.
 await p.evaluate(()=>{part='sound';renderEditor();});await p.locator('#sceneVoiceLibrary').click();assert.equal(await p.locator('[data-lib-group=effect]').getAttribute('aria-selected'),'true');
-assert.ok(await p.locator('.libRow').count()<=7,'one page');await p.locator('[data-lib-page="1"]').last().click();assert.match(await p.locator('.libPager').innerText(),/2 \/ \d+/,'many pages show a count');
+assert.ok(await p.locator('.libRow').count()<=7,'one page');await p.locator('[data-lib-page="1"]').last().click();assert.match(await p.locator('#modal .libPager').innerText(),/2 \/ \d+/,'many pages show a count');
 await p.locator('[data-lib-play]').first().click();assert.equal(await p.locator('[data-lib-play]').first().getAttribute('aria-pressed'),'true');
 await p.locator('[data-lib-page="0"]').first().click();await p.locator('[data-lib-pick=thunder]').click();
 let slot=await p.evaluate(()=>project.events[0].audio.dialogue);assert.equal(slot.src,'sounds/thunder.ogg');assert.equal(slot.kind,'effect');assert.equal(slot.lib,'thunder');assert.equal(slot.credit,undefined,'CC0 needs no credit');
-await p.locator('#sceneBgmMode').selectOption('play');await p.locator('#sceneBgmLibrary').click();assert.equal(await p.locator('[data-lib-group=bgm]').getAttribute('aria-selected'),'true');await p.locator('[data-lib-pick=bgm-morning]').click();
+await p.locator('[data-sound-panel=bgm]').click();await p.locator('#sceneBgmMode').selectOption('play');await p.locator('#sceneBgmLibrary').click();assert.equal(await p.locator('[data-lib-group=bgm]').getAttribute('aria-selected'),'true');await p.locator('[data-lib-pick=bgm-morning]').click();
 await p.waitForFunction(()=>project.events[0].audio?.bgm?.src?.startsWith('data:audio/ogg;base64,'),null,{timeout:10000});slot=await p.evaluate(()=>project.events[0].audio.bgm);assert.equal(slot.credit.license,'CC BY 4.0');assert.equal(slot.loop,true);
 assert.match(await p.locator('#sceneBgmCredit').innerText(),/Kevin MacLeod.*CC BY 4\.0/);
 // Credits: listed automatically on the credits screen and in the APK form; the export list holds picked and 연출 sounds.

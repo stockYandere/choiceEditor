@@ -166,9 +166,9 @@
     return links;
   }
 
-  /* Fill #sceneHelpers and #sceneLinks inside the content tab for scene e. */
+  /* Fill #sceneHelpers (variation tools and preview) inside the content tab for scene e. */
   function mount(e) {
-    const host = byId('sceneHelpers'), links = byId('sceneLinks');
+    const host = byId('sceneHelpers');
     if (!host) return;
     host.innerHTML = `<div class="varTools" role="group" aria-label="대사 변주 넣기">
 <button type="button" id="varCondition" class="chip" title="선택한 문구를 조건에 따라 바꾸기">＋ 조건</button>
@@ -177,8 +177,7 @@
 <button type="button" id="varHelp" class="chip quiet" aria-label="변주 문법 보기">?</button>
 <select id="varPick" aria-label="변주 조건 고르기" hidden>${conditionOptions(e)}</select>
 </div>
-<div id="varPreview" class="varPreview" aria-live="polite"></div>
-<div class="sceneChoices"><div class="sceneChoicesHead"><b>선택지</b><small id="sceneChoiceCount"></small></div><div id="sceneChoiceList"></div></div>`;
+<div id="varPreview" class="varPreview" aria-live="polite"></div>`;
     const textarea = byId('copy');
     byId('varVisits').onclick = () => insertVariation(textarea, wrapVisits);
     byId('varRandom').onclick = () => insertVariation(textarea, wrapRandom);
@@ -205,16 +204,17 @@
     byId('speaker').addEventListener('input', () => refresh(e));
     refresh(e);
 
-    if (links) {
-      const incoming = incomingLinks(e);
-      links.innerHTML = incoming.length
-        ? `<details class="incoming"><summary>이 사건으로 오는 길 ${incoming.length}</summary>${incoming.slice(0, 30).map((l, i) => `<button type="button" class="quiet full linkJump" data-jump="${i}"><b>${escapeHtml(l.scene.title || '제목 없음')}</b><small>${escapeHtml(l.c.text || '선택지')}</small></button>`).join('')}</details>`
-        : e.kind === 'branch' ? '<p class="hint">아직 이 분기로 오는 선택지가 없습니다. 다른 사건의 선택 결과 → 다음 진행에서 연결하세요.</p>' : '';
-      links.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => {
-        selected = incoming[Number(b.dataset.jump)].scene.id;
-        renderEditor();
-      });
-    }
+  }
+
+  /* Sheet listing the choices that lead to scene e; tapping one opens that scene. */
+  function showIncoming(e) {
+    const incoming = incomingLinks(e);
+    open('이 사건으로 오는 길 ' + incoming.length, incoming.length ? incoming.slice(0, 30).map((l, i) => `<button type="button" class="quiet full linkJump" data-jump="${i}"><b>${escapeHtml(l.scene.title || '제목 없음')}</b><small>${escapeHtml(l.c.text || '선택지')}</small></button>`).join('') : '<p class="hint">아직 이 사건으로 오는 선택지가 없습니다. 다른 사건의 선택 결과 → 다음 진행에서 연결하세요.</p>');
+    byId('modalBody').querySelectorAll('[data-jump]').forEach(b => b.onclick = () => {
+      byId('modal').close();
+      selected = incoming[Number(b.dataset.jump)].scene.id;
+      renderEditor();
+    });
   }
 
   function refresh(e) {
@@ -244,17 +244,24 @@
     renderChoices(e);
   }
 
+  // The 선택지 tab returns to the page you were on for each scene.
+  const choicePages = new Map();
+
   function renderChoices(e) {
     const list = byId('sceneChoiceList');
     if (!list) return;
-    byId('sceneChoiceCount').textContent = e.choices.length + ' / 6';
     list.innerHTML = e.choices.map(c => {
       const state = choiceState(c), shown = renderText(c.text) || '선택지 문구 입력';
       const tag = c.requires ? `<span class="requirement ${state.ok ? 'met' : 'missing'}">${state.ok ? '✓' : '×'} ${escapeHtml(state.label)}${state.hidden ? ' · 숨김' : ''}</span>` : '';
-      return `<button type="button" class="sceneChoice ${state.hidden ? 'hiddenChoice' : state.ok ? '' : 'locked'}" data-scene-choice="${c.id}">${tag}<span>${escapeHtml(shown)}</span><small>${escapeHtml(summary(c))}</small></button>`;
-    }).join('') + (e.choices.length < 6 ? '<button type="button" id="sceneAddChoice" class="quiet full">＋ 선택지</button>' : '');
+      return `<button type="button" class="sceneChoice ${state.hidden ? 'hiddenChoice' : state.ok ? '' : 'locked'}" data-scene-choice="${c.id}" data-choice="${c.id}">${tag}<span>${escapeHtml(shown)}</span><small>${escapeHtml(summary(c))}</small></button>`;
+    }).join('');
     list.querySelectorAll('[data-scene-choice]').forEach(b => b.onclick = () => choiceForm(e.choices.find(c => c.id === b.dataset.sceneChoice)));
-    if (byId('sceneAddChoice')) byId('sceneAddChoice').onclick = () => startNewChoice(e);
+    // In the 선택지 tab the list pages when it does not fit (app.js paginate).
+    if (list.closest('.choicesLayout') && typeof paginate === 'function') {
+      const pageNow = () => paginate(list, choicePages.get(e.id) || 0, at => choicePages.set(e.id, at));
+      pageNow();
+      requestAnimationFrame(pageNow);
+    }
   }
 
   // Keep {이름?…} references in every line when a quality or scene title is renamed.
@@ -311,5 +318,5 @@
     });
   }
 
-  root.SceneHelpers = { mount, refresh, renameEverywhere, knownName, usageLabel, showUsage };
+  root.SceneHelpers = { mount, refresh, renderChoices, incomingLinks, showIncoming, renameEverywhere, knownName, usageLabel, showUsage };
 })(globalThis);

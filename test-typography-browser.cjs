@@ -47,7 +47,7 @@ const url = require('node:url').pathToFileURL(path.join(__dirname, 'assets/index
 
     // 글자 크기: 가방 → 글자 크기 → 크게, 저장되고 이전 대화에도 적용
     await p.locator('#bag').click();
-    await p.locator('#playerTextSettings summary').click();
+    await p.locator('[data-state-tab=settings]').click();
     await p.locator('[data-text-size=large]').click();
     assert.equal(await p.evaluate(() => store.preferences.textSize), 'large');
     assert.equal(await p.locator('[data-text-size=large]').getAttribute('aria-pressed'), 'true');

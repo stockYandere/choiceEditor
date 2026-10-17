@@ -23,16 +23,20 @@ const url = require('node:url').pathToFileURL(path.join(__dirname, 'assets/index
       assert.equal(d.h, viewport.height, label + ' 바깥 세로 스크롤 없음');
     };
 
-    // 첫 사건: 변주 도구, 미리보기, 선택지 목록이 내용 탭에 함께 보임
+    // 첫 사건: 변주 도구와 미리보기는 내용 탭, 선택지는 한 줄 요약 → 선택지 탭 (미리보기 상태를 따름)
     assert.equal(await p.locator('#varTools, .varTools').count(), 1);
-    assert.equal(await p.locator('#sceneChoiceList [data-scene-choice]').count(), 3);
+    assert.match(await p.locator('#goChoices').innerText(), /선택지 3/);
     const before = await p.locator('.varLine p').innerText();
     assert.match(before, /다가가도 될까/);
     await p.locator('[data-quality="용기"]').click();
     assert.match(await p.locator('.varLine p').innerText(), /망설임 없이 쪼그려 앉았다/);
     assert.equal(await p.locator('[data-quality="용기"]').getAttribute('aria-pressed'), 'true');
     // 선택지 문구도 같은 상태로 미리보기
+    await p.click('#goChoices');
+    assert.equal(await p.locator('#sceneChoiceList [data-scene-choice]').count(), 3);
     assert.match(await p.locator('#sceneChoiceList').innerText(), /우산을 기울여 씌워 준다/);
+    await noOverflow('선택지 탭');
+    await p.click('[data-part=content]');
     await noOverflow('내용 탭');
 
     // 다음 사건: 방문 칩을 돌리면 같은 대사가 방문마다 바뀜
@@ -42,10 +46,13 @@ const url = require('node:url').pathToFileURL(path.join(__dirname, 'assets/index
     assert.match(await p.locator('.varLine p').innerText(), /또 그 고양이/);
     await p.locator('[data-quality="방문"]').click();
     assert.match(await p.locator('.varLine p').innerText(), /이제는 익숙한[\s\S]*발소리를 아는/);
-    // 기억이 없으면 숨김 선택지는 흐리게 표시
+    // 기억이 없으면 숨김 선택지는 흐리게 표시 (선택지 탭에도 같은 미리보기 상태 칩)
+    await p.click('#goChoices');
     assert.equal(await p.locator('.sceneChoice.hiddenChoice').count(), 1);
     await p.locator('[data-quality="보리라고 불렀다"]').click();
     assert.equal(await p.locator('.sceneChoice.hiddenChoice').count(), 0);
+    await noOverflow('선택지 탭 상태 칩');
+    await p.click('[data-part=content]');
 
     // 선택한 문구를 조건으로 감싸기 (2번 터치)
     await p.evaluate(() => { const t = document.getElementById('copy'); const i = t.value.indexOf('담벼락'); t.focus(); t.setSelectionRange(i, i + 3); });
@@ -66,7 +73,12 @@ const url = require('node:url').pathToFileURL(path.join(__dirname, 'assets/index
     await p.click('#closeModal');
 
     // 선택지 폼: 없을 때만 / 숨김 / 기억 만들기
-    await p.locator('#sceneChoiceList [data-scene-choice]').nth(3).click();
+    await p.click('#goChoices');
+    // On a small screen the 4th choice can be on the next page of the list.
+    const fourth = p.locator('#sceneChoiceList [data-scene-choice]').nth(3);
+    while (!(await fourth.isVisible())) await p.locator('#sceneChoiceList [data-auto-page="1"]').click();
+    await fourth.click();
+    await p.locator('#modal [data-form-tab]', { hasText: '조건' }).click();
     assert(await p.locator('#cRequiresExtra').isHidden());
     await p.selectOption('#cRequires', 'eye');
     assert(await p.locator('#cRequiresExtra').isVisible());
@@ -96,7 +108,8 @@ const url = require('node:url').pathToFileURL(path.join(__dirname, 'assets/index
     assert.match(await p.locator('#formError').innerText(), /방문/);
     await p.click('#closeModal');
     // 쓰이는 곳: 기억을 남기는 선택과 그 기억을 읽는 대사·조건을 모아 보고 이동
-    assert.match(await p.locator('[data-usage-def="namedCat"]').innerText(), /얻는 곳 1 · 쓰는 곳 [4-9]/);
+    await p.fill('#defSearch', await p.evaluate(() => project.definitions.find(d => d.id === 'namedCat').name));
+    assert.match(await p.locator('[data-usage-def="namedCat"]').innerText(), /얻 1 · 쓰 [4-9]/);
     await p.locator('[data-usage-def="namedCat"]').click();
     const usage = await p.locator('#modalBody').innerText();
     assert.match(usage, /골목 입구[\s\S]*기억/);

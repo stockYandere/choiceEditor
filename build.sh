@@ -35,6 +35,8 @@ with zipfile.ZipFile(p/'unsigned.apk','a',zipfile.ZIP_DEFLATED) as z:
  z.write(p/'dex/classes.dex','classes.dex')
 PY
 "$SDK/zipalign" -f 4 "$TASK/unsigned.apk" "$TASK/aligned.apk"
+# A new key would make builds that installed editors refuse as updates; unlock the saved one instead.
+if [ ! -f "$TASK/signing.jks" ] && [ -f "$TASK/signing.jks.enc" ]; then echo "signing.jks is missing: run SIGNING_PASSPHRASE=... sh signing-key.sh open"; exit 1; fi
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi

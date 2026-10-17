@@ -14,23 +14,29 @@ await p.addInitScript(()=>{window.Android={readData:()=>'',readBackup:()=>'',arc
 await p.goto(require('node:url').pathToFileURL(path.join(__dirname,'assets/index.html')).href);await p.waitForFunction(()=>!!project);
 const pixel=await p.evaluate(()=>{const c=document.createElement('canvas');c.width=60;c.height=120;const x=c.getContext('2d');x.fillStyle='#e9a';x.fillRect(10,10,40,110);return c.toDataURL('image/png');});
 await p.evaluate(async()=>{const g=C.fresh();g.randomStart=0;g.definitions=[{id:'key',name:'열쇠',type:'item',initial:0}];const a=C.event(),z=C.event();a.title='골목';a.text='비가 내린다';a.choices[0].next=z.id;a.choices[0].gain='key';z.title='다리';z.text='둘째';z.choices[0].next='end';g.events=[a,z];await addGame(g);selected=a.id;part='fx';page='story';render();});
-// Editor: controls write a sanitized stage; empty staging is removed.
-await p.evaluate(()=>document.querySelectorAll('.stageEditor details').forEach(d=>d.open=true));await p.selectOption('#fxCamera','zoomIn');await p.selectOption('#fxMood','night');await p.selectOption('#fxWeather','snow');await p.locator('[data-overlay=vignette]').check();await p.selectOption('#fxTransition','iris');
-await p.locator('#fxAddBeat').click();await p.selectOption('[data-beat-when="0"]','gain');await p.selectOption('[data-beat-fx="0"]','flash');
+// Editor: one area at a time, compact rows; controls write a sanitized stage; empty staging is removed.
+assert.equal(await p.locator('#fxPreview').count(),0,'no preview takes room in the tab');
+await p.selectOption('#fxCamera','zoomIn');await p.selectOption('#fxMood','night');await p.selectOption('#fxWeather','snow');await p.locator('[data-overlay=vignette]').click();await p.selectOption('#fxTransition','iris');
+await p.locator('#fxAddBeat').click();assert.equal(await p.locator('[data-beat-when="0"]').isVisible(),true,'a new beat row is visible after the re-render');await p.selectOption('[data-beat-when="0"]','gain');await p.selectOption('[data-beat-fx="0"]','flash');
 let stage=await p.evaluate(()=>project.events[0].stage.all);assert.equal(stage.camera,'zoomIn');assert.equal(stage.mood,'night');assert.equal(stage.weather,'snow');assert.deepEqual(stage.overlays,['vignette']);assert.equal(stage.transition,'iris');assert.deepEqual(stage.beats,[{when:'gain',fx:'flash'}]);
-assert.equal(await p.locator('#fxPreview .fxParticles').count(),1,'preview draws particles');assert.match(await p.locator('#fxPreview .previewUpper').evaluate(x=>x.style.filter),/brightness/);
-// Presets: save a user preset, apply a built-in (keeps character layers), delete the user preset.
-await p.locator('#fxPresetName').fill('내 눈밤');await p.locator('#fxSavePreset').click();assert.equal(await p.evaluate(()=>project.stagePresets[0].name),'내 눈밤');assert.equal(await p.evaluate(()=>project.stagePresets[0].stage.weather),'snow');
+assert.equal(await p.locator('#fxMoodStrength').isVisible(),true,'strength appears once a mood is picked');
+assert.equal(await p.locator('#editor').evaluate(x=>x.scrollWidth<=x.clientWidth),true,'no sideways scroll in the tab');
+// Preview opens as a sheet, draws the staging, and back closes it and stops the particles.
+await p.locator('#fxOpenPreview').click();assert.equal(await p.locator('#fxSheet').evaluate(x=>x.open),true);assert.equal(await p.locator('#fxPreview .fxParticles').count(),1,'preview draws particles');assert.match(await p.locator('#fxPreview .previewUpper').evaluate(x=>x.style.filter),/brightness/);
+await p.evaluate(()=>appBack());assert.equal(await p.locator('#fxSheet').evaluate(x=>x.open),false);assert.equal(await p.locator('#fxPreview .fxParticles').count(),0);
+// Presets: save a user preset from the ⋯ sheet, apply a built-in by picking it (keeps characters), delete the user preset.
+await p.locator('#fxMore').click();await p.locator('#fxPresetName').fill('내 눈밤');await p.locator('#fxSavePreset').click();assert.equal(await p.evaluate(()=>project.stagePresets[0].name),'내 눈밤');assert.equal(await p.evaluate(()=>project.stagePresets[0].stage.weather),'snow');
 await p.evaluate(img=>{project.events[0].stage.layers={top:{image:img,x:30,y:100,scale:80,enter:'slideLeft',motion:'bob',flip:false}};persist();renderEditor();},pixel);
-assert.equal(await p.locator('#fxBeats select').first().isVisible(),true,'sections stay open after a re-render');await p.selectOption('#fxPreset','b4');await p.locator('#fxApplyPreset').click();stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.all.weather,'storm');assert.equal(stage.layers.top.x,30,'preset keeps the character');
-await p.selectOption('#fxPreset','u0');await p.evaluate(()=>{window.confirm=()=>true;});await p.locator('#fxDeletePreset').click();assert.equal(await p.evaluate(()=>project.stagePresets),undefined);
-await p.locator('#fxClear').click();assert.equal(await p.evaluate(()=>project.events[0].stage),undefined);await p.evaluate(()=>$('undoEdit').click());assert.equal(await p.evaluate(()=>project.events[0].stage?.all.weather),'storm','undo restores staging');
-// Areas: the top tab edits only the top picture; its particles and shake stay inside that slot.
+await p.selectOption('#fxPreset','b4');stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.all.weather,'storm');assert.equal(stage.layers.top.x,30,'preset keeps the character');assert.equal(await p.locator('#fxPreset').inputValue(),'');
+await p.evaluate(()=>{window.confirm=()=>true;});await p.locator('#fxMore').click();await p.locator('[data-delete-preset="0"]').click();assert.equal(await p.evaluate(()=>project.stagePresets),undefined);
+await p.locator('#fxMore').click();await p.locator('#fxClear').click();assert.equal(await p.evaluate(()=>project.events[0].stage),undefined);await p.evaluate(()=>$('undoEdit').click());assert.equal(await p.evaluate(()=>project.events[0].stage?.all.weather),'storm','undo restores staging');
+// Areas: the top tab edits only the top picture; its particles and shake stay inside that slot; it holds the top character.
 await p.evaluate(()=>{project.events[0].stage={all:{},layers:project.events[0].stage.layers};persist();renderEditor();});await p.locator('[data-fx-area=top]').click();await p.selectOption('#fxWeather','rain');await p.selectOption('#fxMood','dusk');
 stage=await p.evaluate(()=>project.events[0].stage);assert.equal(stage.top.weather,'rain');assert.equal(stage.all.weather,'none');assert.equal(stage.bottom,undefined);
-assert.equal(await p.locator('#fxPreview .previewUpper .fxParticles').count(),1);assert.equal(await p.locator('#fxPreview > .fxParticles').count(),0);assert.match(await p.locator('[data-fx-area=top]').innerText(),/•/);
+assert.equal(await p.locator('[data-fx-area=top] .fxDot').count(),1);assert.equal(await p.locator('[data-layer-remove=top]').count(),1,'the top tab shows the top character');
+await p.locator('#fxOpenPreview').click();assert.equal(await p.locator('#fxPreview .previewUpper .fxParticles').count(),1);assert.equal(await p.locator('#fxPreview > .fxParticles').count(),0);
 assert.equal(await p.evaluate(()=>{StageFX.runBeat($('fxPreview'),'bigShake','top');return $('fxPreview').getAnimations().length+':'+$('fxPreview').querySelector('.previewLower .fxCam').getAnimations().length;}),'0:0','a top-only shake leaves the frame and the bottom picture still');
-await p.locator('[data-fx-area=all]').click();await p.evaluate(()=>{project.events[0].stage=C.stageSettings({mood:'night',weather:'storm',layers:project.events[0].stage?.layers});persist();});
+await p.evaluate(()=>appBack());await p.locator('[data-fx-area=all]').click();await p.evaluate(()=>{project.events[0].stage=C.stageSettings({mood:'night',weather:'storm',layers:project.events[0].stage?.layers});persist();});
 // Play: staging applies on the stage, continues across re-renders, beats fire on gain, cleanup on leaving.
 await p.evaluate(()=>{project.events[0].stage={...C.stageSettings({camera:'drift',mood:'memory',weather:'rain',overlays:['vignette','grain','letterbox'],warp:'water',transition:'fade',beats:[{when:'gain',fx:'flash'},{when:'start',fx:'shake'}]}),layers:project.events[0].stage.layers};persist();startTest(project.events[0].id);});
 await p.waitForFunction(()=>playing||page==='test');await p.waitForTimeout(300);

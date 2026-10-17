@@ -260,3 +260,13 @@ summary{padding:13px 0;min-height:44px;box-sizing:border-box}#modalBody button,#
 #modalBody input[type=checkbox],#modalBody input[type=radio]{min-height:0;width:20px;height:20px;flex-shrink:0;margin:0}#modalBody label:has(>input[type=checkbox]){display:flex;align-items:center;gap:10px;min-height:44px}
 body.keyboardOpen #editorNav{display:none}
 @supports (field-sizing:content){#copy{field-sizing:content;height:auto;max-height:50dvh}}
+/* Scene staging (stage-fx.js) */
+.fxSlot{overflow:hidden}.fxCam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:50% 50%}
+.art img.fxCharacter,.previewArt img.fxCharacter{position:absolute;display:block;width:auto;max-width:none;object-fit:contain;pointer-events:none;transform-origin:50% 100%}
+.fxParticles,.fxLayerFill{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.fxFlash{position:absolute;inset:0;pointer-events:none;z-index:6;opacity:0}.fxFlash.fxUnder{z-index:1}
+.fx-letterbox .fxBar{position:absolute;left:0;right:0;height:9%;background:#000;transform-origin:50% 0}.fx-letterbox .fxBarTop{top:0}.fx-letterbox .fxBarBottom{bottom:0;transform-origin:50% 100%}
+.fxBlinds i{position:absolute;left:0;right:0;height:12.6%;background:#000;transform-origin:50% 0}
+.previewBox{z-index:2}
+.fxPreviewFrame{position:sticky;top:-8px;z-index:3;overflow:hidden;border:1px solid #94a7bd;background:#1c293a;height:clamp(170px,30dvh,300px);margin:0 auto 8px}.fxPreviewFrame[data-mode=full] .previewUpper{height:100%}.fxPreviewFrame[data-mode=full] .previewLower{display:none}
+.stageEditor details{border-top:1px solid #33465e;padding-top:2px}.stageEditor .row label{flex:1;min-width:0}.fxBeat select{flex:1;min-width:0}.fxBeat button{min-width:44px}.fxLayerSlot{margin:6px 0 10px}

@@ -20,7 +20,7 @@ root=Path(os.environ['TASK_DIR'])
 with zipfile.ZipFile(root/'assets/player-shell.apk','a',zipfile.ZIP_DEFLATED) as z:z.write(root/'player-dex/classes.dex','classes.dex')
 # Regenerate the player entry whenever the shared UI changes.
 html=(root/'assets/index.html').read_text().replace('<body>','<body class="standalone">').replace('<title>사건 게임 에디터</title>','<title>내 게임</title>')
-for name in ['sample.js','advanced-sample.js','variation-sample.js','examples.js','media-pack.js']:html=html.replace('<script src="'+name+'"></script>','')
+for name in ['sample.js','advanced-sample.js','variation-sample.js','examples.js','media-pack.js','stage-editor.js']:html=html.replace('<script src="'+name+'"></script>','')
 html=html.replace('<script src="app.js">','<script src="player-bootstrap.js"></script><script src="app.js">')
 (root/'assets/player-index.html').write_text(html)
 SHELL
@@ -38,6 +38,6 @@ PY
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi
-"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.29-Event-Game-Editor.apk" "$TASK/aligned.apk"
-"$SDK/apksigner" verify --verbose "$TASK/v0.1.29-Event-Game-Editor.apk"
-"$SDK/aapt" dump badging "$TASK/v0.1.29-Event-Game-Editor.apk"
+"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.30-Event-Game-Editor.apk" "$TASK/aligned.apk"
+"$SDK/apksigner" verify --verbose "$TASK/v0.1.30-Event-Game-Editor.apk"
+"$SDK/aapt" dump badging "$TASK/v0.1.30-Event-Game-Editor.apk"

@@ -24,7 +24,7 @@ for name in ['sample.js','advanced-sample.js','variation-sample.js','examples.js
 html=html.replace('<script src="app.js">','<script src="player-bootstrap.js"></script><script src="app.js">')
 (root/'assets/player-index.html').write_text(html)
 SHELL
-java -jar "$TASK/ecj.jar" -nowarn -8 -bootclasspath "$ANDROID:$SDK/core-lambda-stubs.jar" -classpath "$TASK/vendor/apksig.jar" -d "$TASK/classes" "$TASK/src/com/example/splitstory/MainActivity.java" "$TASK/src/com/example/splitstory/GameApkExporter.java" "$TASK/src/com/example/splitstory/ApkExportEngine.java" "$TASK/src/com/example/splitstory/CreatorKeys.java" "$TASK/src/com/example/splitstory/CreatorSigning.java" "$TASK/src/com/example/splitstory/PartitionStore.java"
+java -jar "$TASK/ecj.jar" -nowarn -8 -bootclasspath "$ANDROID:$SDK/core-lambda-stubs.jar" -classpath "$TASK/vendor/apksig.jar" -d "$TASK/classes" "$TASK/src/com/example/splitstory/MainActivity.java" "$TASK/src/com/example/splitstory/AppUpdater.java" "$TASK/src/com/example/splitstory/UpdateReceiver.java" "$TASK/src/com/example/splitstory/GameApkExporter.java" "$TASK/src/com/example/splitstory/ApkExportEngine.java" "$TASK/src/com/example/splitstory/CreatorKeys.java" "$TASK/src/com/example/splitstory/CreatorSigning.java" "$TASK/src/com/example/splitstory/PartitionStore.java"
 "$SDK/d8" --lib "$ANDROID" --min-api 26 --output "$TASK/dex" "$TASK"/classes/com/example/splitstory/*.class "$TASK/vendor/apksig.jar"
 "$SDK/aapt" package -f -M "$TASK/AndroidManifest.xml" -S "$TASK/res" -A "$TASK/assets" -I "$ANDROID" -F "$TASK/unsigned.apk"
 TASK_DIR="$TASK" python3 - <<'PY'
@@ -38,6 +38,6 @@ PY
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi
-"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.31-Event-Game-Editor.apk" "$TASK/aligned.apk"
-"$SDK/apksigner" verify --verbose "$TASK/v0.1.31-Event-Game-Editor.apk"
-"$SDK/aapt" dump badging "$TASK/v0.1.31-Event-Game-Editor.apk"
+"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.32-Event-Game-Editor.apk" "$TASK/aligned.apk"
+"$SDK/apksigner" verify --verbose "$TASK/v0.1.32-Event-Game-Editor.apk"
+"$SDK/aapt" dump badging "$TASK/v0.1.32-Event-Game-Editor.apk"

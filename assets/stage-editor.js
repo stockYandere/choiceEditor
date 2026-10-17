@@ -31,7 +31,7 @@ const STAGE_PRESETS=[
 function stageEmpty(s){return !s||C.stageAreaEmpty(s.all)&&!s.top&&!s.bottom&&!s.layers;}
 function stageOptions(kind,value){return Object.entries(STAGE_LABELS[kind]).map(([v,l])=>`<option value="${v}"${v===value?' selected':''}>${esc(l)}</option>`).join('');}
 function stageAreasFor(e){return [['all','전체'],...(e.mode==='bottom'?[]:[['top',e.mode==='full'?'그림':'위 그림']]),...(e.mode==='top'||e.mode==='full'?[]:[['bottom','아래 그림']])];}
-const STAGE_AREA_HINT={all:'화면 전체에 걸립니다. 흔들림은 화면 전체, 번쩍임은 대화창까지 덮습니다.',top:'이 그림 칸 안에서만 일어납니다.',bottom:'이 그림 칸 안에서만 일어납니다.'};
+const STAGE_AREA_HINT={all:'화면 전체에 걸립니다. 번쩍임은 대화창까지 덮습니다.',top:'이 그림 칸 안에서만 일어납니다.',bottom:'이 그림 칸 안에서만 일어납니다.'};
 // Tools of the staging tab: each opens its own sheet; 'used' tells whether an area holds that tool's setting.
 const STAGE_ICON=d=>`<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const STAGE_TOOLS={
@@ -64,20 +64,44 @@ function closeStagePreview(){const sheet=$('fxSheet');if(!sheet?.open)return fal
 function openStagePreview(e){const sheet=stagePreviewSheet(),frame=$('fxPreview');sheet.showModal();
  const paint=replay=>{GameThemes.apply(frame,project.theme,project.panelTransparency);frame.style.aspectRatio=innerWidth+'/'+innerHeight;frame.dataset.mode=e.mode;frame.querySelector('.previewBox').style.height=(Math.min(260,innerHeight*.34)/innerHeight*100)+'%';for(const k of ['top','bottom'])paintArt(frame.querySelector(k==='top'?'.previewUpper':'.previewLower'),project,e,k);if(replay)StageFX.replay(frame,e);};
  $('fxReplay').onclick=()=>paint(true);$('fxReact').onclick=()=>StageFX.react(frame,e,{hp:-1,mental:0,money:0,items:[{id:'x',delta:1}]},false);paint(true);}
+// Preview without a button: holding any item previews the event's whole staging as it is now (tapping only picks or cancels).
+function stageHold(el,fn){let timer=0,x=0,y=0;const stop=()=>clearTimeout(timer);
+ el.addEventListener('pointerdown',ev=>{delete el.dataset.held;x=ev.clientX;y=ev.clientY;stop();timer=setTimeout(()=>{el.dataset.held='1';fn();},450);});
+ el.addEventListener('pointermove',ev=>{if(Math.hypot(ev.clientX-x,ev.clientY-y)>10)stop();});
+ for(const t of ['pointerup','pointercancel','pointerleave'])el.addEventListener(t,stop);
+ el.addEventListener('contextmenu',ev=>ev.preventDefault());
+ // The click that ends a hold must not also toggle or apply.
+ el.addEventListener('click',ev=>{if(el.dataset.held){delete el.dataset.held;ev.stopImmediatePropagation();ev.preventDefault();}},true);}
+// The preset page survives re-renders, so applying a preset on page 2 stays on page 2.
+let stagePresetPage=null;
 function renderStageEditor(e){
  const full=C.stageSettings(e.stage||{}),summary=stageSummary(e,full),pic=C.art(project,e,e.mode==='bottom'?'bottom':'top').image||C.art(project,e,'bottom').image||'';
- const tile=p=>{const a=C.stageArea(p.stage),tint=StageFX.MOODS[a.mood]?.tint;return `<button class="fxPresetTile" data-preset="${p.id}"><span class="fxPresetPic${a.overlays.includes('vignette')?' fxVig':''}" style="filter:${StageFX.moodFilter(a.mood,a.moodStrength)||'none'}">${tint?`<i style="background:${tint};mix-blend-mode:${StageFX.MOODS[a.mood].blend}"></i>`:''}</span><span class="fxPresetName">${esc(p.name)}</span></button>`;};
+ const list=stagePresetList(),now=JSON.stringify(full.all),chosen=list.findIndex(p=>JSON.stringify(C.stageArea(p.stage))===now);
+ const width=($('editor').clientWidth||360)-24,cols=Math.max(3,Math.floor((width+8)/68)),per=cols*2,pages=Math.max(1,Math.ceil(list.length/per));
+ if(stagePresetPage===null)stagePresetPage=chosen>=0?Math.floor(chosen/per):0;stagePresetPage=Math.min(Math.max(0,stagePresetPage),pages-1);const page=stagePresetPage;
+ const tile=(p,i)=>{const a=C.stageArea(p.stage),tint=StageFX.MOODS[a.mood]?.tint,on=i===chosen;return `<button class="fxPresetTile${on?' on':''}" data-preset="${p.id}" aria-pressed="${on}" aria-label="${esc(p.name)}${on?' (적용됨, 다시 누르면 취소)':''}"><span class="fxPresetPic${a.overlays.includes('vignette')?' fxVig':''}" style="filter:${StageFX.moodFilter(a.mood,a.moodStrength)||'none'}">${tint?`<i style="background:${tint};mix-blend-mode:${StageFX.MOODS[a.mood].blend}"></i>`:''}</span>${on?'<b class="fxPlayMark" aria-hidden="true">✓</b>':''}<span class="fxPresetName">${esc(p.name)}</span></button>`;};
+ const pager=pages>1?`<div class="fxPager" aria-label="프리셋 쪽">${pages<=4?Array.from({length:pages},(_,i)=>`<button data-preset-page="${i}" class="${i===page?'active':''}" aria-label="${i+1}쪽"${i===page?' aria-current="page"':''}>${i+1}</button>`).join(''):`<span>${page+1}/${pages}</span>`}<button data-preset-step="-1" aria-label="이전 쪽"${page?'':' disabled'}>‹</button><button data-preset-step="1" aria-label="다음 쪽"${page<pages-1?'':' disabled'}>›</button></div>`:'';
  $('editor').innerHTML=`<div class="stageEditor">
- <div class="fxToolbar"><button id="fxOpenPreview" class="fxPlay">▶ 미리보기</button><button id="fxMore" class="quiet fxIcon" aria-label="연출 더 보기">⋯</button></div>
- <p class="fxCaption">프리셋 <small>누르면 화면 전체에 적용</small></p>
- <div class="fxPresets" role="list">${stagePresetList().map(tile).join('')}</div>
- <p id="fxSummary" class="${summary?'':'hint'}">${summary?'<b>지금</b> '+summary:'아직 연출이 없습니다. 프리셋을 고르거나 아래 도구를 눌러 보세요.'}</p>
+ <div class="fxPresetHead"><b>프리셋</b>${pager}<button id="fxMore" class="quiet fxIcon" aria-label="연출 더 보기">⋯</button></div>
+ <p class="fxCaption">누르면 화면 전체에 적용 · 다시 누르면 취소 · 꾹 누르면 미리보기</p>
+ <div class="fxPresets" style="--fx-cols:${cols}">${list.slice(page*per,page*per+per).map((p,i)=>tile(p,page*per+i)).join('')}</div>
+ <button id="fxSummary" class="${summary?'':'hint'}"${summary?'':' disabled'}>${summary?'<b>지금</b> '+summary+'<i class="fxPlayMark" aria-hidden="true">▶</i>':'아직 연출 없음 · 프리셋이나 도구를 골라 보세요'}</button>
  <div class="fxTools">${Object.entries(STAGE_TOOLS).filter(([k])=>stageToolAreas(e,k).length).map(([k,t])=>`<button data-fx-tool="${k}">${STAGE_ICON(t.icon)}<span>${t.label}</span>${stageToolAreas(e,k).some(([a])=>stageToolUsed(full,k,a))?'<i class="fxDot" aria-label="사용 중"></i>':''}</button>`).join('')}</div></div>`;
- if(pic)$('editor').querySelector('.fxPresets').style.setProperty('--fx-pic','url("'+pic+'")');
- $('fxOpenPreview').onclick=()=>openStagePreview(e);
+ const grid=$('editor').querySelector('.fxPresets');if(pic)grid.style.setProperty('--fx-pic','url("'+pic+'")');
+ const turn=n=>{stagePresetPage=n;renderStageEditor(e);};
+ $('editor').querySelectorAll('[data-preset-page]').forEach(b=>b.onclick=()=>turn(Number(b.dataset.presetPage)));
+ $('editor').querySelectorAll('[data-preset-step]').forEach(b=>b.onclick=()=>turn(page+Number(b.dataset.presetStep)));
+ // Swipe the grid sideways to turn the page.
+ let sx=null,swiped=false;grid.addEventListener('pointerdown',ev=>{sx=ev.clientX;swiped=false;});grid.addEventListener('pointerup',ev=>{if(sx===null)return;const dx=ev.clientX-sx;sx=null;if(Math.abs(dx)>40&&pages>1){const n=page+(dx<0?1:-1);if(n>=0&&n<pages){swiped=true;turn(n);}}});
+ grid.addEventListener('click',ev=>{if(swiped){swiped=false;ev.stopPropagation();ev.preventDefault();}},true);
+ $('fxSummary').onclick=()=>openStagePreview(e);
  $('editor').querySelectorAll('[data-fx-tool]').forEach(b=>b.onclick=()=>openStageTool(e,b.dataset.fxTool));
  // A preset replaces the whole-screen staging (every field of it; picture-only settings and characters stay); ↶ undoes it.
- $('editor').querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{const p=stagePresetList().find(x=>x.id===b.dataset.preset);if(!p)return;stageWrite(e,'all',C.stageArea(p.stage));renderStageEditor(e);tell('「'+p.name+'」'+josa(p.name,'을')+' 적용했습니다. ↶ 되돌리기로 취소할 수 있어요.');});
+ const apply=p=>{stageWrite(e,'all',C.stageArea(p.stage));renderStageEditor(e);};
+ $('editor').querySelectorAll('[data-preset]').forEach(b=>{const p=list.find(x=>x.id===b.dataset.preset);if(!p)return;
+  b.onclick=()=>{if(b.classList.contains('on')){stageWrite(e,'all',C.stageArea({}));renderStageEditor(e);return tell('「'+p.name+'」 적용을 취소했습니다.');}apply(p);tell('「'+p.name+'」'+josa(p.name,'을')+' 적용했습니다. 꾹 누르면 미리보기');};});
+ // Holding anything in the tab previews what this event has now.
+ $('editor').querySelectorAll('[data-preset],[data-fx-tool],#fxSummary').forEach(x=>stageHold(x,()=>openStagePreview(e)));
  $('fxMore').onclick=()=>openStageMore(e);
 }
 // A tool's sheet: where it applies (전체·위·아래), then that tool's options. Every tap is saved right away.
@@ -96,15 +120,19 @@ function openStageTool(e,tool,area){
  if(tool==='overlays')body=`<p class="hint">여러 개를 함께 켤 수 있어요.</p><div class="fxChips">${Object.entries(STAGE_LABELS.overlays).map(([v,l])=>`<button class="chip${s.overlays.includes(v)?' on':''}" data-overlay="${v}" aria-pressed="${s.overlays.includes(v)}">${esc(l)}</button>`).join('')}</div>`;
  if(tool==='beats')body=`<p class="hint">정한 때에 한 번 일어나는 효과입니다. 최대 6개.</p><div id="fxBeats">${s.beats.map((b,i)=>`<div class="fxBeat"><select data-beat-when="${i}" aria-label="언제">${stageOptions('when',b.when)}</select><select data-beat-fx="${i}" aria-label="효과">${stageOptions('fx',b.fx)}</select><button data-beat-remove="${i}" class="quiet fxIcon" aria-label="순간 효과 삭제">✕</button></div>`).join('')}</div><button id="fxAddBeat" class="fxWide"${s.beats.length>=6?' disabled':''}>＋ 순간 효과 추가</button>`;
  if(tool==='character'){const l=layers[area];body=l?`<div class="fxLayerHead"><img class="fxThumb" src="${l.image}" alt=""><button data-layer-pick="${area}">바꾸기</button><button data-layer-remove="${area}" class="quiet">빼기</button></div><label class="fxSlider">가로<input type="range" data-layer="${area}" data-key="x" min="0" max="100" value="${l.x}"></label><label class="fxSlider">발 높이<input type="range" data-layer="${area}" data-key="y" min="0" max="100" value="${l.y}"></label><label class="fxSlider">크기<input type="range" data-layer="${area}" data-key="scale" min="20" max="150" value="${l.scale}"></label>${sub('등장',chips('enter','enter',l.enter))}${sub('움직임',chips('motion','motion',l.motion))}<button class="chip${l.flip?' on':''}" data-layer-flip="${area}" aria-pressed="${l.flip}">좌우 뒤집기</button>`:`<p class="hint">배경이 투명한 PNG 인물 그림을 이 그림 칸 위에 겹칩니다.</p><button data-layer-pick="${area}" class="fxWide">인물 그림 고르기</button>`;}
- const where=areas.length>1?`<div class="fxAreaTabs" role="tablist" aria-label="적용 위치">${areas.map(([k,lab])=>`<button role="tab" data-fx-area="${k}" aria-selected="${k===area}" class="${k===area?'active':''}">${esc(lab)}${stageToolUsed(full,tool,k)?'<i class="fxDot" aria-label="사용 중"></i>':''}</button>`).join('')}</div>`:'';
+ const where=areas.length>1||tool==='character'?`<div class="fxAreaTabs" role="tablist" aria-label="적용 위치">${areas.map(([k,lab])=>`<button role="tab" data-fx-area="${k}" aria-selected="${k===area}" class="${k===area?'active':''}">${esc(lab)}${stageToolUsed(full,tool,k)?'<i class="fxDot" aria-label="사용 중"></i>':''}</button>`).join('')}</div>`:'';
  const keep=$('modal').open&&$('modal').classList.contains('fxToolSheet')?$('modalBody').scrollTop:0;
- open(t.label,`${where}<p class="hint fxAreaHint">${STAGE_AREA_HINT[area]}</p><div class="fxToolBody">${body}</div><div class="fxSheetFoot"><button id="fxToolPreview">▶ 미리보기</button></div>`);
+ open(t.label,`${where}<p class="hint fxAreaHint">${STAGE_AREA_HINT[area]}<br><span class="fxTip">고른 것을 다시 누르면 취소 · 꾹 누르면 지금 연출 미리보기</span></p><div class="fxToolBody">${body}</div>`);
  const sheet=$('modal');sheet.classList.add('fxToolSheet');sheet.addEventListener('close',()=>sheet.classList.remove('fxToolSheet'),{once:true});$('modalBody').scrollTop=keep;
  const again=()=>{renderStageEditor(e);openStageTool(e,tool,area);},put=change=>{stageWrite(e,area,change);again();};
  const layerPut=(fn,rerender=true)=>{const now=clone(C.stageSettings(e.stage||{}).layers||{});fn(now);stageWrite(e,null,null,now);if(rerender)again();else renderStageEditor(e);};
- $('modalBody').querySelectorAll('[data-fx-area]').forEach(b=>b.onclick=()=>openStageTool(e,tool,b.dataset.fxArea));
- $('fxToolPreview').onclick=()=>openStagePreview(e);
- $('modalBody').querySelectorAll('[data-fx-set]').forEach(b=>b.onclick=()=>{const f=b.dataset.fxSet,v=f==='weatherAmount'?Number(b.dataset.value):b.dataset.value;if(tool==='character')layerPut(l=>{l[area][f]=v;});else put({[f]:v});});
+ const preview=()=>openStagePreview(e);
+ $('modalBody').querySelectorAll('[data-fx-area]').forEach(b=>b.onclick=()=>{if(b.dataset.fxArea!==area)openStageTool(e,tool,b.dataset.fxArea);});
+ // Anything that can be pressed here previews the whole current staging on a hold, without changing it.
+ $('modalBody').querySelectorAll('[data-fx-area],[data-fx-set],[data-overlay],.fxBeat,[data-layer-flip],[data-layer-pick]').forEach(x=>stageHold(x,preview));
+ // Tapping the chosen option again cancels it back to its default.
+ const blank=C.stageArea({}),off={...blank,enter:'none',motion:'none'};
+ $('modalBody').querySelectorAll('[data-fx-set]').forEach(b=>b.onclick=()=>{const f=b.dataset.fxSet,again=b.getAttribute('aria-pressed')==='true',v=again?off[f]:f==='weatherAmount'?Number(b.dataset.value):b.dataset.value;if(tool==='character')layerPut(l=>{l[area][f]=v;});else put({[f]:v});});
  if($('fxMoodStrength'))$('fxMoodStrength').oninput=()=>{$('fxMoodLevel').textContent=$('fxMoodStrength').value+'%';stageWrite(e,area,{moodStrength:Number($('fxMoodStrength').value)});renderStageEditor(e);};
  $('modalBody').querySelectorAll('[data-overlay]').forEach(x=>x.onclick=()=>{const on=new Set(s.overlays);if(on.has(x.dataset.overlay))on.delete(x.dataset.overlay);else on.add(x.dataset.overlay);put({overlays:[...on]});});
  const beats=s.beats.map(b=>({...b}));

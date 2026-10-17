@@ -1,8 +1,8 @@
 {
- "versionCode": 36,
- "versionName": "0.1.35",
+ "versionCode": 37,
+ "versionName": "0.1.36",
  "apk": "editor.apk",
- "size": 8846947,
- "sha256": "c65717680eaf2994fde659115985734bcd51284796609fa8408664de7f9cd1bb",
- "notes": "사건 게임 에디터 v0.1.35 — 연출 탭을 도구 아이콘 방식으로"
+ "size": 8851043,
+ "sha256": "965e96c50a1f8b11cf528f679ac4cc21da5b16dfcd9f524c561f3aa6b151d76a",
+ "notes": "사건 게임 에디터 v0.1.36 — 프리셋 두 줄 · 다시 누르면 취소 · 꾹 누르면 미리보기"
 }

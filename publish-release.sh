@@ -15,7 +15,10 @@ TASK_DIR="$TASK" CODE="$CODE" NAME="$NAME" NOTES="$NOTES" python3 - <<'PY'
 import hashlib,json,os
 from pathlib import Path
 root=Path(os.environ['TASK_DIR']);apk=root/'release/editor.apk';data=apk.read_bytes()
-feed={'versionCode':int(os.environ['CODE']),'versionName':os.environ['NAME'],'apk':'editor.apk','size':len(data),'sha256':hashlib.sha256(data).hexdigest(),'notes':os.environ['NOTES']}
+# apkUrl and publishedAt also let the download site (stockYandere/myapps) show this feed as the editor's latest version.
+import datetime
+feed={'versionCode':int(os.environ['CODE']),'versionName':os.environ['NAME'],'apk':'editor.apk','size':len(data),'sha256':hashlib.sha256(data).hexdigest(),'notes':os.environ['NOTES'],
+ 'apkUrl':'https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk','publishedAt':datetime.date.today().isoformat()}
 (root/'release/update.json').write_text(json.dumps(feed,ensure_ascii=False,indent=1)+'\n')
 print('update feed', feed['versionName'], feed['versionCode'], feed['size'])
 PY

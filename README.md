@@ -6,6 +6,10 @@ Android 8.0 이상용 세로 화면 제작 에디터. 인터넷 없이 실행합
 위·아래 그림, 중앙 고정 대화창(너비 74%, 최대 높이 260 CSS px, 작은 화면은 화면 높이의 34%)을 사용합니다.
 이름·대사·선택지는 같은 네모 안에 있고, 긴 내용은 네모 내부에서 스크롤합니다.
 
+## 연출 예시 모음 (다운로드 사이트)
+
+연출 효과 86가지가 실제로 어떻게 움직이는지 [다운로드 사이트](https://stockyandere.github.io/myapps/#/event-game-editor/effects)의 **연출** 탭에서 볼 수 있습니다. 예시는 `node make-fx-gallery.cjs <myapps>/apps/event-game-editor/fx`로 이 저장소의 `stage-fx.js`를 그대로 녹화해 만듭니다(시간을 한 프레임씩 진행해 매번 같은 결과, 움직이는 WebP 240px). 효과를 바꾸면 다시 실행하세요. `publish-release.sh`가 쓰는 `release/update.json`에는 사이트용 `apkUrl`·`publishedAt`도 들어갑니다.
+
 ## 0.1.36 프리셋 두 줄 · 다시 누르면 취소 · 꾹 누르면 미리보기
 
 프리셋은 두 줄 페이지([1 2 ‹ ›], 옆으로 밀기). 고른 것을 다시 누르면 취소, 어디서든 꾹 누르면 지금 연출 전체 미리보기(미리보기 버튼 없음). 자세한 내용은 [RELEASE-v0.1.36.md](RELEASE-v0.1.36.md).

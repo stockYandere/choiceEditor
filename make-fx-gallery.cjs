@@ -1,10 +1,17 @@
 // Records every staging effect (stage-fx.js) as a short looping animated WebP for the download site's 연출 gallery.
 // Time is driven frame by frame (fake clock for timers/particles, paused Web Animations, SVG warp clock), so every run gives the same frames.
-// Usage: node make-fx-gallery.cjs <output dir> [category,…]   → <dir>/<category>-<id>.webp and <dir>/effects.json (only=some categories, no json)
+// Usage: node make-fx-gallery.cjs <output dir> [category,…|--json-only]   → <dir>/<category>-<id>.webp and <dir>/effects.json
+// (some categories: re-record those only, no json; --json-only: rewrite effects.json, e.g. after the sound table changed).
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process'),os=require('node:os');
 const out=path.resolve(process.argv[2]||'fx-gallery');fs.mkdirSync(out,{recursive:true});
 const src=fs.readFileSync(path.join(__dirname,'assets/stage-editor.js'),'utf8'),LABELS=eval('('+/const STAGE_LABELS=(\{[\s\S]*?\});\nconst STAGE_PRESETS/.exec(src)[1]+')');
 const SIZE=240,FPS=12;
+// The sound an effect plays in the editor (stage-fx.js), linked from the editor repository so the site always matches it.
+const F=require('./assets/stage-fx.js');global.window=global;require('./assets/sound-library.js');const LIB=global.SoundLibrary.SOUNDS,SOUND_URL='https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/assets/sounds/';
+function soundOf(cat,id){const S=F.SOUNDS,k=id.replace(/^enter-/,''),ids=cat==='weather'?[S.weather[k]||S.weatherOnce[k],k==='storm'&&S.bolt]:cat==='beat'?[S.fx[k]]:cat==='transition'?[S.transition[k]]:cat==='character'&&id.startsWith('enter-')?[S.enter[k]]:[];
+ const [main,also]=ids;if(!main)return undefined;const name=x=>LIB.find(s=>s.id===x)?.name||x;
+ return {src:SOUND_URL+main+'.ogg',name:[main,also].filter(Boolean).map(name).join(' · '),loop:cat==='weather'&&!!S.weather[k],...(also?{also:SOUND_URL+also+'.ogg'}:{})};}
+const galleryJson=()=>CATEGORIES.map(cat=>({id:cat.id,title:cat.title,desc:cat.desc,items:cat.items.map(it=>{const file=cat.id+'-'+it.id+'.webp',sound=soundOf(cat.id,it.id);if(!fs.existsSync(path.join(out,file)))throw Error('missing '+file);return {name:it.name,file,...(sound?{sound}:{})};})}));
 const CATEGORIES=[
  {id:'camera',title:'카메라',desc:'그림을 천천히 움직여 시선을 이끕니다. 속도 3단계.',items:Object.keys(LABELS.camera).filter(k=>k!=='none').map(k=>({id:k,name:LABELS.camera[k],run:[[0,{all:{camera:k,cameraSpeed:'fast'}}]],ms:3000,speed:2}))},
  {id:'mood',title:'분위기',desc:'색감과 빛으로 시간·감정을 바꿉니다. 처음은 원래 그림, 바뀐 뒤가 분위기입니다.',items:Object.keys(LABELS.mood).filter(k=>k!=='none').map(k=>({id:k,name:LABELS.mood[k],run:[[0,null],[800,{all:{mood:k,moodStrength:100}}]],ms:2600}))},
@@ -17,6 +24,7 @@ const CATEGORIES=[
   ...Object.keys(LABELS.enter).filter(k=>k!=='none').map(k=>({id:'enter-'+k,name:'등장 · '+LABELS.enter[k],run:[[0,null],[500,{all:{},layers:{top:{x:62,y:100,scale:64,enter:k,motion:'none',flip:false}}}]],ms:2000})),
   ...Object.keys(LABELS.motion).filter(k=>k!=='none').map(k=>({id:'motion-'+k,name:'움직임 · '+LABELS.motion[k],run:[[0,{all:{},layers:{top:{x:62,y:100,scale:64,enter:'none',motion:k,flip:false}}}]],ms:k==='tremble'?1500:3000}))]}];
 
+if(process.argv[3]==='--json-only'){fs.writeFileSync(path.join(out,'effects.json'),JSON.stringify(galleryJson(),null,1)+'\n');console.log('effects.json written');process.exit(0);}
 const page=`<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="${path.join(__dirname,'assets/style.css')}"><style>
 html,body{margin:0;background:#0b0d12;height:auto;overflow:hidden}body{max-width:none}#demo{width:${SIZE}px;height:${SIZE}px;border:0;font-family:sans-serif}
 #demo .previewUpper img:not(.fxCharacter){width:100%;height:100%;object-fit:cover}#demo .previewBox{top:auto;bottom:5%;left:8%;width:84%;height:14%;background:#101b2fcc;transform:none;font-size:11px;letter-spacing:2px;color:#d7e4f5}
@@ -62,7 +70,7 @@ for(const cat of CATEGORIES){if(only&&!only.includes(cat.id))continue;const item
   const name=cat.id+'-'+it.id+'.webp',r=spawnSync('python3',['-I','-c',ENCODE,dir,path.join(out,name),String(Math.round(1000/FPS))],{encoding:'utf8'});if(r.status)throw Error(r.stderr);
   const size=fs.statSync(path.join(out,name)).size;total+=size;console.log(name,frames.length+'f',(size/1024).toFixed(0)+'KB');items.push({name:it.name,file:name});fs.rmSync(dir,{recursive:true});}
  gallery.push({id:cat.id,title:cat.title,desc:cat.desc,items});}
-if(!only)fs.writeFileSync(path.join(out,'effects.json'),JSON.stringify(gallery,null,1)+'\n');console.log('total',(total/1048576).toFixed(2)+'MB',gallery.reduce((n,c)=>n+c.items.length,0),'effects');
+if(!only)fs.writeFileSync(path.join(out,'effects.json'),JSON.stringify(galleryJson(),null,1)+'\n');console.log('total',(total/1048576).toFixed(2)+'MB',gallery.reduce((n,c)=>n+c.items.length,0),'effects');
 await b.close();fs.rmSync(tmp,{recursive:true});})().catch(e=>{console.error(e);process.exit(1);});
 
 // Frames (page clip, so a shaking frame shows its movement) → looping animated WebP; identical neighbouring frames are merged into one longer frame.

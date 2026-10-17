@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Builds the editor's built-in sound library from free sources (CC0 / CC BY only, both allow redistribution).
 
-  python3 make-sound-library.py [cache dir]      (--credits-only rewrites SOUND-CREDITS.md from the catalogue)
+  python3 make-sound-library.py [cache dir]      (--credits-only rewrites SOUND-CREDITS.md from the catalogue;
+                                                  --site DIR writes DIR/sounds.json for the download site)
 
 Writes
   assets/sounds/<id>.ogg      effects and ambience loops shipped inside the editor (also used by 연출 by default)
@@ -234,9 +235,24 @@ def write_credits(catalogue):
         out.append('')
     open(os.path.join(ROOT, 'SOUND-CREDITS.md'), 'w', encoding='utf-8').write('\n'.join(out))
 
+def write_site(catalogue, folder):
+    """sounds.json for the download site's sound list: every built-in sound, linked from this repository."""
+    raw = 'https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/'
+    groups = [('effect', '효과음'), ('ambient', '환경음'), ('bgm', '배경음악')]
+    out = [dict(id=g, title=t, items=[dict(name=c['name'], duration=c['duration'], loop=c['loop'], src=raw + ('sound-library/' if g == 'bgm' else 'assets/sounds/') + c['id'] + '.ogg',
+                                           credit='' if c['credit']['license'] == 'CC0' else '%s · %s · %s' % (c['credit']['title'], c['credit']['author'], c['credit']['license']))
+                                      for c in catalogue if c['group'] == g]) for g, t in groups]
+    os.makedirs(folder, exist_ok=True)
+    open(os.path.join(folder, 'sounds.json'), 'w', encoding='utf-8').write(json.dumps(out, ensure_ascii=False, indent=1) + '\n')
+
+def read_catalogue():
+    js = open(os.path.join(ROOT, 'assets/sound-library.js'), encoding='utf-8').read()
+    return json.loads(re.search(r'const SOUNDS=(\[.*?\]);\n', js, re.S).group(1))
+
 if __name__ == '__main__':
-    if '--credits-only' in sys.argv:
-        js = open(os.path.join(ROOT, 'assets/sound-library.js'), encoding='utf-8').read()
-        write_credits(json.loads(re.search(r'const SOUNDS=(\[.*?\]);\n', js, re.S).group(1)))
+    if '--site' in sys.argv:
+        write_site(read_catalogue(), sys.argv[sys.argv.index('--site') + 1])
+    elif '--credits-only' in sys.argv:
+        write_credits(read_catalogue())
     else:
         build()

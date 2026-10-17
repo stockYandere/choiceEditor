@@ -1,10 +1,10 @@
 {
- "versionCode": 37,
- "versionName": "0.1.36",
+ "versionCode": 38,
+ "versionName": "0.1.37",
  "apk": "editor.apk",
  "size": 8851043,
- "sha256": "965e96c50a1f8b11cf528f679ac4cc21da5b16dfcd9f524c561f3aa6b151d76a",
- "notes": "사건 게임 에디터 v0.1.36 — 프리셋 두 줄 · 다시 누르면 취소 · 꾹 누르면 미리보기",
+ "sha256": "3a40514e28b46e98be96cf4298643c05faf72d0d70010ee347d723060035982d",
+ "notes": "사건 게임 에디터 v0.1.37 — 비스듬한 비·낙엽이 화면 끝까지",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-17"
 }

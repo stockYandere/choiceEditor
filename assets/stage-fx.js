@@ -61,7 +61,10 @@ const PARTICLES={
  ash:{n:65,shape:'dot',vy:[18,50],vx:[-16,16],size:[1.1,2.6],sway:[.4,1],color:'190,185,180',a:[.4,.8]},
  sparkles:{n:34,shape:'star',vy:[-6,6],vx:[-6,6],size:[1.5,3.5],color:'255,250,220',a:[0,1],twinkle:true,glow:true}};
 const AMOUNT={1:.5,2:1,3:1.7};
-function spawn(cfg,w,h,initial){const up=cfg.vy[1]<0,down=cfg.vy[0]>0;const p={x:rand(0,w),y:initial||(!up&&!down)?rand(0,h*(cfg.top||1)):up?h+20:-20,vx:rand(...cfg.vx),vy:rand(...cfg.vy),s:rand(...cfg.size),a:rand(...cfg.a),ph:rand(0,6.28),sw:cfg.sway?rand(...cfg.sway):0,rot:rand(0,6.28),life:rand(.6,1)};if(cfg.shape==='blob')p.s*=w;if(cfg.shape==='blob'&&!initial)p.x=-p.s;return p;}
+// A new particle entering from the top (or bottom) starts upwind of the screen by as far as it drifts sideways on the way across,
+// so slanted rain or blowing leaves still reach the far edge instead of leaving an empty corner.
+function spawn(cfg,w,h,initial){const up=cfg.vy[1]<0,down=cfg.vy[0]>0,vx=rand(...cfg.vx),vy=rand(...cfg.vy),enters=!initial&&(up||down),drift=enters&&vy?vx*(h+40)/Math.abs(vy):0;
+ const p={x:rand(Math.min(0,-drift),Math.max(w,w-drift)),y:initial||(!up&&!down)?rand(0,h*(cfg.top||1)):up?h+20:-20,vx,vy,s:rand(...cfg.size),a:rand(...cfg.a),ph:rand(0,6.28),sw:cfg.sway?rand(...cfg.sway):0,rot:rand(0,6.28),life:rand(.6,1)};if(cfg.shape==='blob')p.s*=w;if(cfg.shape==='blob'&&!initial)p.x=-p.s;return p;}
 function drawParticle(ctx,cfg,p,t){let a=p.a;if(cfg.twinkle)a*=.45+.55*Math.abs(Math.sin(t*1.7+p.ph));if(cfg.fade)a*=p.life;if(a<=0.01)return;const c='rgba('+cfg.color+','+a.toFixed(3)+')';
  switch(cfg.shape){case 'line':ctx.strokeStyle=c;ctx.lineWidth=cfg.w;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx*p.s/p.vy,p.y-p.s);ctx.stroke();break;
  case 'blob':{const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s);g.addColorStop(0,c);g.addColorStop(1,'rgba('+cfg.color+',0)');ctx.fillStyle=g;ctx.fillRect(p.x-p.s,p.y-p.s,p.s*2,p.s*2);break;}
@@ -76,7 +79,7 @@ function startParticles(st,area,kind,amount,reduced){const cfg=PARTICLES[kind],p
  function frame(now){if(!canvas.isConnected){stopParticles(handle);return;}handle.raf=requestAnimationFrame(frame);if(document.hidden){last=now;return;}if(!w)size();const dt=Math.min(.05,(now-last)/1000)*speed,t=now/1000;last=now;ctx.clearRect(0,0,w,h);
   if(cfg.glow){ctx.globalCompositeOperation='lighter';}
   for(let i=0;i<list.length;i++){const p=list[i];p.x+=(p.vx+(p.sw?Math.sin(t*p.sw+p.ph)*18:0))*dt;p.y+=p.vy*dt;if(cfg.spin)p.rot+=dt*p.sw;if(cfg.fade)p.life-=dt*.25;
-   const out=p.y>h+40||p.y<-40||p.x<-p.s-60||p.x>w+p.s+60||(cfg.fade&&p.life<=0);if(out)list[i]=spawn(cfg,w,h,false);drawParticle(ctx,cfg,p,t);}
+   const out=p.y>h+40||p.y<-40||p.x<-p.s-60&&p.vx<=0||p.x>w+p.s+60&&p.vx>=0||(cfg.fade&&p.life<=0);if(out)list[i]=spawn(cfg,w,h,false);drawParticle(ctx,cfg,p,t);}
   ctx.globalCompositeOperation='source-over';
   if(cfg.lightning&&!reduced&&now>nextBolt){nextBolt=now+rand(4000,9000);flashLayer(st,area,'rgba(235,240,255,1)',[0,.85,.1,.6,0],650);}}
  handle.ro=ro;handle.raf=requestAnimationFrame(frame);size();return handle;}
@@ -165,6 +168,6 @@ function react(rootEl,scene,change,dead){if(!scene?.stage)return;beat(rootEl,sce
 // Editor: play the scene's entrance again.
 function replay(rootEl,scene){const st=state.get(rootEl);if(st)st.key='';enter(rootEl,{scene,key:'replay:'+performance.now()});}
 
-const api={enter,clear,beat,react,runBeat,replay,areas,AREAS,MOODS,PARTICLES,moodFilter};
+const api={enter,clear,beat,react,runBeat,replay,areas,AREAS,MOODS,PARTICLES,moodFilter,spawn};
 root.StageFX=api;if(typeof module!=='undefined')module.exports=api;
 })(globalThis);

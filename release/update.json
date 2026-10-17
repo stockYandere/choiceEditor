@@ -1,10 +1,10 @@
 {
- "versionCode": 40,
- "versionName": "0.1.39",
+ "versionCode": 41,
+ "versionName": "0.1.40",
  "apk": "editor.apk",
- "size": 11964329,
- "sha256": "2ced33e9ef382bb9af9f096df1e35ebaf1ba206c68e55c14a38c6d82539037e8",
- "notes": "사건 게임 에디터 v0.1.39 — 모든 화면을 스크롤 없이",
+ "size": 11816873,
+ "sha256": "e22a0fb7493961f2fccd292cf7ff1b6770ecf5c2c021c4e48e4d0fb48bf3d66c",
+ "notes": "사건 게임 에디터 v0.1.40 — 기본 소리 크기·길이 맞춤",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-17"
 }

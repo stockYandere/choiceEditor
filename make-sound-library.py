@@ -9,7 +9,8 @@ Writes
   sound-library/<id>.ogg      background music, downloaded by the editor on first pick (kept out of the APK)
   assets/sound-library.js     catalogue: names, groups, loop flags and the credit of every sound
 Sources are downloaded once into the cache dir. Every sound is trimmed, loudness-normalised and encoded as Ogg Opus;
-ambience is cut into a seamless loop by crossfading its tail into its head.
+ambience is cut into a seamless loop by crossfading its tail into its head. Loudness is matched with EBU R128 measurements
+(effects by their loudest moment, ambience and music by their average) and effects are kept to about 3 seconds.
 """
 import json, os, re, subprocess, sys, urllib.parse
 import numpy as np
@@ -46,10 +47,10 @@ SOUNDS = [
  ('city', '도시 거리', 'ambient', ('fs', 'lupalenzuela', 512142), dict(start=5, dur=30)),
  ('cafe', '카페 웅성거림', 'ambient', ('fs', 'sonically_sound', 625112), dict(start=10, dur=30)),
  ('clock', '시계 째깍', 'ambient', ('fs', 'Mortifreshman', 237210), dict(start=2, dur=12, xf=.02)),
- ('heartbeat-loop', '두근거림 (반복)', 'ambient', ('fs', 'michorvath', 273150), dict(start=1, dur=7.2, xf=.05, gain=-18)),
+ ('heartbeat-loop', '두근거림 (반복)', 'ambient', ('fs', 'michorvath', 273150), dict(start=1, dur=7.2, xf=.05)),
  # ---- effects
- ('thunder', '천둥', 'effect', ('fs', 'bajko', 399656), dict(start=0, dur=8)),
- ('thunder-far', '먼 천둥', 'effect', ('fs', 'lennyboy', 244053), dict(start=0, dur=10)),
+ ('thunder', '천둥', 'effect', ('fs', 'bajko', 399656), dict(start=0, dur=8, max=4.5)),
+ ('thunder-far', '먼 천둥', 'effect', ('fs', 'lennyboy', 244053), dict(start=0, dur=10, max=5)),
  ('flash', '번쩍 (플래시)', 'effect', ('fs', 'Werra', 232130), dict()),
  ('shutter', '카메라 셔터', 'effect', ('fs', 'roachpowder', 170229), dict()),
  ('shine', '빛남', 'effect', ('fs', 'RoccoGermani', 591131), dict(dur=4.5)),
@@ -60,7 +61,7 @@ SOUNDS = [
  ('impact', '쾅', 'effect', ('fs', 'deleted_user_3277771', 177242), dict(dur=4.5)),
  ('boom', '굉음', 'effect', ('fs', 'Rizzard', 559529), dict(dur=5)),
  ('boom-low', '둔탁한 울림', 'effect', ('fs', 'AudioPapkin', 430978), dict(dur=4)),
- ('quake', '땅울림', 'effect', ('fs', 'uagadugu', 222521), dict(start=0, dur=6)),
+ ('quake', '땅울림', 'effect', ('fs', 'uagadugu', 222521), dict(start=0, dur=6, max=3.5)),
  ('thud', '쿵', 'effect', ('fs', 'Breviceps', 447922), dict()),
  ('fall', '쓰러짐', 'effect', ('fs', 'leonelmail', 504626), dict()),
  ('heartbeat', '두근', 'effect', ('fs', 'michorvath', 273150), dict(start=1, dur=1.9)),
@@ -77,7 +78,7 @@ SOUNDS = [
  ('door-close', '문 닫힘', 'effect', ('kenney', 'rpg', 'doorClose_1.ogg'), dict()),
  ('footsteps', '걷는 발소리', 'effect', ('kenney', 'rpg', 'footstep0%d.ogg'), dict(steps=[0, 1, 2, 3, 4, 5], gap=.48)),
  ('run', '뛰는 발소리', 'effect', ('fs', 'florianreichelt', 459965), dict()),
- ('bell', '종소리', 'effect', ('fs', 'dsp9000', 76405), dict()),
+ ('bell', '종소리', 'effect', ('fs', 'dsp9000', 76405), dict(max=3.5)),
  ('phone', '전화벨', 'effect', ('fs', 'jourblue', 344365), dict()),
  ('typewriter', '타자기', 'effect', ('fs', 'pakasit21', 138049), dict(dur=4)),
  ('page', '책장 넘김', 'effect', ('fs', 'davidbain', 136778), dict()),
@@ -88,7 +89,7 @@ SOUNDS = [
  ('dog', '개 짖음', 'effect', ('fs', 'ken788', 386766), dict()),
  ('cat', '고양이', 'effect', ('fs', 'skymary', 412017), dict()),
  ('gasp', '헉 (놀람)', 'effect', ('fs', 'Dvideoguy', 207779), dict()),
- ('applause', '박수', 'effect', ('fs', 'Sandermotions', 277022), dict()),
+ ('applause', '박수', 'effect', ('fs', 'Sandermotions', 277022), dict(max=3.5)),
  ('scratch', '레코드 긁힘', 'effect', ('fs', 'simkiott', 43404), dict()),
  # ---- background music (Kevin MacLeod, CC BY 4.0) — hosted, downloaded on pick
  ('bgm-easy-lemon', '밝은 일상 · Easy Lemon', 'bgm', ('inc', 'Easy Lemon'), dict()),
@@ -105,7 +106,8 @@ SOUNDS = [
  ('bgm-floating-cities', '신비·판타지 · Floating Cities', 'bgm', ('inc', 'Floating Cities'), dict()),
  ('bgm-heroic-age', '결전·엔딩 · Heroic Age', 'bgm', ('inc', 'Heroic Age'), dict()),
 ]
-GROUP = {'ambient': dict(gain=-26, bitrate='40k', channels=1), 'effect': dict(gain=-17, bitrate='48k', channels=1), 'bgm': dict(gain=-19, bitrate='64k', channels=2)}
+# gain: target loudness in LUFS (effects: loudest moment; ambience and music: whole-sound average).
+GROUP = {'ambient': dict(gain=-26, bitrate='40k', channels=1), 'effect': dict(gain=-14, bitrate='48k', channels=1), 'bgm': dict(gain=-19, bitrate='64k', channels=2)}
 
 def run(cmd, data=None):
     r = subprocess.run(cmd, input=data, capture_output=True)
@@ -170,16 +172,41 @@ def loop(a, start, dur, xf):
     body[:x] = body[:x] * np.sqrt(t) + tail * np.sqrt(1 - t)
     return body
 
-def normalise(a, target, channels):
-    """Short clips: peak to -2 dBFS. Longer sounds: ffmpeg loudnorm to the target loudness with its true-peak limiter,
-    so crackles and gusts do not hold the whole sound down."""
-    if len(a) < 1.2 * RATE:
-        peak = np.abs(a).max() or 1.0
-        return a * (0.79 / peak)
-    raw = run(['ffmpeg', '-v', 'error', '-f', 'f32le', '-ac', str(channels), '-ar', str(RATE), '-i', '-', '-af', 'loudnorm=I=%g:TP=-1.5:LRA=18' % target,
-               '-ar', str(RATE), '-f', 'f32le', '-ac', str(channels), '-'], a.astype('<f4').tobytes())
-    out = np.frombuffer(raw, dtype='<f4').reshape(-1, channels)[:len(a)].copy()
-    return out if len(out) == len(a) else np.vstack([out, np.zeros((len(a) - len(out), channels), dtype='f4')])
+def ffmpeg_pcm(a, channels, filters):
+    """Runs raw float audio through ffmpeg filters and returns ffmpeg's log (stderr) and the filtered audio."""
+    r = subprocess.run(['ffmpeg', '-hide_banner', '-nostats', '-f', 'f32le', '-ac', str(channels), '-ar', str(RATE), '-i', '-', '-af', filters,
+                        '-ar', str(RATE), '-f', 'f32le', '-ac', str(channels), '-'], input=a.astype('<f4').tobytes(), capture_output=True)
+    if r.returncode: raise SystemExit(r.stderr.decode()[-2000:])
+    return r.stderr.decode(), np.frombuffer(r.stdout, dtype='<f4').reshape(-1, channels)
+
+def loudness(a, channels):
+    """EBU R128 (ear-weighted) loudness: the loudest 400 ms moment and the whole-sound average, in LUFS."""
+    log, _ = ffmpeg_pcm(a, channels, 'apad=pad_dur=0.6,ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=/dev/stderr')
+    moments = [float(x) for x in re.findall(r'lavfi\.r128\.M=(-?[\d.]+)', log)]
+    whole = re.findall(r'I:\s+(-?[\d.]+) LUFS', log)
+    return (max(moments) if moments else -70.0), (float(whole[-1]) if whole else -70.0)
+
+def normalise(a, group, target, channels):
+    """Gain, then a peak limiter (-1 dBFS) so loud transients cannot clip; repeated (up to 6 passes) because the limiter
+    holds sharp clicks and knocks below the target on the first pass. When the limiter alone stalls (jingling coins,
+    footsteps: all peaks, little body) a gentle compressor joins it to bring the body up. Effects are set by their
+    loudest moment, so a short knock and a long rumble sound equally loud when they hit; ambience and music by their
+    whole-sound average."""
+    out, last, squeezed, best = a, None, False, None
+    limiter = 'alimiter=limit=0.89:attack=2:release=80:level=disabled'
+    fit = lambda b: b[:len(a)].copy() if len(b) >= len(a) else np.vstack([b, np.zeros((len(a) - len(b), channels), dtype='f4')])
+    for _ in range(8):
+        moment, whole = loudness(out, channels)
+        level = moment if group == 'effect' else whole
+        if best is None or abs(target - level) < best[0]: best = (abs(target - level), out)
+        if level <= -90 or abs(target - level) < 0.5: break
+        if last is not None and level - last < 0.3:
+            if squeezed or group != 'effect' or target - level < 1.5: break
+            out, last, squeezed = fit(ffmpeg_pcm(out, channels, 'acompressor=threshold=0.1:ratio=4:attack=0.5:release=40:knee=4')[1]), None, True
+            continue
+        last = level
+        out = fit(ffmpeg_pcm(out, channels, 'volume=%.2fdB,%s' % (target - level, limiter))[1])
+    return best[1]
 
 def encode(a, path, bitrate, channels):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -206,8 +233,11 @@ def build():
                 s = int(opt.get('start', 0) * RATE); a = a[s:s + int(opt.get('dur', 60) * RATE)].copy()
                 a = fade(trim_silence(a), out=min(.6, len(a) / RATE / 4))
             else: a = trim_silence(a)
+            # Effects stay short: anything past its cap (3 s unless set) fades out over the last 0.7 s.
+            cap = int(opt.get('max', 3.0) * RATE)
+            if len(a) > cap: a = fade(a[:cap].copy(), out=.7)
             a = fade(a, inn=.003, out=.02)
-        a = normalise(a, opt.get('gain', g['gain']), ch)
+        a = normalise(a, group, opt.get('gain', g['gain']), ch)
         out = os.path.join(ROOT, 'sound-library' if group == 'bgm' else 'assets/sounds', sid + '.ogg')
         encode(a, out, g['bitrate'], ch)
         size = os.path.getsize(out)

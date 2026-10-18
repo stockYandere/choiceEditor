@@ -1,10 +1,10 @@
 {
- "versionCode": 41,
- "versionName": "0.1.40",
+ "versionCode": 42,
+ "versionName": "0.1.41",
  "apk": "editor.apk",
  "size": 11816873,
- "sha256": "e22a0fb7493961f2fccd292cf7ff1b6770ecf5c2c021c4e48e4d0fb48bf3d66c",
- "notes": "사건 게임 에디터 v0.1.40 — 기본 소리 크기·길이 맞춤",
+ "sha256": "5ffe02f30bd1cc0bcf26ea75367b7c6284287f45b06efc0b076f3346259fe42b",
+ "notes": "사건 게임 에디터 v0.1.41 — 사망 장면 · 갤러리에서 그림 고르기",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
- "publishedAt": "2026-10-17"
+ "publishedAt": "2026-10-18"
 }

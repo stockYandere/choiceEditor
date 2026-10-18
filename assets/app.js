@@ -331,7 +331,7 @@ function showChanges(){
   const hold=Math.min(8000,Math.max(primary?.highlight?3400:2800,1700+overflow/50*1000));
   noticeAnimations.push(text.animate([{transform:'translateX(0)',offset:0},{transform:'translateX(0)',offset:.18},{transform:`translateX(-${overflow}px)`,offset:.85},{transform:`translateX(-${overflow}px)`,offset:1}],{duration:hold,fill:'forwards'}));clearTimeout(noticeTimer);noticeTimer=setTimeout(clearEffects,hold);
  }
- GameFeedback.play(cue,!run.dead?primary?.sound:null);
+ if(!endSceneSounds(run))GameFeedback.play(cue,!run.dead?primary?.sound:null);
 }
 
 // The invisible full copy reserves line wrapping while the visible copy types.
@@ -394,11 +394,11 @@ for(const c of run.visibleChoices(e)){const blocked=run.blocked(c),badges=[];
 if(c.requires){const n=c.requiresCount??1,rd=run.p.definitions.find(d=>d.id===c.requires);badges.push({text:run.name(c.requires)+(c.requiresNot?' 없을 때만':(n>1?(rd?.type==='ability'?' Lv.'+n:' '+n+(rd?.type==='item'?'개':''))+' 이상':'')+' 필요'),ok:(run.value(c.requires)>=n)!==!!c.requiresNot});}
 const out=run.resolved(c);if(out.lose){const n=out.loseCount??1,ld=run.p.definitions.find(d=>d.id===out.lose),ok=(run.bag[out.lose]||0)>=n,amount=ld?.type==='item'?' '+n+'개':n>1?' '+n:'';badges.push({text:run.name(out.lose)+amount+(ok?' 사용':(ld?.type==='state'?' 상태':'')+' 필요'),ok});}
 if(c.showCosts!==false){for(const key of ['hp','mental','money']){const notes=out.effectNotes.filter(n=>n.key===key);if(notes.length)badges.push({text:notes.map(n=>n.name).join(' + ')+' 적용 · '+C.resources['@'+key]+' '+notes[0].from+' → '+notes.at(-1).to,kind:'cost'});}for(const [key,label]of[['hp','체력'],['mental','멘탈']])if(out[key]<0)badges.push({text:label+' '+out[key],kind:'cost',lethal:run[key]+out[key]<=0});}if(!playing&&c.branch)badges.push({text:run.outcome(c)===c.branch?'보유 조건 결과 적용':'기본 결과 적용',ok:true});
-if(out.money<0){const ok=run.money>=Math.abs(out.money);badges.push({text:ok?'돈 '+out.money:'돈 '+Math.abs(out.money)+'칸 필요',ok,kind:ok?'cost':undefined});}answer(run.say(c.text,e),()=>{GameAudio.capture(run);const before=run.snapshot();if(run.choose(c.id)){if(!playing){testPast.push(before);if(testPast.length>30)testPast.shift();}const defer=(run.lastChange?.items||[]).some(i=>i.delta>0&&C.image(run.p.definitions.find(d=>d.id===i.id)?.image));renderTest(defer);showChanges();if(window.StageFX)StageFX.react($('stage'),e,run.lastChange,run.dead);if(playing)saveProgress();}},badges,!!blocked);
+if(out.money<0){const ok=run.money>=Math.abs(out.money);badges.push({text:ok?'돈 '+out.money:'돈 '+Math.abs(out.money)+'칸 필요',ok,kind:ok?'cost':undefined});}answer(run.say(c.text,e),()=>{GameAudio.capture(run);const before=run.snapshot();if(run.choose(c.id)){if(!playing){testPast.push(before);if(testPast.length>30)testPast.shift();}const defer=(run.lastChange?.items||[]).some(i=>i.delta>0&&C.image(run.p.definitions.find(d=>d.id===i.id)?.image));renderTest(defer);showChanges();if(window.StageFX)StageFX.react($('stage'),e,run.lastChange,run.dead&&!run.endScene);if(playing)saveProgress();}},badges,!!blocked);
 }
 if(e?.choices.length&&e.choices.every(c=>run.blocked(c))){const warning=document.createElement('p');warning.className='loss hint';warning.textContent=playing?'현재 보유 상태로 선택할 수 있는 길이 없습니다.':'선택할 수 있는 길이 없습니다. 조건 없는 선택지를 추가하세요.';$('answers').append(warning);}
 }
-const soundKey=JSON.stringify([run.current,run.turn,run.ended,run.dead,dialogueText]);GameAudio.configure(run.p,store.preferences);if(run.dead)GameAudio.stopAll();else if(run.ended)GameAudio.enterScene({id:e?.id,audio:{bgmMode:'keep'}},soundKey,run,true);else if(run.pendingReward)GameAudio.enterScene({...e,audio:{bgmMode:'keep'}},soundKey,run,true);else GameAudio.enterScene(e,soundKey,run,deferVoice);startDialogue(dialogueText,soundKey);if(run.ended&&!run.dead)finishDialogue();updateMoreCue();
+const soundKey=JSON.stringify([run.current,run.turn,run.ended,run.dead,dialogueText]);GameAudio.configure(run.p,store.preferences);if(run.endScene)GameAudio.enterScene(e,soundKey,run,deferVoice);else if(run.dead)GameAudio.stopAll();else if(run.ended)GameAudio.enterScene({id:e?.id,audio:{bgmMode:'keep'}},soundKey,run,true);else if(run.pendingReward)GameAudio.enterScene({...e,audio:{bgmMode:'keep'}},soundKey,run,true);else GameAudio.enterScene(e,soundKey,run,deferVoice);startDialogue(dialogueText,soundKey);if(run.ended&&!run.dead)finishDialogue();updateMoreCue();
 // Completed dialogue is read in the full-height history sheet.
 $('box').scrollTop=0;
 }
@@ -416,6 +416,7 @@ document.addEventListener('keydown',e=>{if(artViewing&&e.key==='Escape'){e.preve
 let savesBusy=false,savesOperation=Promise.resolve();
 function closeStateSheet(){if(!savesBusy)$('stateSheet').close();}
 // 일반 사망 (체력·멘탈 0) vs 사망 장면 (특수 사망, with its cause) vs 엔딩.
+function endSceneSounds(r){const s=r.endScene&&r.p.events.find(x=>x.id===r.endScene);return !!s&&!!(s.audio?.dialogue||s.audio?.bgmMode==='play'&&s.audio.bgm||r.p.audio?.stageSound!==false&&window.StageFX&&StageFX.soundsFor(s).length);}
 function endStatus(state){return state.dead?(state.endScene?'☠ 사망 · '+(state.endNote||'특수 사망'):'사망 · '+(state.deathReason||'체력')+' 0'):'엔딩'+(state.endNote?' · '+state.endNote:'');}
 function saveSummary(progress){if(!progress)return '비어 있음';const e=progress.project.events.find(e=>e.id===progress.state.current),status=progress.state.ended?endStatus(progress.state):(progress.state.turn+1)+'쪽';return esc((e?.title||'장면')+' · '+status);}
 function saveTime(progress){return progress?esc(new Date(progress.updatedAt??progress.savedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})):'';}

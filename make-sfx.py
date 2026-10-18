@@ -1,6 +1,6 @@
 """Original short UI sounds. No game recordings or third-party assets."""
 from pathlib import Path
-import wave
+import wave,subprocess,re
 import numpy as np
 RATE=44100
 rng=np.random.default_rng(2033)
@@ -42,9 +42,22 @@ def cue(kind):
     a*=1.8
     assert abs(a).max()<.8
     return a
+def ffmpeg(a,filters):
+    r=subprocess.run(['ffmpeg','-hide_banner','-nostats','-f','f32le','-ac','1','-ar',str(RATE),'-i','-','-af',filters,'-ar',str(RATE),'-f','f32le','-ac','1','-'],input=a.astype('<f4').tobytes(),capture_output=True,check=True)
+    return r.stderr.decode(),np.frombuffer(r.stdout,dtype='<f4')
+def loudest(a):
+    log,_=ffmpeg(a,'apad=pad_dur=0.6,ebur128=metadata=1,ametadata=print:key=lavfi.r128.M:file=/dev/stderr')
+    return max(float(x) for x in re.findall(r'lavfi\.r128\.M=(-?[\d.]+)',log))
+def normalise(a,target=-14):
+    # Same ear-weighted level as the built-in staging effects (loudest 400 ms at -14 LUFS), with a -1 dBFS limiter.
+    for _ in range(4):
+        level=loudest(a)
+        if abs(target-level)<.5:break
+        _,b=ffmpeg(a*10**((target-level)/20),'alimiter=limit=0.89:attack=2:release=80:level=disabled');a=np.concatenate([b[:len(a)],np.zeros(max(0,len(a)-len(b)),'f4')])
+    return a
 out=Path(__file__).parent/'assets/sfx';out.mkdir(exist_ok=True)
 for kind in ['ability','item','state','money','important','recovery','loss','death','mixed']:
-    a=cue(kind)
+    a=normalise(cue(kind))
     with wave.open(str(out/(kind+'.wav')),'wb') as w:
         w.setnchannels(1);w.setsampwidth(2);w.setframerate(RATE);w.writeframes((a*32767).astype('<i2').tobytes())
     print(kind,round(len(a)/RATE,2),'s, peak',round(float(abs(a).max()),3))

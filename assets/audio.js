@@ -8,7 +8,7 @@ function dispose(a){if(!a)return;a.pause();a.onended=a.onerror=a.onplaying=a.onl
 function report(label,src){if(errors.has(src))return;errors.add(src);if(errors.size>16)errors.delete(errors.values().next().value);root.dispatchEvent(new CustomEvent('game-audio-error',{detail:label+' 소리를 재생하지 못했습니다.'}));}
 function safePlay(a,label){if(!a||document.hidden||suspended)return;try{const result=a.play();result?.catch(e=>{if(e.name!=='AbortError'&&e.name!=='NotAllowedError')report(label,a.src);});}catch(e){report(label,a.src);}}
 function create(slot,label){const a=new Audio(slot.src);a.preload='auto';a._volume=slot.volume;a.onerror=()=>{if(a===voice)stopVoice();if(a===bgm)stopBgm();if(a===effect)stopEffect();if(a===preview)stopPreview();report(label,slot.src);};return a;}
-function volume(){if(bgm)bgm.volume=level(bgm._volume,30)*level(preferences.bgmVolume)*(voice&&!voice.paused&&voiceSlot?.kind!=='effect' ? .4 : 1);if(voice)voice.volume=level(voice._volume)*level(project.audio?.voiceVolume)*level(preferences.voiceVolume);if(effect)effect.volume=level(effect._volume)*level(project.audio?.effectsVolume)*level(preferences.effectsVolume);}
+function volume(){if(bgm)bgm.volume=level(bgm._volume,30)*level(preferences.bgmVolume)*(voice&&!voice.paused&&voiceSlot?.kind!=='effect' ? .4 : 1);if(voice)voice.volume=level(voice._volume)*level(project.audio?.voiceVolume)*level(preferences.voiceVolume);if(effect)effect.volume=level(effect._volume)*level(project.audio?.effectsVolume)*level(preferences.effectsVolume)*(effect._ducked?.35:1);}
 function prepareEffects(){for(const cue of Object.keys(cues))if(!defaults[cue]){const a=create({src:'sfx/'+cue+'.wav',volume:60},cues[cue]);a.load();defaults[cue]=a;}}
 function stopEffect(){if(effect){effect.pause();try{effect.currentTime=0;}catch(e){}if(!Object.values(defaults).includes(effect))dispose(effect);effect=null;}}
 function stopVoice(){pendingVoice=null;dispose(voice);voice=null;voiceSlot=null;volume();}
@@ -39,7 +39,11 @@ function enterScene(scene,sceneKey,run,defer=false){
  else if(mode==='play'&&track(scene.audio.bgm)){const ref=scene.id;if(state.bgm!==ref){state.bgm=ref;state.position=0;}setBgm(scene.audio.bgm,ref,state.position);}
  pendingVoice=track(scene?.audio?.dialogue);if(!defer)releaseVoice();
 }
-function playEffect(cue,custom){stopEffect();if(!enabled||suspended||document.hidden)return;prepareEffects();const slot=track(custom)||track(project.audio?.effects?.[cue]);effect=slot?create(slot,cues[cue]||'효과음'):defaults[cue];if(!effect)return;volume();try{effect.currentTime=0;}catch(e){}safePlay(effect,cues[cue]||'효과음');}
+// 연출 one-shots outrank feedback cues: near one, a built-in cue is dropped and an author-chosen one plays quietly under it.
+const STAGE_WINDOW=700;let lastStageShot=-1e9;
+function stageBusy(){return performance.now()-lastStageShot<STAGE_WINDOW||[...stageShots].some(a=>!a.paused&&!a.ended);}
+function yieldToStage(){if(!effect)return;if(Object.values(defaults).includes(effect))stopEffect();else{effect._ducked=true;volume();}}
+function playEffect(cue,custom){stopEffect();if(!enabled||suspended||document.hidden)return;prepareEffects();const slot=track(custom)||track(project.audio?.effects?.[cue]);if(!slot&&stageBusy())return;effect=slot?create(slot,cues[cue]||'효과음'):defaults[cue];if(!effect)return;effect._ducked=!!slot&&stageBusy();volume();try{effect.currentTime=0;}catch(e){}safePlay(effect,cues[cue]||'효과음');}
 function previewSound(slot,fallback,button){
  const stopping=preview&&preview._button===button;stopPreview();if(stopping)return;
  const source=track(slot)||{src:'sfx/'+fallback+'.wav',volume:60};preview=create(source,'미리 듣기');const a=preview;a._button=button;a.volume=level(source.volume,60);a.loop=false;
@@ -60,7 +64,7 @@ function stageSound(kind,arg,root,options={}){
  if(kind==='loops'){stageWanted.set(root,{ids:Array.isArray(arg)?arg:[],on,volume:options.volume});if(!stageTimer)stageTimer=setTimeout(applyStage,0);return;}
  if(kind!=='once'||!on||!enabled||suspended||document.hidden)return;
  const a=create({src:stageSource(arg),volume:100},'연출 효과음');a.volume=stageVolume(options);stageShots.add(a);a.onended=()=>{stageShots.delete(a);dispose(a);};
- if(stageShots.size>6){const old=stageShots.values().next().value;stageShots.delete(old);dispose(old);}safePlay(a,'연출 효과음');}
+ if(stageShots.size>6){const old=stageShots.values().next().value;stageShots.delete(old);dispose(old);}lastStageShot=performance.now();yieldToStage();safePlay(a,'연출 효과음');}
 function stopStage(){clearTimeout(stageTimer);stageTimer=0;stageWanted.clear();for(const m of stagePlaying.values())for(const a of m.values())dispose(a);stagePlaying.clear();for(const a of stageShots)dispose(a);stageShots.clear();}
 function pauseStage(){for(const m of stagePlaying.values())for(const a of m.values())a.pause();for(const a of stageShots)dispose(a);stageShots.clear();}
 function resumeStage(){if(!enabled||suspended||document.hidden)return;for(const m of stagePlaying.values())for(const a of m.values())if(a.paused)safePlay(a,'연출 효과음');}

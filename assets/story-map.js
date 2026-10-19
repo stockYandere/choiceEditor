@@ -96,7 +96,7 @@ function render(){
     else if(o.next==='random')badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'🎲');
     else if(o.next==='end')badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'🏁');}}}
  if(nodes.hub){const h=nodes.hub;for(const e of nodes.encounters){const tb=nodes.boxes.get(e.id),start=circleEdge(h,tb,HUB);arrow(start,boxEdge(tb,start),'mapLink random');}
-  const g=el('g',{class:'mapHub','data-map-hub':''},circles);el('circle',{cx:h.x,cy:h.y,r:HUB},g);const t=el('text',{x:h.x,y:h.y+6,'text-anchor':'middle',class:'mapHubIcon'},g);t.textContent='🎲';const l=el('text',{x:h.x+HUB+6,y:h.y+4,class:'mapChoiceText'},g);l.textContent='랜덤 인카운터';}
+  const g=el('g',{class:'mapHub','data-map-hub':''},circles);el('circle',{cx:h.x,cy:h.y,r:HUB},g);const t=el('text',{x:h.x,y:h.y+6,'text-anchor':'middle',class:'mapHubIcon'},g);t.textContent='🎲';const l=el('text',{x:h.x+HUB+6,y:h.y+4,class:'mapChoiceText'},g);l.textContent='랜덤 · 이 중 하나로';}
  for(const [id,b]of nodes.boxes){const e=b.e,g=el('g',{class:'mapBox'+(e.ending==='death'?' death':e.ending==='end'?' ending':'')+(id===host.selected()?' current':''),'data-map-event':id},boxes);
   el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2,width:BOX.w,height:BOX.h,rx:9},g);
   const n=el('text',{x:b.x-BOX.w/2+8,y:b.y-BOX.h/2+15,class:'mapNum'},g);n.textContent=(b.i+1)+(e.ending==='death'?' ☠':e.ending==='end'?' 🏁':'');
@@ -164,7 +164,7 @@ async function finish(pts){
 }
 
 function open(h){host=h;if(!wrap)build();setMode(mode);wrap.hidden=false;fitted=false;pointers.clear();stroke=pinch=null;locked=false;render();}
-function close(){if(!wrap||wrap.hidden)return false;wrap.hidden=true;pointers.clear();stroke=pinch=null;host?.closed?.();return true;}
+function close(o){if(!wrap||wrap.hidden)return false;wrap.hidden=true;pointers.clear();stroke=pinch=pan=null;if(!o?.silent)host?.closed?.();return true;}
 function isOpen(){return !!wrap&&!wrap.hidden;}
 const api={open,close,isOpen,setMode,mode:()=>mode,busy:()=>busy>0,render:()=>isOpen()&&render(),classify,layout,_view:()=>view};
 if(typeof module!=='undefined')module.exports=api;else root.StoryMap=api;

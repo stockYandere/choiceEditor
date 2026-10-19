@@ -45,7 +45,7 @@ await p.evaluate(([x,y])=>__stroke(Array.from({length:37},(_,i)=>[x+40+18*Math.c
 ev=await events();assert.deepEqual(ev[2].c.map(c=>c[0]),['선택지 1','선택지 2']);assert.equal(await p.locator('[data-map-choice]').count(),2);
 // Line from 선택지 2 to 사건 4 links it.
 const c2=await p.evaluate(()=>__center(`[data-map-choice="${project.events[2].choices[1].id}"]`)),b4=await p.evaluate(()=>__center(`[data-map-event="${project.events[3].id}"]`));
-await p.evaluate(pts=>__stroke(pts),linePts(c2,b4));ev=await events();if(process.env.DBG)console.log(JSON.stringify(await p.evaluate(()=>project.events.map(e=>[e.id,e.title,e.choices.map(c=>[c.text,c.next])]))),c2,b4,await p.locator("#mapToast").innerText());assert.equal(ev[2].c[1][1],await p.evaluate(()=>project.events[3].id));
+await p.evaluate(pts=>__stroke(pts),linePts(c2,b4));ev=await events();assert.equal(ev[2].c[1][1],await p.evaluate(()=>project.events[3].id));
 // Line box → box: 장면1 already goes to 장면2, so a second line makes 선택지 1 / 선택지 2.
 const b1=await p.evaluate(()=>__center(`[data-map-event="${project.events[0].id}"]`));
 await p.evaluate(pts=>__stroke(pts),linePts(b1,b4));ev=await events();assert.deepEqual(ev[0].c.map(c=>c[0]),['선택지 1','선택지 2']);
@@ -59,11 +59,11 @@ await p.evaluate(()=>C.validate(structuredClone(project)));await p.evaluate(()=>
 await p.locator('[data-map-mode=move]').click();const tapAt=await p.evaluate(()=>__center(`[data-map-event="${project.events[3].id}"]`));await p.evaluate(([x,y])=>__stroke([[x,y]]),tapAt);
 assert.equal(await p.locator('#storyMap').isVisible(),false);assert.equal(await p.evaluate(()=>current().title),'사건 4');
 // Back button closes the map.
-await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.locator('#storyMap').isVisible(),false);
-await p.reload();await p.waitForFunction(()=>!document.getElementById('openEditor').disabled);await p.locator('#openEditor').click();await p.locator('[data-edit-game]').first().click();
+await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.locator('#storyMap').isVisible(),false);assert.equal(await p.evaluate(()=>document.getElementById('modal').open),true,'back from the map returns to 사건 찾기');
+await p.evaluate(async()=>{document.getElementById('modal').close();await flushEditor();await GameVault.flush();});await p.reload();await p.waitForFunction(()=>!document.getElementById('openEditor').disabled);await p.locator('#openEditor').click();await p.locator('[data-edit-game]').first().click();
 assert.equal(await p.evaluate(()=>project.events.length),4);assert.equal(await p.evaluate(()=>project.events[2].choices.filter(c=>c.map).length),2);
 // 랜덤 인카운터: random choices meet at one 🎲 hub with a line to every encounter scene.
 await p.evaluate(()=>{const a=C.event(),b=C.event(),c=C.event();a.title='시작';a.choices[0].next='random';b.title='만남1';b.kind='encounter';c.title='만남2';c.kind='encounter';project.events=[a,b,c];selected=a.id;persist();});
-await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.locator('[data-map-hub]').count(),1);assert.equal(await p.locator('.mapLink.random').count(),3);
+try{await p.waitForFunction(()=>page==='story'&&!document.getElementById('modal').open&&!StoryMap.isOpen(),null,{timeout:5000});await p.locator('#chooseEvent').click({timeout:5000});}catch(e){console.log(await p.evaluate(()=>({page,modal:document.getElementById('modal').open,title:document.getElementById('modal').querySelector('h2,b')?.textContent,map:StoryMap.isOpen(),ce:!!document.getElementById('chooseEvent'),vis:document.getElementById('chooseEvent')?.offsetParent!==null})));await p.screenshot({path:'/tmp/claude-0/-home-user/4bf91c89-c710-513d-8903-2e8117ef1458/scratchpad/fail.png'});throw e;}await p.locator('#openStoryMap').click();assert.equal(await p.locator('[data-map-hub]').count(),1);assert.equal(await p.locator('.mapLink.random').count(),3);
 assert.deepEqual(errors,[]);await browser.close();console.log('PASS 구조도: 이동 mode pans with one finger and drags boxes (others pinned, undo), 그리기 mode draws, opens from 사건 찾기, 🎲 hub to encounters, pinch zoom in/out without drawing, box → new numbered scene, circles → 선택지 1/2, circle→box and box→box links, one-stroke undo, empty-end line hint, tap opens scene, back closes, survives reload.');
 })().catch(e=>{console.error(e);process.exit(1)});

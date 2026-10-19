@@ -92,11 +92,14 @@ function reuseEvent(source=current(),kind='story'){
 }
 function addEditorEvent(){if(project.events.length>=1000)return tell('사건은 최대 1000개까지 만들 수 있습니다.');const e=reuseEvent();project.events.push(e);selected=e.id;part='content';persist();renderEditor();$('eventTitle').focus();$('eventTitle').select();}
 // 구조도: the story drawn as boxes and circles; drawing there edits the same project (one undo step per stroke).
-function openStoryMap(){StoryMap.open({project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
+let mapFrom='';
+function openStoryMap(from=''){mapFrom=from;StoryMap.open({project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
  commit:async()=>{persist();await flushEditor();},undo:async()=>{await flushEditor();if(!history.past.length)return false;clearTimeout(saveTimer);restoreEdit(history.undo(project),'되돌렸습니다.');return true;},
- openEvent:(id,to)=>{StoryMap.close();selected=id;part=to||'content';renderEditor();},closed:()=>renderEditor()});}
+ openEvent:(id,to)=>{StoryMap.close({silent:true});selected=id;part=to||'content';renderEditor();},closed:()=>leaveStoryMap(false)});notePlace();}
+// Leaving the map by back (or 닫기) drops it from the screen history; back returns to 사건 찾기 when that is where it was opened.
+function leaveStoryMap(back){placing=true;try{StoryMap.close({silent:true});if(places[places.length-1]?.map)places.pop();renderEditor();}finally{placing=false;syncPlace();}if(back&&mapFrom==='picker')showEventPicker();}
 function showEventPicker(reopen={}){
- open('사건 찾기',`<div class="eventSearchRow"><input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><button id="openStoryMap" class="quiet">구조도</button></div><div id="eventResults"></div>`);$('openStoryMap').onclick=()=>{$('modal').close();openStoryMap();};
+ open('사건 찾기',`<div class="eventSearchRow"><input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><button id="openStoryMap" class="quiet">구조도</button></div><div id="eventResults"></div>`);$('openStoryMap').onclick=()=>{$('modal').close();openStoryMap('picker');};
  // Pages instead of a long list; it opens on the page of the current scene.
  const per=Math.max(4,Math.floor((innerHeight-210)/48));let pageAt=Math.floor(Math.max(0,project.events.findIndex(e=>e.id===selected))/per);
  const draw=()=>{const q=$('eventSearch').value.trim().toLocaleLowerCase(),found=project.events.map((e,i)=>({e,i})).filter(({e})=>[e.title,e.speaker,e.text].some(v=>String(v||'').toLocaleLowerCase().includes(q))),pages=Math.max(1,Math.ceil(found.length/per));pageAt=Math.min(pageAt,pages-1);
@@ -550,7 +553,7 @@ function quickTest(){
 
 $('quickTest').onclick=quickTest;
 function saveAll(){if(savesBusy)return savesOperation.then(()=>saveAll());if(activeForm){rememberForm();activeForm.commit(false);}return playing?saveProgress():flushEditor();}
-window.addEventListener('game-audio-error',e=>tell(e.detail));document.addEventListener('visibilitychange',()=>{if(document.hidden){GameAudio.suspend();clearEffects();finishDialogue();saveAll();}else GameAudio.resume();});window.flushPersist=saveAll;window.appBack=()=>{if(window.StoryMap&&StoryMap.close())return 'HANDLED';if(window.closeStagePreview&&closeStagePreview())return 'HANDLED';if($('cropSheet').open){closeCrop();return 'HANDLED'}if($('creditsSheet').open){GameTitle.close();return 'HANDLED'}if($('historySheet').open){closeHistory();return 'HANDLED'}if(artViewing){restoreDialogue();return 'HANDLED'}if($('stateSheet').open){closeStateSheet();return 'HANDLED'}if($('modal').open){closeForm();return 'HANDLED'}if(playing){leavePlay();return 'HANDLED'}if(page==='gameList'){showHome();return 'HANDLED'}if(page==='test'||page==='inventory'){switchPage('story');return 'HANDLED'}if(page==='story'){showHome();return 'HANDLED'}return 'EXIT'};
+window.addEventListener('game-audio-error',e=>tell(e.detail));document.addEventListener('visibilitychange',()=>{if(document.hidden){GameAudio.suspend();clearEffects();finishDialogue();saveAll();}else GameAudio.resume();});window.flushPersist=saveAll;window.appBack=()=>{if(window.StoryMap?.isOpen()){leaveStoryMap(true);return 'HANDLED';}if(window.closeStagePreview&&closeStagePreview())return 'HANDLED';if($('cropSheet').open){closeCrop();return 'HANDLED'}if($('creditsSheet').open){GameTitle.close();return 'HANDLED'}if($('historySheet').open){closeHistory();return 'HANDLED'}if(artViewing){restoreDialogue();return 'HANDLED'}if($('stateSheet').open){closeStateSheet();return 'HANDLED'}if($('modal').open){closeForm();return 'HANDLED'}if(playing){leavePlay();return 'HANDLED'}if(!standalone&&backPlace())return 'HANDLED';if(page==='gameList'){showHome();return 'HANDLED'}if(page==='test'||page==='inventory'){switchPage('story');return 'HANDLED'}if(page==='story'){showHome();return 'HANDLED'}return 'EXIT'};
 // 연출 sounds: the play screen follows the play version's settings, the editor preview the project being edited.
 if(window.StageFX)StageFX.onSound=(kind,arg,root)=>{const p=root===$('stage')&&run?run.p:project;GameAudio.stageSound(kind,arg,root,{on:p?.audio?.stageSound!==false,volume:p?.audio?.stageVolume});};
 init();
@@ -582,3 +585,22 @@ function renderAppUpdate(s){const box=$('appUpdate');if(!box||!s||!s.current)ret
  if(s.ready&&appUpdateTold!==s.readyName){appUpdateTold=s.readyName;tell('새 버전 '+s.readyName+josa(s.readyName,'을')+' 받아 두었어요. 첫 화면에서 확인하세요.');}}
 window.onAppUpdate=renderAppUpdate;
 if(window.Android?.updateStatus&&!standalone){try{renderAppUpdate(JSON.parse(Android.updateStatus()));}catch(e){}$('appUpdateAuto').onchange=()=>Android.setAutoUpdate($('appUpdateAuto').checked);$('appUpdateCheck').onclick=()=>Android.checkUpdate();}
+
+// Back goes to the screen before, wherever it is: every distinct screen (page, game, scene, tab, 구조도) is remembered in order.
+let places=[],placing=false;
+function place(){const edit=['story','inventory','test'].includes(page);return {page,listMode:page==='gameList'?listMode:'',game:edit?store.active:'',selected:edit?selected:'',part:page==='story'?part:'',map:!!window.StoryMap?.isOpen()};}
+const samePlace=(a,b)=>!!a&&!!b&&JSON.stringify(a)===JSON.stringify(b);
+function notePlace(){if(placing||standalone||playing)return;const now=place();if(samePlace(places[places.length-1],now))return;places.push(now);if(places.length>60)places.shift();}
+function syncPlace(){if(standalone||playing)return;const now=place();if(places.length)places[places.length-1]=now;else places.push(now);}
+function backPlace(){if(samePlace(places[places.length-1],place()))places.pop();
+ while(places.length){const to=places[places.length-1];if(to.game&&!store.games.some(g=>g.id===to.game)){places.pop();continue;}restorePlace(to);return true;}return false;}
+async function restorePlace(to){placing=true;try{
+ if(to.page==='home')await showHome();
+ else if(to.page==='gameList')showList(to.listMode);
+ else{if(to.game&&store.active!==to.game)await openGame(to.game);
+  if(to.selected&&project.events.some(e=>e.id===to.selected))selected=to.selected;if(to.part)part=to.part;
+  if(to.page==='test')switchPage('test');else{page=to.page;render();}
+  if(to.map)openStoryMap('');}
+}finally{placing=false;syncPlace();}}
+{const baseRender=render,baseEditor=renderEditor;render=function(...a){const out=baseRender.apply(this,a);notePlace();return out;};renderEditor=function(...a){const out=baseEditor.apply(this,a);notePlace();return out;};}
+notePlace();

@@ -28,13 +28,15 @@ function classify(pts){
 
 // ---- Layout: drawn positions (e.map / c.map) win; the rest stack in layers from the first scene ----
 function storyNext(p,e){if(e.kind!=='story')return null;const i=p.events.indexOf(e);return p.events.find((x,j)=>j>i&&x.kind==='story')||null;}
+// Which 🎲 묶음 a next value rolls ('' = 기본), or null when it is not a random roll (same rule as GameCore).
+const groupOf=n=>n==='random'?'':typeof n==='string'&&n.startsWith('random:')?n.slice(7):null;
 function outcomes(c){return [c,...(c.branch?[c.branch]:[])];}
 function showsCircles(e){return e.choices.length>1||e.choices.some(c=>c.map);}
 function layout(p){
  const byId=new Map(p.events.map(e=>[e.id,e])),depth=new Map(),queue=[];
  if(p.events[0]){depth.set(p.events[0].id,0);queue.push(p.events[0]);}
  const encounters=p.events.filter(e=>e.kind==='encounter');
- while(queue.length){const e=queue.shift();if(e.ending)continue;for(const c of e.choices)for(const o of outcomes(c)){const ts=o.next==='sequence'?[storyNext(p,e)]:o.next==='random'?encounters:[byId.get(o.next)];for(const t of ts)if(t&&!depth.has(t.id)){depth.set(t.id,depth.get(e.id)+1);queue.push(t);}}}
+ while(queue.length){const e=queue.shift();if(e.ending)continue;for(const c of e.choices)for(const o of outcomes(c)){const g=groupOf(o.next),ts=o.next==='sequence'?[storyNext(p,e)]:g!==null?encounters.filter(x=>(x.randomGroup||'')===g):[byId.get(o.next)];for(const t of ts)if(t&&!depth.has(t.id)){depth.set(t.id,depth.get(e.id)+1);queue.push(t);}}}
  let deepest=0;for(const d of depth.values())deepest=Math.max(deepest,d);
  const layers=new Map();for(const e of p.events){const d=depth.has(e.id)?depth.get(e.id):deepest+1;if(!layers.has(d))layers.set(d,[]);layers.get(d).push(e);}
  const boxes=new Map();
@@ -42,15 +44,16 @@ function layout(p){
  const width=e=>Math.max(BOX.w,showsCircles(e)&&!e.ending?e.choices.length*STEP:0)+GAP;
  for(const [d,list]of layers){const auto=list.filter(e=>!e.map),total=auto.reduce((n,e)=>n+width(e),0);let x=-total/2;for(const e of auto){boxes.set(e.id,{x:x+width(e)/2,y:d*LAYER});x+=width(e);}}
  p.events.forEach((e,i)=>{const at=e.map?{x:e.map.x,y:e.map.y}:boxes.get(e.id);boxes.set(e.id,{...at,e,i});});
- // 랜덤 인카운터 is picked when played, so its choices meet at one 🎲 hub that fans out to every encounter scene.
- let hub=null;const pool=encounters.map(e=>boxes.get(e.id)).filter(Boolean);
- const rolls=p.events.filter(e=>!e.ending&&e.choices.some(c=>outcomes(c).some(o=>o.next==='random')));
- if(pool.length)hub={x:pool.reduce((n,b)=>n+b.x,0)/pool.length,y:Math.min(...pool.map(b=>b.y))-84};
- else if(rolls.length){const b=boxes.get(rolls[0].id);hub={x:b.x+BOX.w/2+70,y:b.y+150};}
- if(hub&&p.hubMap)hub={x:p.hubMap.x,y:p.hubMap.y};
+ // 랜덤 인카운터 is picked when played, so each 🎲 묶음 is one hub: its rolls point in, and it fans out to its scenes.
+ const named=p.randomGroups||[],groups=[{id:'',name:named.length?'기본':'랜덤',map:p.hubMap},...named],hubs=[];let spare=0;const maxX=Math.max(0,...[...boxes.values()].map(b=>b.x));
+ for(const g of groups){const members=encounters.filter(e=>(e.randomGroup||'')===g.id),rolls=p.events.filter(e=>!e.ending&&e.choices.some(c=>outcomes(c).some(o=>groupOf(o.next)===g.id)));
+  if(!g.id&&!members.length&&!rolls.length)continue;const mb=members.map(e=>boxes.get(e.id));let at;
+  if(g.map)at={x:g.map.x,y:g.map.y};else if(mb.length)at={x:mb.reduce((n,b)=>n+b.x,0)/mb.length,y:Math.min(...mb.map(b=>b.y))-84};else if(rolls.length){const b=boxes.get(rolls[0].id);at={x:b.x+BOX.w/2+70,y:b.y+150};}else at={x:maxX+BOX.w+70,y:(spare++)*110};
+  if(!g.map)while(hubs.some(h=>Math.hypot(h.x-at.x,h.y-at.y)<60))at={x:at.x+110,y:at.y};
+  hubs.push({...at,gid:g.id,name:g.name,group:g,members,rolls});}
  const circles=[];
  for(const e of p.events){if(e.ending||!showsCircles(e))continue;const b=boxes.get(e.id),n=e.choices.length;e.choices.forEach((c,k)=>circles.push({e,c,k,x:c.map?c.map.x:b.x+(k-(n-1)/2)*STEP,y:c.map?c.map.y:b.y+92}));}
- return {boxes,circles,hub,encounters,rolls};
+ return {boxes,circles,hubs,encounters};
 }
 
 // ---- View ----
@@ -86,7 +89,7 @@ function circleEdge(c,to,r=R){const d=Math.hypot(to.x-c.x,to.y-c.y)||1;return {x
 function render(){
  const p=host.project();nodes=layout(p);world.replaceChildren();
  const links=el('g',{class:'mapLinks'},world),boxes=el('g',{},world),circles=el('g',{},world);ink=el('path',{class:'mapInk'},world);
- const circleOf=new Map(nodes.circles.map(n=>[n.c.id,n]));
+ const circleOf=new Map(nodes.circles.map(n=>[n.c.id,n])),hubOf=new Map(nodes.hubs.map(h=>[h.gid,h]));
  const arrow=(a,b,cls)=>el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:cls,'marker-end':'url(#mapArrow)'},links);
  const badge=(at,text)=>{const t=el('text',{x:at.x,y:at.y,class:'mapBadge','text-anchor':'middle'},links);t.textContent=text;};
  for(const e of p.events){if(e.ending)continue;const box=nodes.boxes.get(e.id);
@@ -95,11 +98,12 @@ function render(){
    for(const o of outcomes(c)){const branch=o!==c,from=circ||box,target=o.next==='sequence'?storyNext(p,e):p.events.find(x=>x.id===o.next),cls='mapLink'+(o.next==='sequence'?' sequence':'')+(branch?' branch':'');
     if(target){const tb=nodes.boxes.get(target.id),start=circ?circleEdge(circ,tb):boxEdge(box,tb);arrow(start,boxEdge(tb,start),cls);}
     else if(o.next==='sequence')badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'⏭');
-    else if(o.next==='random'&&nodes.hub){const start=circ?circleEdge(circ,nodes.hub):boxEdge(box,nodes.hub);arrow(start,circleEdge({x:nodes.hub.x,y:nodes.hub.y},start,HUB),'mapLink random'+(branch?' branch':''));}
-    else if(o.next==='random')badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'🎲');
+    else if(groupOf(o.next)!==null&&hubOf.has(groupOf(o.next))){const h=hubOf.get(groupOf(o.next)),start=circ?circleEdge(circ,h):boxEdge(box,h);arrow(start,circleEdge(h,start,HUB),'mapLink random'+(branch?' branch':''));}
+    else if(groupOf(o.next)!==null)badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'🎲');
     else if(o.next==='end')badge({x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)},'🏁');}}}
- if(nodes.hub){const h=nodes.hub;for(const e of nodes.encounters){const tb=nodes.boxes.get(e.id),start=circleEdge(h,tb,HUB);arrow(start,boxEdge(tb,start),'mapLink random');}
-  const g=el('g',{class:'mapHub','data-map-hub':''},circles);el('circle',{cx:h.x,cy:h.y,r:HUB},g);const t=el('text',{x:h.x,y:h.y+6,'text-anchor':'middle',class:'mapHubIcon'},g);t.textContent='🎲';const l=el('text',{x:h.x+HUB+6,y:h.y+4,class:'mapChoiceText'},g);l.textContent=nodes.encounters.length?'랜덤 '+nodes.encounters.length+'개 · 눌러서 목록':'랜덤 · 비어 있음 (눌러서 추가)';}
+ for(const h of nodes.hubs){for(const e of h.members){const tb=nodes.boxes.get(e.id),start=circleEdge(h,tb,HUB);arrow(start,boxEdge(tb,start),'mapLink random');}
+  const g=el('g',{class:'mapHub','data-map-hub':h.gid},circles);el('circle',{cx:h.x,cy:h.y,r:HUB},g);const t=el('text',{x:h.x,y:h.y+6,'text-anchor':'middle',class:'mapHubIcon'},g);t.textContent='🎲';
+  const l=el('text',{x:h.x+HUB+6,y:h.y+4,class:'mapChoiceText'},g);l.textContent=short(h.name,10)+' '+(h.members.length?h.members.length+'개 · 눌러서 목록':'· 비어 있음 (눌러서 추가)');}
  for(const [id,b]of nodes.boxes){const e=b.e,g=el('g',{class:'mapBox'+(e.ending==='death'?' death':e.ending==='end'?' ending':'')+(id===host.selected()?' current':''),'data-map-event':id},boxes);
   el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2,width:BOX.w,height:BOX.h,rx:9},g);
   const n=el('text',{x:b.x-BOX.w/2+8,y:b.y-BOX.h/2+15,class:'mapNum'},g);n.textContent=(b.i+1)+(e.ending==='death'?' ☠':e.ending==='end'?' 🏁':'')+(e.kind==='encounter'?' 🎲'+(e.once?' 1회':''):'');
@@ -110,7 +114,7 @@ function render(){
  if(!fitted){fit();fitted=true;}apply();
 }
 // The node under a world point: circles first (they sit on lines), then boxes.
-function hit(pt,slack=0){let best=null,d=Infinity;if(nodes.hub&&Math.hypot(pt.x-nodes.hub.x,pt.y-nodes.hub.y)<=HUB+slack)return {kind:'hub'};for(const n of nodes.circles){const k=Math.hypot(pt.x-n.x,pt.y-n.y);if(k<=R+slack&&k<d){d=k;best={kind:'circle',n};}}if(best)return best;for(const [id,b]of nodes.boxes)if(Math.abs(pt.x-b.x)<=BOX.w/2+slack&&Math.abs(pt.y-b.y)<=BOX.h/2+slack){const k=Math.hypot(pt.x-b.x,pt.y-b.y);if(k<d){d=k;best={kind:'box',id,b};}}return best;}
+function hit(pt,slack=0){let best=null,d=Infinity;for(const h of nodes.hubs)if(Math.hypot(pt.x-h.x,pt.y-h.y)<=HUB+slack)return {kind:'hub',h};for(const n of nodes.circles){const k=Math.hypot(pt.x-n.x,pt.y-n.y);if(k<=R+slack&&k<d){d=k;best={kind:'circle',n};}}if(best)return best;for(const [id,b]of nodes.boxes)if(Math.abs(pt.x-b.x)<=BOX.w/2+slack&&Math.abs(pt.y-b.y)<=BOX.h/2+slack){const k=Math.hypot(pt.x-b.x,pt.y-b.y);if(k<d){d=k;best={kind:'box',id,b};}}return best;}
 
 // ---- Gestures: one pointer draws, a second one turns it into pinch zoom + move ----
 function down(ev){ev.preventDefault();try{svg.setPointerCapture(ev.pointerId);}catch(e){}pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
@@ -131,15 +135,15 @@ const pristine=c=>c.text==='계속'&&c.next==='sequence'&&!c.hp&&!c.mental&&!c.m
 const round=v=>Math.round(v);
 // Moving a box (its circles come along) or a single circle. The first move pins every box where it is shown,
 // so the rest of the row does not re-centre under the finger. One undo step per move.
-function startDrag(h){const p=host.project(),before=p.events.map(e=>[e,e.map,e.choices.map(c=>[c,c.map])]),hubBefore=p.hubMap;
+function startDrag(h){const p=host.project(),before=p.events.map(e=>[e,e.map,e.choices.map(c=>[c,c.map])]),hubBefore=[p.hubMap,...(p.randomGroups||[]).map(g=>g.map)];
  for(const [id,b]of nodes.boxes)if(!b.e.map)b.e.map={x:Math.round(b.x),y:Math.round(b.y)};
- if(h.kind==='hub'){p.hubMap={x:Math.round(nodes.hub.x),y:Math.round(nodes.hub.y)};drag={before,hubBefore,hub:p,from:{...p.hubMap},circles:[]};return;}
+ if(h.kind==='hub'){const [obj,key]=h.h.gid?[h.h.group,'map']:[p,'hubMap'];obj[key]={x:Math.round(h.h.x),y:Math.round(h.h.y)};drag={before,hubBefore,hub:[obj,key],from:{...obj[key]},circles:[]};return;}
  if(h.kind==='box'){const e=h.b.e;drag={before,hubBefore,box:e,from:{...e.map},circles:e.choices.filter(c=>c.map).map(c=>[c,{...c.map}])};}
  else{const c=h.n.c;if(!c.map)c.map={x:Math.round(h.n.x),y:Math.round(h.n.y)};drag={before,hubBefore,circles:[[c,{...c.map}]]};}}
-function dragTo(dx,dy){if(!drag)return;if(drag.hub)drag.hub.hubMap={x:Math.round(drag.from.x+dx),y:Math.round(drag.from.y+dy)};if(drag.box)drag.box.map={x:Math.round(drag.from.x+dx),y:Math.round(drag.from.y+dy)};for(const [c,from]of drag.circles)c.map={x:Math.round(from.x+dx),y:Math.round(from.y+dy)};if(!frame)frame=requestAnimationFrame(()=>{frame=0;render();});}
+function dragTo(dx,dy){if(!drag)return;if(drag.hub)drag.hub[0][drag.hub[1]]={x:Math.round(drag.from.x+dx),y:Math.round(drag.from.y+dy)};if(drag.box)drag.box.map={x:Math.round(drag.from.x+dx),y:Math.round(drag.from.y+dy)};for(const [c,from]of drag.circles)c.map={x:Math.round(from.x+dx),y:Math.round(from.y+dy)};if(!frame)frame=requestAnimationFrame(()=>{frame=0;render();});}
 async function endDrag(){drag=null;busy++;try{await host.commit();render();}finally{busy--;}}
-function undrag(){const p=host.project();if(drag.hubBefore)p.hubMap=drag.hubBefore;else delete p.hubMap;for(const [e,map,cs]of drag.before){if(map)e.map=map;else delete e.map;for(const [c,m]of cs){if(m)c.map=m;else delete c.map;}}drag=null;render();}
-function tapAt(pt){const h=hit(pt,8/view.s);if(h?.kind==='hub'){host.openPool?.();return;}if(h?.kind==='box')host.openEvent(h.id,'content');else if(h?.kind==='circle')host.openEvent(h.n.e.id,'choices');}
+function undrag(){const p=host.project(),[base,...gm]=drag.hubBefore;if(base)p.hubMap=base;else delete p.hubMap;(p.randomGroups||[]).forEach((g,i)=>{if(gm[i])g.map=gm[i];else delete g.map;});for(const [e,map,cs]of drag.before){if(map)e.map=map;else delete e.map;for(const [c,m]of cs){if(m)c.map=m;else delete c.map;}}drag=null;render();}
+function tapAt(pt){const h=hit(pt,8/view.s);if(h?.kind==='hub'){host.openPool?.(h.h.gid);return;}if(h?.kind==='box')host.openEvent(h.id,'content');else if(h?.kind==='circle')host.openEvent(h.n.e.id,'choices');}
 async function finish(pts){
  const shape=classify(pts.map(p=>({x:p.x*view.s,y:p.y*view.s}))),p=host.project(),W=v=>v/view.s,slack=18/view.s;
  const done=async(msg)=>{ink.setAttribute('d','');if(msg)toast(msg);busy++;try{await host.commit();render();}finally{busy--;}};
@@ -164,12 +168,12 @@ async function finish(pts){
    if(A.choices.length===1&&pristine(A.choices[0]))A.choices.splice(0,1);A.choices.push(c);return done('◯ '+c.text+'을 「'+A.title+'」로 옮겼어요.');}
   if(a.kind==='circle'&&b.kind==='box'){a.n.c.next=b.id;return done(a.n.c.text+' → 「'+b.b.e.title+'」');}
   // 🎲 → 네모 puts the scene in the random pool; 동그라미/네모 → 🎲 makes that choice roll a random encounter.
-  if(a.kind==='hub'&&b.kind==='box'){const E=b.b.e;if(E.ending){ink.setAttribute('d','');return toast('끝 장면은 랜덤 인카운터에 넣을 수 없어요.');}if(E.kind==='encounter'){ink.setAttribute('d','');return toast('「'+E.title+'」은 이미 랜덤 목록에 있어요.');}E.kind='encounter';return done('🎲 「'+E.title+'」을 랜덤 인카운터에 넣었어요.');}
-  if(a.kind==='circle'&&b.kind==='hub'){a.n.c.next='random';return done(a.n.c.text+' → 🎲 랜덤');}
+  if(a.kind==='hub'&&b.kind==='box'){const E=b.b.e;if(E.ending){ink.setAttribute('d','');return toast('끝 장면은 랜덤 인카운터에 넣을 수 없어요.');}const H=a.h;if(E.kind==='encounter'&&(E.randomGroup||'')===H.gid){ink.setAttribute('d','');return toast('「'+E.title+'」은 이미 🎲 '+H.name+'에 있어요.');}const moved=E.kind==='encounter';E.kind='encounter';if(H.gid)E.randomGroup=H.gid;else delete E.randomGroup;return done('🎲 「'+E.title+'」을 '+H.name+(moved?'으로 옮겼어요.':'에 넣었어요.'));}
+  if(a.kind==='circle'&&b.kind==='hub'){a.n.c.next=b.h.gid?'random:'+b.h.gid:'random';return done(a.n.c.text+' → 🎲 '+b.h.name);}
   if(a.kind==='box'&&b.kind==='hub'){const A=a.b.e;if(A.ending){ink.setAttribute('d','');return toast('끝 장면에서는 선을 이을 수 없어요.');}
-   if(A.choices.length===1&&!A.choices[0].map&&(A.choices[0].next==='sequence'||A.choices[0].next==='random')){A.choices[0].next='random';return done('「'+A.title+'」 → 🎲 랜덤');}
+   const roll=b.h.gid?'random:'+b.h.gid:'random';if(A.choices.length===1&&!A.choices[0].map&&(A.choices[0].next==='sequence'||groupOf(A.choices[0].next)!==null)){A.choices[0].next=roll;return done('「'+A.title+'」 → 🎲 '+b.h.name);}
    if(A.choices.length>=6){ink.setAttribute('d','');return toast('선택지는 사건마다 6개까지예요.');}
-   if(A.choices.length===1&&A.choices[0].text==='계속')A.choices[0].text='선택지 1';const c=host.newChoice();c.text='선택지 '+(A.choices.length+1);c.next='random';A.choices.push(c);return done('「'+A.title+'」 '+c.text+' → 🎲 랜덤');}
+   if(A.choices.length===1&&A.choices[0].text==='계속')A.choices[0].text='선택지 1';const c=host.newChoice();c.text='선택지 '+(A.choices.length+1);c.next=roll;A.choices.push(c);return done('「'+A.title+'」 '+c.text+' → 🎲 '+b.h.name);}
   ink.setAttribute('d','');return toast(a.kind==='circle'?'선택지 동그라미는 사건 네모로 이어 주세요.':'');}
  ink.setAttribute('d','');
 }

@@ -303,7 +303,7 @@ body.keyboardOpen #editorNav{display:none}
 .formTabs{display:flex;gap:3px;padding:3px;margin:4px 0 10px;background:#0c131c;border:1px solid #33465e;border-radius:8px}.formTabs button{flex:1;min-width:0;min-height:38px;padding:0 4px;border:0;background:transparent;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.formTabs button.active{background:#35537a;color:#fff}
 .formPanel>details{border:0;padding:0;margin:0}.formPanel>details>summary{display:none}.formPanel label{margin:4px 0 8px}.formPanel label:has(>input[type=checkbox]){display:flex;align-items:center;gap:8px;min-height:40px;margin:2px 0}
 /* 내용 tab: one screen — the text grows to fill, one line to the choices, one line of scene settings. */
-.contentLayout{display:flex;flex-direction:column;height:100%;min-height:0;gap:6px}.contentLayout>.row label{margin:0}.copyField{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;margin:0!important}.copyField textarea{flex:1 1 auto;min-height:88px;resize:none}
+.contentLayout{display:flex;flex-direction:column;height:100%;min-height:0;gap:6px}.contentLayout>.row label{margin:0}.copyField{flex:1 1 auto;display:flex;flex-direction:column;min-height:96px;margin:0!important}.copyField textarea{flex:1 1 auto;min-height:64px;resize:none}
 .contentLayout #sceneHelpers{flex:none}.contentLayout .varPreview{max-height:22vh;overflow:auto}
 .sceneChoicesLink{flex:none;display:flex;align-items:center;gap:8px;text-align:left;min-height:48px;padding:6px 10px}.sceneChoicesLink>span{flex:1;min-width:0}.sceneChoicesLink b{display:block;font-size:13px}.sceneChoicesLink small{display:block;color:#9fb3c8;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sceneChoicesLink i{font-style:normal;font-size:20px;color:#8fb6e8}
 .sceneBar{flex:none;display:flex;gap:6px;align-items:center}.sceneBar select{flex:1 1 auto;min-width:0;margin:0;min-height:40px}.sceneBar button{flex:0 0 auto;min-height:40px;padding:0 10px;font-size:12px}.sceneBar .checkLine{flex:0 0 auto;display:flex;align-items:center;gap:4px;margin:0;font-size:12px;white-space:nowrap}
@@ -370,3 +370,13 @@ body.keyboardOpen #editorNav{display:none}
 .poolCount{margin:0 0 6px;font-size:12px;color:#bfd0e3}.poolRow{display:flex;align-items:center;gap:6px;min-height:48px;margin-bottom:4px;padding:0 4px 0 8px;border:1px solid #33465e;border-radius:10px}.poolRow.on{border-color:#c9a8f0;background:#2a2340}
 .poolName{flex:1;min-width:0;margin:0!important}.poolName span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.poolOnce{flex:0 0 auto;margin:0!important;font-size:12px}.poolRow [data-pool-open]{flex:0 0 auto;padding:0 8px}
 .poolTools{margin-bottom:6px}.poolOther{font-size:11px;color:#c9a8f0}
+
+/* The dialogue box never shrinks under its tools: when a screen runs out of height, the editor scrolls a little instead of overlapping. */
+#editor{overflow-y:auto}
+/* Keyboard up while writing the dialogue: keep the text and its variation tools, hide the preview, choices link and scene bar until it closes. */
+body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentLayout.writing .sceneChoicesLink,body.keyboardOpen .contentLayout.writing .sceneBar{display:none}
+.contentLayout:has(#varPick:not([hidden])) .varPreview{display:none}
+/* In the content tab the dialogue box takes the space left over (older fixed #copy heights would push it over the tools below). */
+.contentLayout #copy{flex:1 1 auto;height:auto;min-height:64px;max-height:none;field-sizing:fixed}
+/* Short screens (320×568 and similar): the preview keeps one row (it scrolls inside) and the dialogue box can go a little lower, so the tab still fits. */
+@media (max-height:640px){.contentLayout .varPreview{max-height:46px}.copyField{min-height:76px}.contentLayout #copy{min-height:52px}}

@@ -1,10 +1,10 @@
 {
- "versionCode": 51,
- "versionName": "0.1.50",
+ "versionCode": 52,
+ "versionName": "0.1.51",
  "apk": "editor.apk",
  "size": 9392102,
- "sha256": "7b3768eabcaba61e3a5d0a6c03c8948410c22fb4626a81f89df81a9ad33ec389",
- "notes": "사건 게임 에디터 v0.1.50 — 랜덤 보상 예제 빼기",
+ "sha256": "038fbe6d7baf15249b944ad1f5017a3e2ae1757239748060caf5a5ed268e87af",
+ "notes": "사건 게임 에디터 v0.1.51 — 키보드가 올라와도 겹치지 않게",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-19"
 }

@@ -187,6 +187,9 @@
     // Inside a {…}: two buttons move between its parts without the symbol keys; they keep the keyboard open.
     const inside = on => { byId('braceNext').hidden = byId('braceOut').hidden = !on; byId('varVisits').hidden = byId('varRandom').hidden = on; };
     if (window.BraceInput) BraceInput.attach(textarea, inside);
+    // While the dialogue is being typed, the layout drops what can wait (see body.keyboardOpen .writing in style.css).
+    const layout = textarea.closest('.contentLayout');
+    if (layout) { textarea.addEventListener('focus', () => layout.classList.add('writing')); textarea.addEventListener('blur', () => layout.classList.remove('writing')); }
     for (const id of ['braceNext', 'braceOut']) {
       byId(id).addEventListener('pointerdown', ev => ev.preventDefault());
       byId(id).onclick = () => { textarea.focus(); if (id === 'braceNext') BraceInput.nextPart(textarea); else BraceInput.leave(textarea); inside(!!BraceInput.groupAt(textarea.value, textarea.selectionStart)); };

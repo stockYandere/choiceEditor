@@ -142,7 +142,7 @@
   }
 
   function helpHtml() {
-    return `<p class="hint">대사·말하는 사람·선택지 문구에서 쓸 수 있습니다. 문구를 길게 눌러 선택한 뒤 버튼을 누르면 자동으로 감쌉니다.</p>
+    return `<p class="hint">대사·말하는 사람·선택지 문구에서 쓸 수 있습니다. 문구를 길게 눌러 선택한 뒤 버튼을 누르면 자동으로 감쌉니다. <b>{</b>만 치면 <b>{|}</b>가 같이 들어가고, 괄호 안에서는 <b>다음 칸 ›</b> · <b>괄호 밖 »</b>으로 이동합니다. 쓰지 않은 빈 칸은 입력을 마치면 정리됩니다.</p>
 <div class="varHelp">
 <p><code>{용기? 문을 박차고 들어간다|문 앞에서 망설인다}</code><br>조건이 맞으면 앞, 아니면 뒤. 뒤는 비워도 됩니다.</p>
 <p><code>{!우산? 옷이 흠뻑 젖었다}</code><br>없을 때만.</p>
@@ -155,7 +155,7 @@
 <p><code>{방문>=3? 단골이네.}</code> · <code>{=돈}</code><br>방문 횟수 조건 · 현재 값 표시.</p>
 <p><code>{용기? {~씩 웃으며|담담하게} 들어간다|도망친다}</code><br>겹쳐 쓸 수 있습니다.</p>
 </div>
-<p class="hint"><b>기억</b>은 가방에 보이지 않는 표시입니다. 선택 결과 → <b>이 선택을 기억</b>으로 만들고, 조건·대사 변주·선택지 숨김에 씁니다. 같은 사건도 지난 선택에 따라 한두 문장, 선택지 하나가 달라지게 할 수 있어요.</p>`;
+<p class="hint"><b>기억</b>은 가방에 보이지 않는 표시입니다. 선택지 창 → <b>이 선택을 기억</b>으로 만들고, 조건·대사 변주·선택지 숨김에 씁니다. 같은 사건도 지난 선택에 따라 한두 문장, 선택지 하나가 달라지게 할 수 있어요.</p>`;
   }
 
   function incomingLinks(e) {
@@ -174,6 +174,8 @@
 <button type="button" id="varCondition" class="chip" title="선택한 문구를 조건에 따라 바꾸기">＋ 조건</button>
 <button type="button" id="varVisits" class="chip" title="이 사건에 다시 올 때마다 다른 문구">＋ 방문마다</button>
 <button type="button" id="varRandom" class="chip" title="무작위 문구">＋ 무작위</button>
+<button type="button" id="braceNext" class="chip" hidden title="변주의 다음 칸으로 (없으면 칸 추가)">다음 칸 ›</button>
+<button type="button" id="braceOut" class="chip" hidden title="변주 괄호 밖으로">괄호 밖 »</button>
 <button type="button" id="varHelp" class="chip quiet" aria-label="변주 문법 보기">?</button>
 <select id="varPick" aria-label="변주 조건 고르기" hidden>${conditionOptions(e)}</select>
 </div>
@@ -182,6 +184,13 @@
     byId('varVisits').onclick = () => insertVariation(textarea, wrapVisits);
     byId('varRandom').onclick = () => insertVariation(textarea, wrapRandom);
     byId('varHelp').onclick = () => open('대사 변주 문법', helpHtml());
+    // Inside a {…}: two buttons move between its parts without the symbol keys; they keep the keyboard open.
+    const inside = on => { byId('braceNext').hidden = byId('braceOut').hidden = !on; byId('varVisits').hidden = byId('varRandom').hidden = on; };
+    if (window.BraceInput) BraceInput.attach(textarea, inside);
+    for (const id of ['braceNext', 'braceOut']) {
+      byId(id).addEventListener('pointerdown', ev => ev.preventDefault());
+      byId(id).onclick = () => { textarea.focus(); if (id === 'braceNext') BraceInput.nextPart(textarea); else BraceInput.leave(textarea); inside(!!BraceInput.groupAt(textarea.value, textarea.selectionStart)); };
+    }
     const pick = byId('varPick');
     let range = [0, 0];
     byId('varCondition').onclick = () => {

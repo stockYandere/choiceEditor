@@ -1,10 +1,10 @@
 {
- "versionCode": 49,
- "versionName": "0.1.48",
+ "versionCode": 50,
+ "versionName": "0.1.49",
  "apk": "editor.apk",
- "size": 11833322,
- "sha256": "1fe0fa6be844567fa680cc1d631e76bfb3df625bafe5bc7b311988272765bc05",
- "notes": "사건 게임 에디터 v0.1.48 — 🎲 랜덤 묶음 (챕터별 랜덤)",
+ "size": 11833389,
+ "sha256": "1ccc86850738f471060b99c30cba7398249b3e517c3d8104b6c50350c1f6e5c9",
+ "notes": "사건 게임 에디터 v0.1.49 — 대사 변주 괄호 자동 완성",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-19"
 }

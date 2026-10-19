@@ -1,10 +1,10 @@
 {
- "versionCode": 44,
- "versionName": "0.1.43",
+ "versionCode": 45,
+ "versionName": "0.1.44",
  "apk": "editor.apk",
- "size": 11816873,
- "sha256": "f6647dd1efe918625a6d835c27cc7114685dd70415f5a3e2e378f16af8ee9955",
- "notes": "사건 게임 에디터 v0.1.43 — 사건 목록에서 바로 삭제",
+ "size": 11825130,
+ "sha256": "1a187cc876e4ee797e2ef4770e76a48e898ba239e6cc2ff986711f83aa051283",
+ "notes": "사건 게임 에디터 v0.1.44 — 구조도 (손그림으로 사건 잇기)",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-19"
 }

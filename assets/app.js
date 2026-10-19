@@ -91,8 +91,12 @@ function reuseEvent(source=current(),kind='story'){
  const e=C.event();e.kind=kind;if(source){e.speaker=source.speaker;e.mode=source.mode;e.top=clone(source.top);e.bottom=clone(source.bottom);}return e;
 }
 function addEditorEvent(){if(project.events.length>=1000)return tell('사건은 최대 1000개까지 만들 수 있습니다.');const e=reuseEvent();project.events.push(e);selected=e.id;part='content';persist();renderEditor();$('eventTitle').focus();$('eventTitle').select();}
+// 구조도: the story drawn as boxes and circles; drawing there edits the same project (one undo step per stroke).
+function openStoryMap(){StoryMap.open({project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
+ commit:async()=>{persist();await flushEditor();},undo:async()=>{await flushEditor();if(!history.past.length)return false;clearTimeout(saveTimer);restoreEdit(history.undo(project),'되돌렸습니다.');return true;},
+ openEvent:(id,to)=>{StoryMap.close();selected=id;part=to||'content';renderEditor();},closed:()=>renderEditor()});}
 function showEventPicker(reopen={}){
- open('사건 찾기',`<input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><div id="eventResults"></div>`);
+ open('사건 찾기',`<div class="eventSearchRow"><input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><button id="openStoryMap" class="quiet">구조도</button></div><div id="eventResults"></div>`);$('openStoryMap').onclick=()=>{$('modal').close();openStoryMap();};
  // Pages instead of a long list; it opens on the page of the current scene.
  const per=Math.max(4,Math.floor((innerHeight-210)/48));let pageAt=Math.floor(Math.max(0,project.events.findIndex(e=>e.id===selected))/per);
  const draw=()=>{const q=$('eventSearch').value.trim().toLocaleLowerCase(),found=project.events.map((e,i)=>({e,i})).filter(({e})=>[e.title,e.speaker,e.text].some(v=>String(v||'').toLocaleLowerCase().includes(q))),pages=Math.max(1,Math.ceil(found.length/per));pageAt=Math.min(pageAt,pages-1);
@@ -546,7 +550,7 @@ function quickTest(){
 
 $('quickTest').onclick=quickTest;
 function saveAll(){if(savesBusy)return savesOperation.then(()=>saveAll());if(activeForm){rememberForm();activeForm.commit(false);}return playing?saveProgress():flushEditor();}
-window.addEventListener('game-audio-error',e=>tell(e.detail));document.addEventListener('visibilitychange',()=>{if(document.hidden){GameAudio.suspend();clearEffects();finishDialogue();saveAll();}else GameAudio.resume();});window.flushPersist=saveAll;window.appBack=()=>{if(window.closeStagePreview&&closeStagePreview())return 'HANDLED';if($('cropSheet').open){closeCrop();return 'HANDLED'}if($('creditsSheet').open){GameTitle.close();return 'HANDLED'}if($('historySheet').open){closeHistory();return 'HANDLED'}if(artViewing){restoreDialogue();return 'HANDLED'}if($('stateSheet').open){closeStateSheet();return 'HANDLED'}if($('modal').open){closeForm();return 'HANDLED'}if(playing){leavePlay();return 'HANDLED'}if(page==='gameList'){showHome();return 'HANDLED'}if(page==='test'||page==='inventory'){switchPage('story');return 'HANDLED'}if(page==='story'){showHome();return 'HANDLED'}return 'EXIT'};
+window.addEventListener('game-audio-error',e=>tell(e.detail));document.addEventListener('visibilitychange',()=>{if(document.hidden){GameAudio.suspend();clearEffects();finishDialogue();saveAll();}else GameAudio.resume();});window.flushPersist=saveAll;window.appBack=()=>{if(window.StoryMap&&StoryMap.close())return 'HANDLED';if(window.closeStagePreview&&closeStagePreview())return 'HANDLED';if($('cropSheet').open){closeCrop();return 'HANDLED'}if($('creditsSheet').open){GameTitle.close();return 'HANDLED'}if($('historySheet').open){closeHistory();return 'HANDLED'}if(artViewing){restoreDialogue();return 'HANDLED'}if($('stateSheet').open){closeStateSheet();return 'HANDLED'}if($('modal').open){closeForm();return 'HANDLED'}if(playing){leavePlay();return 'HANDLED'}if(page==='gameList'){showHome();return 'HANDLED'}if(page==='test'||page==='inventory'){switchPage('story');return 'HANDLED'}if(page==='story'){showHome();return 'HANDLED'}return 'EXIT'};
 // 연출 sounds: the play screen follows the play version's settings, the editor preview the project being edited.
 if(window.StageFX)StageFX.onSound=(kind,arg,root)=>{const p=root===$('stage')&&run?run.p:project;GameAudio.stageSound(kind,arg,root,{on:p?.audio?.stageSound!==false,volume:p?.audio?.stageVolume});};
 init();

@@ -353,3 +353,14 @@ body.keyboardOpen #editorNav{display:none}
 .endLabelField{margin:0!important}.endNotice{display:flex;flex-direction:column;gap:4px;margin:8px 0;padding:12px;border:1px solid #41546c;border-radius:10px;line-height:1.5}.endNotice b{font-size:16px}
 .endTag{margin:0 0 6px;font-size:13px;font-weight:700;opacity:.85}
 .eventRow{display:flex;gap:6px;align-items:stretch;margin-bottom:5px}.eventRow .eventResult{flex:1;min-width:0;margin-bottom:0}.eventRow .iconButton{flex:0 0 44px;min-width:44px}
+.eventSearchRow{display:flex;gap:6px;margin-bottom:6px}.eventSearchRow input{flex:1;min-width:0}.eventSearchRow button{flex:0 0 auto;padding:0 12px}
+.storyMap{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:#0d141d;color:#eff3f8}
+.mapBar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #2a3a4f}.mapBar b{flex:1;font-size:16px}.mapBar button{min-height:40px}
+.mapHint{margin:0;padding:4px 10px;font-size:11px;line-height:1.5;color:#9fb2c8}
+.mapCanvas{flex:1;min-height:0;width:100%;touch-action:none;display:block;background-image:radial-gradient(#22324a 1px,transparent 1px);background-size:22px 22px}
+.mapBox rect{fill:#1d2b3d;stroke:#7fb0e6;stroke-width:2}.mapBox.current rect{fill:#2b4466;stroke:#cfe3ff;stroke-width:3}.mapBox.death rect{stroke:#e07a7a}.mapBox.ending rect{stroke:#e2c26e}
+.mapNum{font-size:11px;fill:#9fb2c8}.mapTitle{font-size:14px;fill:#eff3f8;font-weight:600}
+.mapChoice circle{fill:#2b4466;stroke:#a9c8ee;stroke-width:2}.mapChoiceNum{font-size:14px;font-weight:700;fill:#fff}.mapChoiceText{font-size:10px;fill:#bcd0e6}
+.mapLink{stroke:#a9c8ee;stroke-width:2;fill:none}.mapLink.sequence{stroke:#7c8ea5;stroke-dasharray:6 5}.mapLink.branch{stroke-dasharray:2 4}.mapStem{stroke:#5d7594;stroke-width:2}
+.mapArrowHead{fill:#a9c8ee}.mapBadge{font-size:16px}.mapInk{fill:none;stroke:#ffd166;stroke-linecap:round;stroke-linejoin:round;stroke-width:3}
+.mapToast{position:absolute;left:12px;right:12px;bottom:14px;padding:10px 12px;border-radius:10px;background:#24364dee;color:#fff;font-size:13px;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}.mapToast.show{opacity:1}

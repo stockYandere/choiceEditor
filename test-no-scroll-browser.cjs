@@ -8,7 +8,7 @@ await p.addInitScript(()=>{window.Android={readData:()=>'',readBackup:()=>'',arc
 await p.goto('file://'+path.join(__dirname,'assets/index.html'));await p.waitForFunction(()=>!!project);
 const shot=async name=>{await p.waitForTimeout(150);const m=await p.evaluate(measure);if(m!=='no scroll')failures.push(vp.width+' '+name+' '+m);const tabs=await p.locator('#modal[open] [data-form-tab]').count();for(let i=1;i<tabs;i++){await p.locator('#modal[open] [data-form-tab]').nth(i).click();await p.waitForTimeout(80);{const m=await p.evaluate(measure);if(m!=='no scroll')failures.push(vp.width+' '+name+'#'+i+' '+m);}}};
 await shot('home');
-await p.evaluate(async()=>{const g=JSON.parse(JSON.stringify(ADVANCED_SAMPLE));g.title='점검용 예제';await addGame(g);});
+await p.addScriptTag({path:require('node:path').join(__dirname,'test-fixtures/advanced-sample.js')});await p.evaluate(async()=>{const g=JSON.parse(JSON.stringify(ADVANCED_SAMPLE));g.title='점검용 예제';await addGame(g);});
 await p.evaluate(()=>showList('editor'));await shot('gamelist');await p.evaluate(()=>openGame(store.active));
 await p.evaluate(()=>{const e=project.events.reduce((a,b)=>(b.choices.length>a.choices.length?b:a));selected=e.id;page='story';part='content';render();});
 for(const part of ['content','choices','art','fx','sound']){await p.evaluate(x=>{part=x;render();},part);await shot('tab-'+part);}

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const C=require('./assets/core.js'),V=require('./assets/vault.js');
 const context={GameCore:C,GameVault:V};
-for(const f of ['advanced-sample.js','examples.js'])vm.runInNewContext(fs.readFileSync(__dirname+'/assets/'+f,'utf8'),context);
+for(const f of ['test-fixtures/advanced-sample.js','assets/examples.js'])vm.runInNewContext(fs.readFileSync(__dirname+'/'+f,'utf8'),context);
 const p=C.validate(context.ADVANCED_SAMPLE),clone=x=>JSON.parse(JSON.stringify(x));
 assert.deepEqual(C.inspect(p),[]);
 const seed=C.fresh();seed.randomStart=0;seed.events=[C.event()];seed.events[0].choices[0].next='end';

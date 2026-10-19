@@ -380,3 +380,14 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 .contentLayout #copy{flex:1 1 auto;height:auto;min-height:64px;max-height:none;field-sizing:fixed}
 /* Short screens (320×568 and similar): the preview keeps one row (it scrolls inside) and the dialogue box can go a little lower, so the tab still fits. */
 @media (max-height:640px){.contentLayout .varPreview{max-height:46px}.copyField{min-height:76px}.contentLayout #copy{min-height:52px}}
+/* 그림 모음 */
+#artSheet{width:min(96vw,560px);max-height:92dvh;padding:12px}#artSheet .modalTop{top:-12px}#artSheet .fxAreaTabs{margin:4px 0 8px}
+.artChips{margin:0 0 8px}.artGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.artCard{display:flex;flex-direction:column;padding:0;overflow:hidden;min-height:0;background:#101b2f;border-color:#41546c}
+.artCard img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#0c131c}
+.artCard span{font-size:11px;padding:4px 2px;text-align:center}
+.artCard.loading{opacity:.5}
+.artGrid.people img{aspect-ratio:3/4;object-fit:cover;object-position:50% 0;background:linear-gradient(#2a3a52,#1a2638)}
+.artGrid.people.full img{object-fit:contain;object-position:50% 100%}
+.artHint{margin:8px 0 0}
+.artChipRow{display:flex;flex-wrap:wrap;gap:0 14px}.artGrid.people{grid-template-columns:repeat(5,1fr);gap:4px}.artGrid.people img{aspect-ratio:3/5}

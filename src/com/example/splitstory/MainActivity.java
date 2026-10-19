@@ -23,6 +23,8 @@ final PartitionStore content=new PartitionStore(getFilesDir());
 @JavascriptInterface public void openInstallSettings(){updater.openInstallSettings();}
 @JavascriptInterface public boolean clearExportMedia(){return apkExporter.clearMedia();}
 @JavascriptInterface public boolean stageExportMedia(String name,String base64){return apkExporter.stageMedia(name,base64);}
+// 그림 모음: a built-in picture (assets/art/<name>.webp) as base64, since the page cannot fetch its own file:// assets.
+@JavascriptInterface public String readArt(String name){if(name==null||!name.matches("[a-z0-9-]{1,40}"))return "";try(java.io.InputStream in=getAssets().open("art/"+name+".webp")){java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();byte[] buf=new byte[16384];int n;while((n=in.read(buf))>0)out.write(buf,0,n);return android.util.Base64.encodeToString(out.toByteArray(),android.util.Base64.NO_WRAP);}catch(Exception e){return "";}}
 @JavascriptInterface public synchronized String readData(){File f=new File(getFilesDir(),"project.json");if(!f.exists())return "";try{return new String(java.nio.file.Files.readAllBytes(f.toPath()),StandardCharsets.UTF_8);}catch(Exception e){return "!READ_ERROR";}}
 @JavascriptInterface public synchronized String readBackup(){try{return new String(java.nio.file.Files.readAllBytes(new File(getFilesDir(),"project.backup.json").toPath()),StandardCharsets.UTF_8);}catch(Exception e){return "";}}
 @JavascriptInterface public synchronized boolean archiveCorrupt(){try{File f=new File(getFilesDir(),"project.json");if(f.exists())java.nio.file.Files.move(f.toPath(),new File(getFilesDir(),"project.corrupt."+System.currentTimeMillis()+".json").toPath());return true;}catch(Exception e){return false;}}

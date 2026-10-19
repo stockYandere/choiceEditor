@@ -19,3 +19,4 @@ export-qa/player/
 export-qa/media-work/
 .sound-cache/
 __pycache__/
+art-src/out/

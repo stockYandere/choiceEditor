@@ -1,10 +1,10 @@
 {
- "versionCode": 45,
- "versionName": "0.1.44",
+ "versionCode": 46,
+ "versionName": "0.1.45",
  "apk": "editor.apk",
- "size": 11825130,
- "sha256": "1a187cc876e4ee797e2ef4770e76a48e898ba239e6cc2ff986711f83aa051283",
- "notes": "사건 게임 에디터 v0.1.44 — 구조도 (손그림으로 사건 잇기)",
+ "size": 11829226,
+ "sha256": "496f6b5093c7f463f0ec1c72bb67884fc71499b50f3c439b6f23b4e485448b32",
+ "notes": "사건 게임 에디터 v0.1.45 — 구조도 이동 모드 · 네모 옮기기 · 랜덤 연결 보기",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-19"
 }

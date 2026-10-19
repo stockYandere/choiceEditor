@@ -22,7 +22,18 @@ const events=()=>p.evaluate(()=>project.events.map(e=>({t:e.title,c:e.choices.ma
 // Pinch out: zoom in around the center; pinch in: back out. Nothing is drawn.
 const s0=await p.evaluate(()=>StoryMap._view().s);await p.evaluate(()=>__pinch(180,400,80,200));const s1=await p.evaluate(()=>StoryMap._view().s);assert(s1>Math.min(3,s0*2)-.01,"pinch out zooms in "+s0+" "+s1);
 await p.evaluate(()=>__pinch(180,400,200,80));assert(Math.abs(await p.evaluate(()=>StoryMap._view().s)-s0)<.02,'pinch in zooms back');assert.equal((await events()).length,3);
-await p.locator('#mapFit').click();await p.evaluate(()=>__pinch(180,400,200,100));
+// 이동 mode (default): one finger drags the map, nothing is drawn.
+assert.equal(await p.evaluate(()=>StoryMap.mode()),'move');assert.equal(await p.locator('[data-map-mode=move]').getAttribute('aria-pressed'),'true');
+const v0=await p.evaluate(()=>StoryMap._view());await p.evaluate(()=>{const r=document.getElementById('mapCanvas').getBoundingClientRect();return __stroke(Array.from({length:12},(_,i)=>[r.x+8+i*10,r.y+12]));});const v1=await p.evaluate(()=>StoryMap._view());
+assert(Math.abs(v1.x-v0.x-110)<1&&Math.abs(v1.y-v0.y)<1,'one finger pans in 이동');assert.equal((await events()).length,3);
+// 이동 mode: dragging a box moves it (and pins the others where they were); undo puts it back.
+await p.locator('#mapFit').click();
+const box3=`[data-map-event="${await p.evaluate(()=>project.events[2].id)}"]`,before3=await p.evaluate(s=>__center(s),box3),other=await p.evaluate(()=>__center(`[data-map-event="${project.events[1].id}"]`));
+await p.evaluate(([x,y])=>__stroke(Array.from({length:12},(_,i)=>[x,y-i*8])),before3);
+const after3=await p.evaluate(s=>__center(s),box3);assert(Math.abs(after3[1]-(before3[1]-88))<2&&Math.abs(after3[0]-before3[0])<2,'box follows the finger');
+assert.deepEqual(await p.evaluate(()=>__center(`[data-map-event="${project.events[1].id}"]`)),other,'other boxes stay put');assert.equal(await p.evaluate(()=>project.events.every(e=>e.map)),true);assert.equal((await events()).length,3);
+await p.locator('#mapUndo').click();await p.waitForFunction(()=>!project.events.some(e=>e.map));
+await p.locator('#mapFit').click();await p.locator('[data-map-mode=draw]').click();assert.match(await p.locator('#mapHint').innerText(),/그리기/);await p.evaluate(()=>__pinch(180,400,200,100));
 // Draw a box in empty space at the bottom → 사건 4.
 const canvas=await p.locator('#mapCanvas').boundingBox();
 await p.evaluate(pts=>__stroke(pts),rectPts(canvas.x+canvas.width-115,canvas.y+canvas.height/2-25,100,50));
@@ -45,11 +56,14 @@ await p.evaluate(([x,y])=>__stroke(Array.from({length:16},(_,i)=>[x,y+i*2])),[ca
 // Everything still validates, and the drawing survives a reload.
 await p.evaluate(()=>C.validate(structuredClone(project)));await p.evaluate(()=>flushEditor());
 // Tap a box → that scene opens in the editor.
-const tapAt=await p.evaluate(()=>__center(`[data-map-event="${project.events[3].id}"]`));await p.evaluate(([x,y])=>__stroke([[x,y]]),tapAt);
+await p.locator('[data-map-mode=move]').click();const tapAt=await p.evaluate(()=>__center(`[data-map-event="${project.events[3].id}"]`));await p.evaluate(([x,y])=>__stroke([[x,y]]),tapAt);
 assert.equal(await p.locator('#storyMap').isVisible(),false);assert.equal(await p.evaluate(()=>current().title),'사건 4');
 // Back button closes the map.
 await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.locator('#storyMap').isVisible(),false);
 await p.reload();await p.waitForFunction(()=>!document.getElementById('openEditor').disabled);await p.locator('#openEditor').click();await p.locator('[data-edit-game]').first().click();
 assert.equal(await p.evaluate(()=>project.events.length),4);assert.equal(await p.evaluate(()=>project.events[2].choices.filter(c=>c.map).length),2);
-assert.deepEqual(errors,[]);await browser.close();console.log('PASS 구조도: opens from 사건 찾기, pinch zoom in/out without drawing, box → new numbered scene, circles → 선택지 1/2, circle→box and box→box links, one-stroke undo, empty-end line hint, tap opens scene, back closes, survives reload.');
+// 랜덤 인카운터: random choices meet at one 🎲 hub with a line to every encounter scene.
+await p.evaluate(()=>{const a=C.event(),b=C.event(),c=C.event();a.title='시작';a.choices[0].next='random';b.title='만남1';b.kind='encounter';c.title='만남2';c.kind='encounter';project.events=[a,b,c];selected=a.id;persist();});
+await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.locator('[data-map-hub]').count(),1);assert.equal(await p.locator('.mapLink.random').count(),3);
+assert.deepEqual(errors,[]);await browser.close();console.log('PASS 구조도: 이동 mode pans with one finger and drags boxes (others pinned, undo), 그리기 mode draws, opens from 사건 찾기, 🎲 hub to encounters, pinch zoom in/out without drawing, box → new numbered scene, circles → 선택지 1/2, circle→box and box→box links, one-stroke undo, empty-end line hint, tap opens scene, back closes, survives reload.');
 })().catch(e=>{console.error(e);process.exit(1)});

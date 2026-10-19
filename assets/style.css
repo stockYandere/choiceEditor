@@ -364,3 +364,6 @@ body.keyboardOpen #editorNav{display:none}
 .mapLink{stroke:#a9c8ee;stroke-width:2;fill:none}.mapLink.sequence{stroke:#7c8ea5;stroke-dasharray:6 5}.mapLink.branch{stroke-dasharray:2 4}.mapStem{stroke:#5d7594;stroke-width:2}
 .mapArrowHead{fill:#a9c8ee}.mapBadge{font-size:16px}.mapInk{fill:none;stroke:#ffd166;stroke-linecap:round;stroke-linejoin:round;stroke-width:3}
 .mapToast{position:absolute;left:12px;right:12px;bottom:14px;padding:10px 12px;border-radius:10px;background:#24364dee;color:#fff;font-size:13px;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}.mapToast.show{opacity:1}
+.storyMap{position:fixed}.mapModes{position:absolute;left:12px;bottom:14px;display:flex;gap:4px;padding:4px;border-radius:999px;background:#18263aee;border:1px solid #33465e;z-index:2}.mapModes button{min-height:44px;padding:0 16px;border-radius:999px;border-color:transparent;background:transparent;color:#cfe0f3}.mapModes button.on{background:#3f6aa1;color:#fff;border-color:#8fb6e8}
+.mapToast{bottom:76px}.storyMap[data-mode=move] .mapCanvas{cursor:grab}
+.mapHub circle{fill:#3a2f52;stroke:#c9a8f0;stroke-width:2}.mapHubIcon{font-size:16px}.mapLink.random{stroke:#c9a8f0;stroke-dasharray:3 5}

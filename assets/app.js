@@ -91,14 +91,16 @@ function reuseEvent(source=current(),kind='story'){
  const e=C.event();e.kind=kind;if(source){e.speaker=source.speaker;e.mode=source.mode;e.top=clone(source.top);e.bottom=clone(source.bottom);}return e;
 }
 function addEditorEvent(){if(project.events.length>=1000)return tell('사건은 최대 1000개까지 만들 수 있습니다.');const e=reuseEvent();project.events.push(e);selected=e.id;part='content';persist();renderEditor();$('eventTitle').focus();$('eventTitle').select();}
-function showEventPicker(){
+function showEventPicker(reopen={}){
  open('사건 찾기',`<input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><div id="eventResults"></div>`);
  // Pages instead of a long list; it opens on the page of the current scene.
  const per=Math.max(4,Math.floor((innerHeight-210)/48));let pageAt=Math.floor(Math.max(0,project.events.findIndex(e=>e.id===selected))/per);
  const draw=()=>{const q=$('eventSearch').value.trim().toLocaleLowerCase(),found=project.events.map((e,i)=>({e,i})).filter(({e})=>[e.title,e.speaker,e.text].some(v=>String(v||'').toLocaleLowerCase().includes(q))),pages=Math.max(1,Math.ceil(found.length/per));pageAt=Math.min(pageAt,pages-1);
-  $('eventResults').innerHTML=(found.slice(pageAt*per,pageAt*per+per).map(({e,i})=>`<button class="eventResult ${e.id===selected?'active':''}" data-jump-event="${e.id}"><span><i>${i+1}</i> ${esc(e.title||'제목 없음')}</span><small>${e.kind==='story'?'스토리':e.kind==='encounter'?'랜덤':'분기'}</small></button>`).join('')||'<p class="hint">일치하는 사건이 없습니다.</p>')+(pages>1?`<div class="libPager"><button data-event-page="${pageAt-1}" aria-label="이전 쪽"${pageAt?'':' disabled'}>‹</button><span class="libCount">${pageAt+1} / ${pages}</span><button data-event-page="${pageAt+1}" aria-label="다음 쪽"${pageAt<pages-1?'':' disabled'}>›</button></div>`:'');
+  $('eventResults').innerHTML=(found.slice(pageAt*per,pageAt*per+per).map(({e,i})=>`<div class="eventRow"><button class="eventResult ${e.id===selected?'active':''}" data-jump-event="${e.id}"><span><i>${i+1}</i> ${esc(e.title||'제목 없음')}</span><small>${e.ending==='death'?'☠ 사망':e.ending==='end'?'🏁 엔딩':e.kind==='story'?'스토리':e.kind==='encounter'?'랜덤':'분기'}</small></button><button class="quiet iconButton danger" data-delete-event="${e.id}" aria-label="${esc(e.title||'제목 없음')} 삭제"${project.events.length>1?'':' disabled'}>✕</button></div>`).join('')||'<p class="hint">일치하는 사건이 없습니다.</p>')+(pages>1?`<div class="libPager"><button data-event-page="${pageAt-1}" aria-label="이전 쪽"${pageAt?'':' disabled'}>‹</button><span class="libCount">${pageAt+1} / ${pages}</span><button data-event-page="${pageAt+1}" aria-label="다음 쪽"${pageAt<pages-1?'':' disabled'}>›</button></div>`:'');
   $('eventResults').querySelectorAll('[data-event-page]').forEach(b=>b.onclick=()=>{pageAt=Number(b.dataset.eventPage);draw();});
-  $('eventResults').querySelectorAll('[data-jump-event]').forEach(b=>b.onclick=()=>{selected=b.dataset.jumpEvent;$('modal').close();renderEditor();});};$('eventSearch').oninput=()=>{pageAt=0;draw();};draw();
+  $('eventResults').querySelectorAll('[data-jump-event]').forEach(b=>b.onclick=()=>{selected=b.dataset.jumpEvent;$('modal').close();renderEditor();});
+  // Delete straight from the list; the picker comes back on the same page (connected scenes ask where their links go first).
+  $('eventResults').querySelectorAll('[data-delete-event]').forEach(b=>b.onclick=()=>{const e=project.events.find(x=>x.id===b.dataset.deleteEvent),q=$('eventSearch').value,at=pageAt;if(e)deleteEvent(e,()=>showEventPicker({q,page:at}));});};$('eventSearch').oninput=()=>{pageAt=0;draw();};if(reopen.q){$('eventSearch').value=reopen.q;}if(reopen.page!==undefined)pageAt=reopen.page;draw();
 }
 // Editor navigation follows the visible list, including random and branch scenes.
 for(const [id,delta]of[['prevEvent',-1],['nextEvent',1]])$(id).onclick=()=>{
@@ -512,10 +514,10 @@ const issues=C.inspect(project);open('이야기 점검',`<p class="hint">연결�
 $('modalBody').querySelectorAll('[data-issue]').forEach(b=>b.onclick=()=>{const issue=issues[Number(b.dataset.issue)];$('modal').close();if(issue.event){selected=issue.event;part=issue.choice?'choices':'content';page='story';}else page='inventory';render();const choice=issue.choice&&project.events.find(x=>x.id===issue.event)?.choices.find(c=>c.id===issue.choice);if(choice)choiceForm(choice);else $('editor')?.scrollTo?.({top:0});});
 }
 $('checkStory').onclick=()=>showChecks();$('testHere').onclick=()=>{try{C.validate(clone(project));if(C.inspect(project).some(i=>i.level==='error'))return showChecks();}catch(e){return showChecks(e.message);}startTest(selected);tell('이 사건부터 테스트합니다. 보유 상태에서 수량을 바꿀 수 있어요.');};
-function deleteEvent(e){
+function deleteEvent(e,done){
 if(project.events.length===1)return tell('사건은 하나 이상 있어야 합니다.');
 const refs=[];for(const x of project.events)if(x.id!==e.id)for(const c of x.choices){if(c.next===e.id)refs.push({scene:x,c,out:c});if(c.branch?.next===e.id)refs.push({scene:x,c,out:c.branch});}
-const remove=()=>{const at=project.events.findIndex(x=>x.id===e.id);project.events=project.events.filter(x=>x.id!==e.id);selected=project.events[Math.max(0,at-1)].id;persist();renderEditor();tell('사건을 삭제했습니다. ↶ 되돌리기로 복구할 수 있어요.');};
+const remove=()=>{const at=project.events.findIndex(x=>x.id===e.id);project.events=project.events.filter(x=>x.id!==e.id);if(selected===e.id)selected=project.events[Math.max(0,at-1)].id;persist();renderEditor();tell('사건을 삭제했습니다. ↶ 되돌리기로 복구할 수 있어요.');done?.();};
 if(!refs.length){if(confirm('「'+(e.title||'제목 없음')+'」 사건을 삭제할까요? ↶ 되돌리기로 복구할 수 있어요.'))remove();return;}
 open('연결된 사건 삭제',`<p>「${esc(e.title)}」${josa(e.title||'사건','으로')} 연결된 결과가 ${refs.length}개 있어요. 대신 연결할 곳을 정한 뒤 삭제하세요.</p><p class="hint">${refs.slice(0,3).map(r=>esc(r.scene.title)+' → '+esc(r.c.text)).join('<br>')}${refs.length>3?'<br>외 '+(refs.length-3)+'개':''}</p><label>대신 연결할 곳<select id="replacement"><option value="">선택해 주세요</option><option value="sequence">사건 끝 · 다음 스토리</option><option value="random">사건 끝 · 랜덤 인카운터</option><option value="end">이야기 끝 · 엔딩</option>${project.events.filter(x=>x.id!==e.id).map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select></label><button id="confirmDelete" class="full danger" disabled>연결을 바꾸고 삭제</button>`);
 $('closeModal').textContent='취소';$('replacement').onchange=()=>$('confirmDelete').disabled=!$('replacement').value;$('confirmDelete').onclick=()=>{for(const r of refs)r.out.next=$('replacement').value;$('modal').close();remove();};

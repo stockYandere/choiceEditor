@@ -11,10 +11,10 @@ await p.evaluate(()=>flushEditor());
 await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.locator('#storyMap').isVisible(),true);
 assert.equal(await p.locator('[data-map-event]').count(),3);assert.equal(await p.locator('.mapLink').count(),2);
 // Touch helpers in screen coordinates.
-await p.evaluate(()=>{const c=document.getElementById('mapCanvas');const fire=(type,id,x,y)=>c.dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true,isPrimary:id===1}));
+const helpers=()=>{const fire=(type,id,x,y)=>document.getElementById('mapCanvas').dispatchEvent(new PointerEvent(type,{pointerId:id,pointerType:'touch',clientX:x,clientY:y,bubbles:true,cancelable:true,isPrimary:id===1}));
  window.__stroke=async pts=>{fire('pointerdown',1,pts[0][0],pts[0][1]);for(const [x,y]of pts.slice(1))fire('pointermove',1,x,y);const l=pts[pts.length-1];fire('pointerup',1,l[0],l[1]);await new Promise(r=>setTimeout(r,0));while(StoryMap.busy())await new Promise(r=>setTimeout(r,10));};
  window.__pinch=(cx,cy,d0,d1)=>{fire('pointerdown',1,cx-d0/2,cy);fire('pointerdown',2,cx+d0/2,cy);for(let i=1;i<=10;i++){const d=d0+(d1-d0)*i/10;fire('pointermove',1,cx-d/2,cy);fire('pointermove',2,cx+d/2,cy);}fire('pointerup',1,cx-d1/2,cy);fire('pointerup',2,cx+d1/2,cy);};
- window.__center=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2];};});
+ window.__center=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2];};};await p.evaluate(helpers);
 const rectPts=(x,y,w,h)=>{const pts=[];for(let i=0;i<=40;i++){const d=i/40*2*(w+h);pts.push(d<w?[x+d,y]:d<w+h?[x+w,y+d-w]:d<2*w+h?[x+w-(d-w-h),y+h]:[x,y+h-(d-2*w-h)]);}return pts;};
 const circlePts=(x,y,r)=>Array.from({length:37},(_,i)=>[x+r*Math.cos(i/36*2*Math.PI),y+r*Math.sin(i/36*2*Math.PI)]);
 const linePts=(a,b)=>Array.from({length:16},(_,i)=>[a[0]+(b[0]-a[0])*i/15,a[1]+(b[1]-a[1])*i/15]);
@@ -60,10 +60,27 @@ await p.locator('[data-map-mode=move]').click();const tapAt=await p.evaluate(()=
 assert.equal(await p.locator('#storyMap').isVisible(),false);assert.equal(await p.evaluate(()=>current().title),'사건 4');
 // Back button closes the map.
 await p.locator('#chooseEvent').click();await p.locator('#openStoryMap').click();assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.locator('#storyMap').isVisible(),false);assert.equal(await p.evaluate(()=>document.getElementById('modal').open),true,'back from the map returns to 사건 찾기');
-await p.evaluate(async()=>{document.getElementById('modal').close();await flushEditor();await GameVault.flush();});await p.reload();await p.waitForFunction(()=>!document.getElementById('openEditor').disabled);await p.locator('#openEditor').click();await p.locator('[data-edit-game]').first().click();
+await p.evaluate(async()=>{document.getElementById('modal').close();await flushEditor();await GameVault.flush();});await p.reload();await p.waitForFunction(()=>!document.getElementById('openEditor').disabled);await p.locator('#openEditor').click();await p.locator('[data-edit-game]').first().click();await p.waitForFunction(()=>page==='story');await p.evaluate(helpers);
 assert.equal(await p.evaluate(()=>project.events.length),4);assert.equal(await p.evaluate(()=>project.events[2].choices.filter(c=>c.map).length),2);
 // 랜덤 인카운터: random choices meet at one 🎲 hub with a line to every encounter scene.
 await p.evaluate(()=>{const a=C.event(),b=C.event(),c=C.event();a.title='시작';a.choices[0].next='random';b.title='만남1';b.kind='encounter';c.title='만남2';c.kind='encounter';project.events=[a,b,c];selected=a.id;persist();});
 try{await p.waitForFunction(()=>page==='story'&&!document.getElementById('modal').open&&!StoryMap.isOpen(),null,{timeout:5000});await p.locator('#chooseEvent').click({timeout:5000});}catch(e){console.log(await p.evaluate(()=>({page,modal:document.getElementById('modal').open,title:document.getElementById('modal').querySelector('h2,b')?.textContent,map:StoryMap.isOpen(),ce:!!document.getElementById('chooseEvent'),vis:document.getElementById('chooseEvent')?.offsetParent!==null})));await p.screenshot({path:'/tmp/claude-0/-home-user/4bf91c89-c710-513d-8903-2e8117ef1458/scratchpad/fail.png'});throw e;}await p.locator('#openStoryMap').click();assert.equal(await p.locator('[data-map-hub]').count(),1);assert.equal(await p.locator('.mapLink.random').count(),3);
-assert.deepEqual(errors,[]);await browser.close();console.log('PASS 구조도: 이동 mode pans with one finger and drags boxes (others pinned, undo), 그리기 mode draws, opens from 사건 찾기, 🎲 hub to encounters, pinch zoom in/out without drawing, box → new numbered scene, circles → 선택지 1/2, circle→box and box→box links, one-stroke undo, empty-end line hint, tap opens scene, back closes, survives reload.');
+assert.match(await p.locator('[data-map-hub]').textContent(),/랜덤 2개/);assert.match(await p.locator('#mapCanvas').textContent(),/🎲/);
+// Tap 🎲 → its list: untick one (it leaves the pool), 한 번만, back closes the list first, then the map.
+const hub=await p.evaluate(()=>__center('[data-map-hub] circle'));await p.evaluate(([x,y])=>__stroke([[x,y]]),hub);
+assert.equal(await p.locator('#modal').getAttribute('open'),'');assert.equal(await p.locator('[data-pool]:checked').count(),2);
+await p.locator('[data-pool]').nth(2).uncheck();assert.equal(await p.evaluate(()=>project.events[2].kind),'branch');assert.equal(await p.locator('.mapLink.random').count(),2);
+await p.locator('[data-pool-once]').first().uncheck();assert.equal(await p.evaluate(()=>project.events[1].once),false);
+assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.evaluate(()=>[document.getElementById('modal').open,StoryMap.isOpen()].join()),'false,true');
+// 열기 from the list opens the scene; back returns to the map.
+await p.evaluate(([x,y])=>__stroke([[x,y]]),await p.evaluate(()=>__center('[data-map-hub] circle')));await p.locator('[data-pool-open]').nth(1).click();
+assert.equal(await p.evaluate(()=>current().title),'만남1');assert.equal(await p.evaluate(()=>appBack()),'HANDLED');await p.waitForTimeout(100);assert.equal(await p.evaluate(()=>StoryMap.isOpen()),true);
+// Draw: 🎲 → 네모 puts it back in the pool; 네모 → 🎲 makes a choice roll.
+await p.locator('[data-map-mode=draw]').click();const h2=await p.evaluate(()=>__center('[data-map-hub] circle')),m2=await p.evaluate(()=>__center(`[data-map-event="${project.events[2].id}"]`));
+await p.evaluate(pts=>__stroke(pts),linePts(h2,m2));assert.equal(await p.evaluate(()=>project.events[2].kind),'encounter');
+const m1=await p.evaluate(()=>__center(`[data-map-event="${project.events[1].id}"]`));await p.evaluate(pts=>__stroke(pts),linePts(m1,await p.evaluate(()=>__center('[data-map-hub] circle'))));assert.equal(await p.evaluate(()=>project.events[1].choices[0].next),'random');
+// Move mode: the 🎲 itself can be dragged; its spot is kept.
+await p.locator('[data-map-mode=move]').click();const h3=await p.evaluate(()=>__center('[data-map-hub] circle'));await p.evaluate(([x,y])=>__stroke(Array.from({length:10},(_,i)=>[x+i*6,y])),h3);
+const h4=await p.evaluate(()=>__center('[data-map-hub] circle'));assert(Math.abs(h4[0]-h3[0]-54)<2,'hub moved');assert.equal(await p.evaluate(()=>!!project.hubMap),true);await p.evaluate(()=>C.validate(structuredClone(project)));
+assert.deepEqual(errors,[]);await browser.close();console.log('PASS 구조도: 이동 mode pans with one finger and drags boxes (others pinned, undo), 그리기 mode draws, opens from 사건 찾기, 🎲 hub (count, list sheet: add/remove/한 번만/열기, back order, 🎲→box adds, box→🎲 rolls, draggable), pinch zoom in/out without drawing, box → new numbered scene, circles → 선택지 1/2, circle→box and box→box links, one-stroke undo, empty-end line hint, tap opens scene, back closes, survives reload.');
 })().catch(e=>{console.error(e);process.exit(1)});

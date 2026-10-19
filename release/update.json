@@ -1,10 +1,10 @@
 {
- "versionCode": 47,
- "versionName": "0.1.46",
+ "versionCode": 48,
+ "versionName": "0.1.47",
  "apk": "editor.apk",
  "size": 11829226,
- "sha256": "bf433df6a40117ca188c9f904ee912c2015e737a6006fb15d9e6d43a42c77231",
- "notes": "사건 게임 에디터 v0.1.46 — 뒤로 가기는 직전 화면으로",
+ "sha256": "f10c489a5ad1a5b3921dd207348d34f52b52d9e769433eb452d7675870a9eb14",
+ "notes": "사건 게임 에디터 v0.1.47 — 구조도에서 랜덤 인카운터 편집",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-19"
 }

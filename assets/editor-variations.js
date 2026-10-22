@@ -142,7 +142,7 @@
   }
 
   function helpHtml() {
-    return `<p class="hint">대사·말하는 사람·선택지 문구에서 쓸 수 있습니다. 문구를 길게 눌러 선택한 뒤 버튼을 누르면 자동으로 감쌉니다. <b>{</b>만 치면 <b>{|}</b>가 같이 들어가고, 괄호 안에서는 <b>다음 칸 ›</b> · <b>괄호 밖 »</b>으로 이동합니다. 쓰지 않은 빈 칸은 입력을 마치면 정리됩니다.</p>
+    return `<p class="hint">대사·말하는 사람·선택지 문구에서 쓸 수 있습니다. 문구를 길게 눌러 선택한 뒤 버튼을 누르면 자동으로 감쌉니다. <b>{</b>만 치면 <b>{|}</b>가 같이 들어가고, 괄호 안에서는 <b>다음 칸 ›</b> · <b>괄호 밖 »</b>으로 이동합니다. 기호는 <b>기호</b> 버튼을 눌러 골라 넣을 수 있어요. 쓰지 않은 빈 칸은 입력을 마치면 정리됩니다.</p>
 <div class="varHelp">
 <p><code>{용기? 문을 박차고 들어간다|문 앞에서 망설인다}</code><br>조건이 맞으면 앞, 아니면 뒤. 뒤는 비워도 됩니다.</p>
 <p><code>{!우산? 옷이 흠뻑 젖었다}</code><br>없을 때만.</p>
@@ -167,6 +167,40 @@
   }
 
   /* Fill #sceneHelpers (variation tools and preview) inside the content tab for scene e. */
+  /* 기호 버튼: the variation symbols in a two-tap popup, so nobody has to hunt for { } | ~ on a phone keyboard.
+   * Outside braces a symbol that only means something inside them arrives with its braces ({~|}, {=}, {@? |}).
+   * Each entry: [symbol, label, (inside, char before, selection, char after) -> [text, caret offset]]. */
+  const raw = t => () => [t, t.length];
+  const SYMBOLS = [
+    ['{ }', '변주 묶기', (inside, before, sel) => sel ? ['{' + sel + '}', sel.length + 2] : ['{|}', 1]],
+    ['|', '칸 나누기', raw('|')],
+    ['?', '조건 끝', (inside, before, sel, after) => after === ' ' ? ['?', 1] : ['? ', 2]],
+    ['!', '없을 때', inside => inside ? ['!', 1] : ['{!? |}', 2]],
+    ['&', '모두 만족 · 돌아가며', (inside, before) => !inside ? ['{&|}', 2] : before === '{' ? ['&', 1] : [' & ', 3]],
+    ['~', '무작위', inside => inside ? ['~', 1] : ['{~|}', 2]],
+    ['@', '지나온 사건', inside => inside ? ['@', 1] : ['{@? |}', 2]],
+    ['=', '값 표시', inside => inside ? ['=', 1] : ['{=}', 2]],
+    ['>=', '이상', raw('>=')],
+    ['<=', '이하', raw('<=')],
+    ['>', '초과', raw('>')],
+    ['<', '미만', raw('<')],
+    ['!=', '아님', raw('!=')],
+    ['\\', '기호를 글자로', raw('\\')],
+  ];
+  function insertSymbol(textarea, entry) {
+    const start = textarea.selectionStart, end = textarea.selectionEnd, value = textarea.value;
+    const inside = !!root.BraceInput?.groupAt(value, start);
+    const [text, at] = entry[2](inside, value[start - 1], value.slice(start, end), value[end]);
+    textarea.focus();
+    textarea.setRangeText(text, start, end, 'end');
+    textarea.setSelectionRange(start + at, start + at);
+    textarea.dataset.caretPlaced = '1';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  let closeSymbols = () => false;
+  // A tap anywhere else closes the symbol popup.
+  if (typeof document !== 'undefined') document.addEventListener('pointerdown', ev => { if (!ev.target.closest?.('#symbolPop,#varSymbols')) closeSymbols(); }, true);
+
   function mount(e) {
     const host = byId('sceneHelpers');
     if (!host) return;
@@ -176,7 +210,9 @@
 <button type="button" id="varRandom" class="chip" title="무작위 문구">＋ 무작위</button>
 <button type="button" id="braceNext" class="chip" hidden title="변주의 다음 칸으로 (없으면 칸 추가)">다음 칸 ›</button>
 <button type="button" id="braceOut" class="chip" hidden title="변주 괄호 밖으로">괄호 밖 »</button>
+<button type="button" id="varSymbols" class="chip" aria-expanded="false" aria-controls="symbolPop" title="변주 기호 넣기">기호</button>
 <button type="button" id="varHelp" class="chip quiet" aria-label="변주 문법 보기">?</button>
+<div id="symbolPop" class="symbolPop" role="group" aria-label="기호 넣기" hidden>${SYMBOLS.map((x, i) => `<button type="button" data-symbol="${i}"><b>${escapeHtml(x[0])}</b><small>${x[1]}</small></button>`).join('')}</div>
 <select id="varPick" aria-label="변주 조건 고르기" hidden>${conditionOptions(e)}</select>
 </div>
 <div id="varPreview" class="varPreview" aria-live="polite"></div>`;
@@ -184,6 +220,20 @@
     byId('varVisits').onclick = () => insertVariation(textarea, wrapVisits);
     byId('varRandom').onclick = () => insertVariation(textarea, wrapRandom);
     byId('varHelp').onclick = () => open('대사 변주 문법', helpHtml());
+    // 기호: tap the button, then a symbol. Both keep the dialogue focused so the keyboard stays up.
+    const pop = byId('symbolPop'), symbolsButton = byId('varSymbols');
+    const showSymbols = on => {
+      pop.hidden = !on; symbolsButton.classList.toggle('on', on); symbolsButton.setAttribute('aria-expanded', on);
+      if (!on) return;
+      // Above the buttons when there is room (the keyboard is below them), otherwise below.
+      const bar = symbolsButton.closest('.varTools').getBoundingClientRect(), height = pop.offsetHeight, room = (window.visualViewport?.height || innerHeight);
+      const above = bar.top - height - 6 >= 8 || bar.bottom + height + 6 > room;
+      pop.style.top = Math.max(8, above ? bar.top - height - 6 : bar.bottom + 6) + 'px';
+    };
+    closeSymbols = () => { if (!pop.isConnected || pop.hidden) return false; showSymbols(false); return true; };
+    for (const b of [symbolsButton, ...pop.querySelectorAll('button')]) b.addEventListener('pointerdown', ev => ev.preventDefault());
+    symbolsButton.onclick = () => showSymbols(pop.hidden);
+    pop.querySelectorAll('[data-symbol]').forEach(b => b.onclick = () => { insertSymbol(textarea, SYMBOLS[Number(b.dataset.symbol)]); showSymbols(false); });
     // Inside a {…}: two buttons move between its parts without the symbol keys; they keep the keyboard open.
     const inside = on => { byId('braceNext').hidden = byId('braceOut').hidden = !on; byId('varVisits').hidden = byId('varRandom').hidden = on; };
     if (window.BraceInput) BraceInput.attach(textarea, inside);
@@ -330,5 +380,5 @@
     });
   }
 
-  root.SceneHelpers = { mount, refresh, renderChoices, incomingLinks, showIncoming, renameEverywhere, knownName, usageLabel, showUsage };
+  root.SceneHelpers = { closeSymbols: () => closeSymbols(), mount, refresh, renderChoices, incomingLinks, showIncoming, renameEverywhere, knownName, usageLabel, showUsage };
 })(globalThis);

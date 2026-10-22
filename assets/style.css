@@ -391,3 +391,6 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 .artGrid.people.full img{object-fit:contain;object-position:50% 100%}
 .artHint{margin:8px 0 0}
 .artChipRow{display:flex;flex-wrap:wrap;gap:0 14px}.artGrid.people{grid-template-columns:repeat(5,1fr);gap:4px}.artGrid.people img{aspect-ratio:3/5}
+.varTools{position:relative}.symbolPop{position:fixed;left:8px;right:8px;max-width:560px;margin:0 auto;z-index:30;display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:5px;padding:8px;background:#172435;border:1px solid #516b8b;border-radius:9px;box-shadow:0 8px 24px #0008}
+.symbolPop button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;min-height:48px}.symbolPop b{font-size:17px;font-family:ui-monospace,monospace;line-height:1.2}.symbolPop small{font-size:10px;color:#bdccdf;line-height:1.2;text-align:center}
+@media (max-width:340px){.varTools{gap:3px}.varTools>.chip{padding-left:7px;padding-right:7px}}

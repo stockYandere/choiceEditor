@@ -33,6 +33,22 @@ assert.equal(await p.evaluate(()=>current().text),'\\');
 // Back and a tap elsewhere close it without inserting.
 await p.locator('#varSymbols').click();assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert(!(await state()).open);
 await p.locator('#varSymbols').click();await p.locator('#varCondition').click();assert(!(await state()).open);
+// 말하는 사람 takes the symbol when it is the field being typed in.
+await p.evaluate(()=>{const t=document.getElementById('speaker');t.focus();t.value='유나';t.setSelectionRange(2,2);t.dispatchEvent(new Event('input',{bubbles:true}));});
+await p.locator('#varSymbols').click();await p.locator('#symbolPop [data-symbol="7"]').click();
+assert.deepEqual(await p.evaluate(()=>[document.getElementById('speaker').value,document.activeElement.id,current().speaker]),['유나{=}','speaker','유나{=}']);
+// A misspelt condition name is reported instead of silently becoming 방문마다.
+await put('{용가? 들어간다|망설인다}',0);await p.waitForFunction(()=>/'용가' 항목이 없어 조건이 아니라 방문마다/.test(document.getElementById('varPreview').textContent));
+assert(await p.evaluate(()=>C.inspect(project).some(x=>/'용가' 항목이 없어 조건이 아니라 방문마다/.test(x.message))),'story check reports it');
+// ? help links to the full guide on the site.
+await p.locator('#varHelp').click();assert.match(await p.locator('#modalBody a.docLink').getAttribute('href'),/myapps\/#\/event-game-editor\/docs\/read\/variation-syntax$/);await p.evaluate(()=>closeForm());
+// The choice form has its own 기호 button for the choice text.
+await p.evaluate(()=>choiceForm(current().choices[0]));await p.evaluate(()=>{const t=document.getElementById('cText');t.focus();t.value='문을 연다';t.setSelectionRange(5,5);});
+await p.locator('#cSymbols').click();assert(!(await p.locator('#cSymbolPop').getAttribute('hidden')!==null),'choice popup opens');
+assert(await p.evaluate(()=>[...document.querySelectorAll('#cSymbolPop button')].every(b=>{const r=b.getBoundingClientRect(),x=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return r.top>=0&&r.bottom<=innerHeight&&b.contains(x);})),'choice symbols visible');
+await p.locator('#cSymbolPop [data-symbol="5"]').click();
+assert.deepEqual(await p.evaluate(()=>[document.getElementById('cText').value,document.activeElement.id,document.getElementById('cSymbolPop').hidden]),['문을 연다{~|}','cText',true]);
+assert.equal(await p.evaluate(()=>appBack()),'HANDLED');
 assert.deepEqual(errors,[]);await p.close();}
-await browser.close();console.log('PASS 기호 popup: two taps insert variation symbols (with braces outside one), focus kept, fits at 360/320 px, Back and outside tap close it.');
+await browser.close();console.log('PASS 기호 popup: two taps insert variation symbols (with braces outside one) into the dialogue, 말하는 사람 and choice text, focus kept, fits at 360/320 px, Back and outside tap close it; misspelt condition names are reported; ? links to the full guide.');
 })().catch(e=>{console.error(e);process.exit(1)});

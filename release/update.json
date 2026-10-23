@@ -1,10 +1,10 @@
 {
- "versionCode": 54,
- "versionName": "0.1.53",
+ "versionCode": 55,
+ "versionName": "0.1.54",
  "apk": "editor.apk",
  "size": 10267458,
- "sha256": "2f24bd83080c535cc0ac04506a14254ebef114d180bfeab7155bd82031eab178",
- "notes": "사건 게임 에디터 v0.1.53 — 기호 버튼",
+ "sha256": "ef7efd9d5cfed9ba2e9b96b1919edbee43c55b092431e010d1b7d7ff7b43f1fb",
+ "notes": "사건 게임 에디터 v0.1.54 — 조건 이름 오타 경고 · 기호 버튼 확장 · 설명서 연결",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
- "publishedAt": "2026-10-22"
+ "publishedAt": "2026-10-23"
 }

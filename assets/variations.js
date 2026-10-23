@@ -191,7 +191,7 @@
    * known(name) -> boolean
    */
   function inspect(text, known) {
-    const info = { conditions: [], names: [], needs: {}, unknown: [], visits: false, random: false, errors: [] };
+    const info = { conditions: [], names: [], needs: {}, unknown: [], misread: [], visits: false, random: false, errors: [] };
     if (!has(text)) {
       if (typeof text === 'string' && /[{}]/.test(text.replace(/\\[{}]/g, ''))) info.errors.push('괄호 { } 짝이 맞지 않습니다.');
       return info;
@@ -224,6 +224,12 @@
           walk(block.then); walk(block.otherwise);
         } else if (block.kind === 'sequence' || block.kind === 'cycle' || block.kind === 'random') {
           if (block.kind === 'random') info.random = true; else info.visits = true;
+          // {용가? 들어간다|망설인다} with a misspelt name reads as 방문마다 and shows "용가? 들어간다":
+          // a short name-like head before "?" followed by text means a condition was probably meant.
+          if (block.kind === 'sequence') {
+            const [head, rest] = splitTop(block.parts[0], '?', 2), atoms = rest !== undefined && rest.trim() && head.trim().length <= 30 && !/[.,"'~…]/.test(head) ? parseCondition(head, known) : null;
+            if (atoms) for (const a of atoms) if (!known(a.name)) info.misread.push(a.name);
+          }
           block.parts.forEach(walk);
         } else if (block.kind === 'value') {
           if (known(block.name)) addName(block.name);
@@ -243,6 +249,7 @@
     })(text);
     info.errors = [...new Set(info.errors)];
     info.unknown = [...new Set(info.unknown)];
+    info.misread = [...new Set(info.misread)];
     return info;
   }
 

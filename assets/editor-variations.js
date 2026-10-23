@@ -50,7 +50,7 @@
 
   // Which names the scene reads, and the smallest value that satisfies each of them.
   function sceneQualities(e) {
-    const needs = new Map(), notes = { visits: false, random: false, errors: [], unknown: [] };
+    const needs = new Map(), notes = { visits: false, random: false, errors: [], unknown: [], misread: [] };
     const need = (name, n) => needs.set(name, Math.max(needs.get(name) || 0, n || 1));
     for (const text of [e.speaker, e.text, ...e.choices.map(c => c.text)]) {
       const info = V.inspect(text, knownName);
@@ -59,6 +59,7 @@
       notes.random ||= info.random;
       notes.errors.push(...info.errors);
       notes.unknown.push(...info.unknown);
+      notes.misread.push(...info.misread);
     }
     for (const c of e.choices) if (c.requires) need(RESOURCE_BY_ID[c.requires] || name(c.requires), c.requiresCount ?? 1);
     if (notes.visits) need('방문', 2);
@@ -143,6 +144,7 @@
 
   function helpHtml() {
     return `<p class="hint">대사·말하는 사람·선택지 문구에서 쓸 수 있습니다. 문구를 길게 눌러 선택한 뒤 버튼을 누르면 자동으로 감쌉니다. <b>{</b>만 치면 <b>{|}</b>가 같이 들어가고, 괄호 안에서는 <b>다음 칸 ›</b> · <b>괄호 밖 »</b>으로 이동합니다. 기호는 <b>기호</b> 버튼을 눌러 골라 넣을 수 있어요. 쓰지 않은 빈 칸은 입력을 마치면 정리됩니다.</p>
+<p><a class="docLink" href="${DOC_URL}" target="_blank" rel="noopener">자세한 설명서 보기 ↗</a> <small class="hint">인터넷에서 기호별 설명과 예제를 엽니다.</small></p>
 <div class="varHelp">
 <p><code>{용기? 문을 박차고 들어간다|문 앞에서 망설인다}</code><br>조건이 맞으면 앞, 아니면 뒤. 뒤는 비워도 됩니다.</p>
 <p><code>{!우산? 옷이 흠뻑 젖었다}</code><br>없을 때만.</p>
@@ -170,6 +172,7 @@
   /* 기호 버튼: the variation symbols in a two-tap popup, so nobody has to hunt for { } | ~ on a phone keyboard.
    * Outside braces a symbol that only means something inside them arrives with its braces ({~|}, {=}, {@? |}).
    * Each entry: [symbol, label, (inside, char before, selection, char after) -> [text, caret offset]]. */
+  const DOC_URL = 'https://stockyandere.github.io/myapps/#/event-game-editor/docs/read/variation-syntax';
   const raw = t => () => [t, t.length];
   const SYMBOLS = [
     ['{ }', '변주 묶기', (inside, before, sel) => sel ? ['{' + sel + '}', sel.length + 2] : ['{|}', 1]],
@@ -199,7 +202,25 @@
   }
   let closeSymbols = () => false;
   // A tap anywhere else closes the symbol popup.
-  if (typeof document !== 'undefined') document.addEventListener('pointerdown', ev => { if (!ev.target.closest?.('#symbolPop,#varSymbols')) closeSymbols(); }, true);
+  if (typeof document !== 'undefined') document.addEventListener('pointerdown', ev => { if (!ev.target.closest?.('.symbolPop,[data-symbols]')) closeSymbols(); }, true);
+  const symbolPopHtml = id => `<div id="${id}" class="symbolPop" role="group" aria-label="기호 넣기" hidden>${SYMBOLS.map((x, i) => `<button type="button" data-symbol="${i}"><b>${escapeHtml(x[0])}</b><small>${x[1]}</small></button>`).join('')}</div>`;
+  /* 기호 button + popup: anchor is the row the popup opens above (or below); field() is the text box that receives the symbol.
+   * Both the button and the symbols keep that box focused, so the keyboard stays up. */
+  function wireSymbols(button, pop, anchor, field) {
+    button.dataset.symbols = '1';
+    const show = on => {
+      pop.hidden = !on; button.classList.toggle('on', on); button.setAttribute('aria-expanded', on);
+      if (!on) return;
+      closeSymbols = () => { if (!pop.isConnected || pop.hidden) return false; show(false); return true; };
+      // Clear of both the buttons and the box being typed in when it fits: above them, else below; otherwise just above the buttons.
+      const bar = anchor.getBoundingClientRect(), box = field()?.getBoundingClientRect() || bar, height = pop.offsetHeight, room = (window.visualViewport?.height || innerHeight);
+      const top = Math.min(bar.top, box.top), bottom = Math.max(bar.bottom, box.bottom);
+      pop.style.top = (top - height - 6 >= 8 ? top - height - 6 : bottom + height + 6 <= room ? bottom + 6 : Math.max(8, bar.top - height - 6)) + 'px';
+    };
+    for (const b of [button, ...pop.querySelectorAll('button')]) b.addEventListener('pointerdown', ev => ev.preventDefault());
+    button.onclick = () => { if (pop.hidden) closeSymbols(); show(pop.hidden); };
+    pop.querySelectorAll('[data-symbol]').forEach(b => b.onclick = () => { insertSymbol(field(), SYMBOLS[Number(b.dataset.symbol)]); show(false); });
+  }
 
   function mount(e) {
     const host = byId('sceneHelpers');
@@ -212,7 +233,7 @@
 <button type="button" id="braceOut" class="chip" hidden title="변주 괄호 밖으로">괄호 밖 »</button>
 <button type="button" id="varSymbols" class="chip" aria-expanded="false" aria-controls="symbolPop" title="변주 기호 넣기">기호</button>
 <button type="button" id="varHelp" class="chip quiet" aria-label="변주 문법 보기">?</button>
-<div id="symbolPop" class="symbolPop" role="group" aria-label="기호 넣기" hidden>${SYMBOLS.map((x, i) => `<button type="button" data-symbol="${i}"><b>${escapeHtml(x[0])}</b><small>${x[1]}</small></button>`).join('')}</div>
+${symbolPopHtml('symbolPop')}
 <select id="varPick" aria-label="변주 조건 고르기" hidden>${conditionOptions(e)}</select>
 </div>
 <div id="varPreview" class="varPreview" aria-live="polite"></div>`;
@@ -220,20 +241,10 @@
     byId('varVisits').onclick = () => insertVariation(textarea, wrapVisits);
     byId('varRandom').onclick = () => insertVariation(textarea, wrapRandom);
     byId('varHelp').onclick = () => open('대사 변주 문법', helpHtml());
-    // 기호: tap the button, then a symbol. Both keep the dialogue focused so the keyboard stays up.
-    const pop = byId('symbolPop'), symbolsButton = byId('varSymbols');
-    const showSymbols = on => {
-      pop.hidden = !on; symbolsButton.classList.toggle('on', on); symbolsButton.setAttribute('aria-expanded', on);
-      if (!on) return;
-      // Above the buttons when there is room (the keyboard is below them), otherwise below.
-      const bar = symbolsButton.closest('.varTools').getBoundingClientRect(), height = pop.offsetHeight, room = (window.visualViewport?.height || innerHeight);
-      const above = bar.top - height - 6 >= 8 || bar.bottom + height + 6 > room;
-      pop.style.top = Math.max(8, above ? bar.top - height - 6 : bar.bottom + 6) + 'px';
-    };
-    closeSymbols = () => { if (!pop.isConnected || pop.hidden) return false; showSymbols(false); return true; };
-    for (const b of [symbolsButton, ...pop.querySelectorAll('button')]) b.addEventListener('pointerdown', ev => ev.preventDefault());
-    symbolsButton.onclick = () => showSymbols(pop.hidden);
-    pop.querySelectorAll('[data-symbol]').forEach(b => b.onclick = () => { insertSymbol(textarea, SYMBOLS[Number(b.dataset.symbol)]); showSymbols(false); });
+    // 기호: tap the button, then a symbol. It goes into the dialogue, or into 말하는 사람 when that was being typed.
+    let symbolField = textarea;
+    for (const f of [textarea, byId('speaker')]) f?.addEventListener('focus', () => { symbolField = f; });
+    wireSymbols(byId('varSymbols'), byId('symbolPop'), byId('varSymbols').closest('.varTools'), () => symbolField);
     // Inside a {…}: two buttons move between its parts without the symbol keys; they keep the keyboard open.
     const inside = on => { byId('braceNext').hidden = byId('braceOut').hidden = !on; byId('varVisits').hidden = byId('varRandom').hidden = on; };
     if (window.BraceInput) BraceInput.attach(textarea, inside);
@@ -285,11 +296,11 @@
     const { needs, notes } = sceneQualities(e);
     const varied = [e.speaker, e.text, ...e.choices.map(c => c.text)].some(V.has);
     const chips = [...needs].filter(([n]) => knownName(n));
-    if (!varied && !chips.length && !notes.errors.length) {
+    if (!varied && !chips.length && !notes.errors.length && !notes.misread.length) {
       box.hidden = true;
     } else {
       box.hidden = false;
-      const problems = [...notes.errors, ...notes.unknown.map(n => `'${n}' 항목을 찾지 못했습니다`)];
+      const problems = [...notes.errors, ...notes.unknown.map(n => `'${n}' 항목을 찾지 못했습니다`), ...[...new Set(notes.misread)].map(n => `'${n}' 항목이 없어 조건이 아니라 방문마다 바뀌는 문장으로 읽힙니다. 조건이라면 이름을 확인하세요`)];
       box.innerHTML = `<div class="varChips"><small>미리보기 상태</small>${chips.map(([n, needValue]) => {
         const value = valueOf(n);
         return `<button type="button" class="chip state ${value >= needValue ? 'on' : ''}" data-quality="${escapeHtml(n)}" data-need="${needValue}" aria-pressed="${value >= needValue}">${escapeHtml(chipLabel(n, value, needValue))}</button>`;
@@ -380,5 +391,5 @@
     });
   }
 
-  root.SceneHelpers = { closeSymbols: () => closeSymbols(), mount, refresh, renderChoices, incomingLinks, showIncoming, renameEverywhere, knownName, usageLabel, showUsage };
+  root.SceneHelpers = { closeSymbols: () => closeSymbols(), symbolPopHtml, wireSymbols, mount, refresh, renderChoices, incomingLinks, showIncoming, renameEverywhere, knownName, usageLabel, showUsage };
 })(globalThis);

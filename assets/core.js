@@ -137,6 +137,7 @@ const titles=new Set(events.map(e=>'@'+e.title.trim())),defNames=new Set(defs.ma
 const knownName=n=>Variations.builtinNames().includes(n)||defNames.has(n)||titles.has(n);
 for(const e of events){const reported=new Set();for(const [text,choice]of[[e.text,''],[e.speaker,''],...e.choices.map(c=>[c.text,c.id])]){const info=Variations.inspect(text,knownName);for(const n of info.names)textUses.add(n);
 for(const m of info.errors)if(!reported.has(m)){reported.add(m);add(e,'대사 변주 · '+m,'warning',choice);}
+for(const n of info.misread||[]){const m='대사 변주 · \''+n+'\' 항목이 없어 조건이 아니라 방문마다 바뀌는 문장으로 읽힙니다. 조건이라면 이름을 확인하세요.';if(!reported.has(m)){reported.add(m);add(e,m,'warning',choice);}}
 for(const n of info.unknown){const m='대사 변주 · \''+n+'\' 항목을 찾지 못해 글자 그대로 보입니다. 이름을 확인하세요.';if(!reported.has(m)){reported.add(m);add(e,m,'warning',choice);}}}}
 for(const e of live)for(const c of e.choices)if(c.reward&&!c.reward.pool.length)add(e,'랜덤 보상의 후보가 비어 있습니다.','error',c.id);
 for(const d of defs){const sources=[],uses=[];for(const e of live)for(const c of e.choices){if(c.reward?.pool.includes(d.id)||c.gain===d.id||c.branch?.gain===d.id||c.remember===d.id)sources.push(e);if(c.requires===d.id||c.lose===d.id||c.branch?.when===d.id||c.branch?.lose===d.id)uses.push({e,c});}

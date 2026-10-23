@@ -149,7 +149,8 @@ if(d.effects?.length&&!passive)add(null,d.name+'의 보유 효과가 적용될 �
 if(!d.initial&&!(p.randomStart===2&&d.type==='ability')&&uses.length){const supplied=new Set(),queue=sources.filter(e=>reachable.has(e.id)).map(e=>e.id);while(queue.length){const id=queue.pop();if(supplied.has(id))continue;supplied.add(id);for(const next of edges.get(id)||[])queue.push(next);}for(const {e,c}of uses)if(reachable.has(e.id)&&!supplied.has(e.id))add(e,d.name+'을 얻은 뒤 이 선택에 도달할 경로가 없습니다. 시작 보유량·획득 위치를 확인하세요.','warning',c.id);}
 for(const f of d.effects||[])if(f.with){const partner=defs.find(x=>x.id===f.with);if(partner&&!partner.initial&&!(p.randomStart===2&&partner.type==='ability')&&!events.some(e=>e.choices.some(c=>c.gain===partner.id||c.branch?.gain===partner.id||c.reward?.pool.includes(partner.id))))add(null,d.name+'의 조합 항목 '+partner.name+'을 얻는 곳이 없습니다.');}
 }
-if(p.randomStart===2&&defs.filter(d=>d.type==='ability'&&!d.initial).length<2)add(null,'시작 때 무작위로 배정할 능력이 2종보다 적습니다.');
+// A brand-new game has no abilities yet; only warn once some exist.
+if(p.randomStart===2&&defs.some(d=>d.type==='ability')&&defs.filter(d=>d.type==='ability'&&!d.initial).length<2)add(null,'시작 때 무작위로 배정할 능력이 2종보다 적습니다.');
 return issues;
 }
 Run.prototype.snapshot=function(){const out={};for(const k of ['visits','pendingReward','audioState','hp','mental','money','bag','recent','current','storyIndex','ended','dead','deathReason','endScene','endNote','message','lastChange','trail','dialogueHistory','dialogueHistoryOmitted','log','turn'])out[k]=this[k];out.visited=[...this.visited];return JSON.parse(JSON.stringify(out));};

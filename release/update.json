@@ -1,10 +1,10 @@
 {
- "versionCode": 56,
- "versionName": "0.1.55",
+ "versionCode": 57,
+ "versionName": "0.1.56",
  "apk": "editor.apk",
- "size": 10267458,
- "sha256": "bed1a35d3d51f3c42a402457b81122bfab62bf6077e074629e948d5a5b8ecf8a",
- "notes": "사건 게임 에디터 v0.1.55 — 화면 점검 다듬기",
+ "size": 12434313,
+ "sha256": "70e53edcee138dcc9f901088bf5f09cf54a1dd17feeac51c972711f570284775",
+ "notes": "사건 게임 에디터 v0.1.56 — 기능 둘러보기 예제",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-23"
 }

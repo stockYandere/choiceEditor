@@ -441,3 +441,18 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 .endingRow small{font-size:11px;color:#9fb0c4}
 .endingRow:not(.seen){color:#8c9bb0}
 .endingRow.seen small{color:#9ed6b8}
+#autoPlayButton{margin:4px 0 10px}
+.autoProgress{font-size:13px;margin:6px 0}
+.autoReport,.autoSteps{max-height:min(56dvh,420px);overflow:hidden}
+.autoHead{font-size:12px;color:#9fb0c4;margin:10px 0 4px}
+.autoHead.loss{color:#ffadad}
+.autoRow{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;min-height:44px;margin:0 0 4px;text-align:left;font-size:14px;overflow:hidden}
+.autoRow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--share,0%);background:#35537a66;pointer-events:none}
+.autoRow span{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.autoRow b{position:relative;font-size:13px}
+.autoRow small{position:relative;grid-column:1/-1;font-size:11px;color:#9fb0c4}
+p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c9bb0;box-sizing:border-box}
+.autoSteps{padding-left:22px;margin:4px 0}
+.autoSteps li{margin:0 0 6px;font-size:13px}
+.autoSteps li b{display:block;font-size:12px;color:#9fb0c4;font-weight:600}
+.autoSteps li.autoEnd b{color:#9ed6b8}

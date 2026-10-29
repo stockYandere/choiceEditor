@@ -149,6 +149,25 @@ function endingSlots(p){const events=p.events||[],scenes=events.filter(e=>e.endi
  const lastStory=events.map((e,i)=>e.kind==='story'?i:-1).filter(i=>i>=0).pop(),open=events.some((e,i)=>!e.ending&&e.choices.some(c=>[c,c.branch].some(o=>o&&(o.next==='end'||o.next==='sequence'&&e.kind==='story'&&i===lastStory))));
  return [...scenes,...(open?[{key:'@end',name:'이야기 끝',kind:'end'}]:[]),{key:'@hp',name:'체력 0',kind:'death'},{key:'@mental',name:'멘탈 0',kind:'death'}];}
 function endingKey(run){if(!run.ended||run.pendingReward)return '';if(run.endScene)return run.endScene;if(run.dead)return run.deathReason==='멘탈'?'@mental':'@hp';return '@end';}
+// 자동 플레이 점검: whole runs that pick at random among the choices (and rewards) that can be taken right then.
+// One run ends at an ending ('end' with its endingKey), with no choice left to take ('stuck'), or past maxSteps ('loop').
+function seeded(seed){let a=seed>>>0;return ()=>{a=a+0x6D2B79F5>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
+function autoplay(p,rng=Math.random,maxSteps=500){const r=new Run(p,rng);r.seen=new Set();const path=[],visited=new Set([r.current]),step=(scene,choice)=>{if(path.length<60)path.push({scene,choice});};let steps=0;
+ while(!r.ended){if(steps>=maxSteps)return {result:'loop',scene:r.current,path,steps,visited};
+  if(r.pendingReward){const offers=r.pendingReward.offers,id=offers[Math.floor(rng()*offers.length)];step(r.current,'보상: '+r.name(id));r.chooseReward(id,rng);}
+  else{const e=p.events.find(x=>x.id===r.current),open=r.visibleChoices(e).filter(c=>!r.blocked(c));if(!open.length)return {result:'stuck',scene:r.current,path,steps,visited};
+   const c=open[Math.floor(rng()*open.length)];step(r.current,r.say(c.text,e));r.choose(c.id,rng);}
+  steps++;visited.add(r.current);}
+ return {result:'end',key:endingKey(r),path,steps,visited};}
+function autoplayTally(){return {runs:0,steps:0,shortest:Infinity,endings:new Map(),stuck:new Map(),loops:new Map(),visited:new Set()};}
+// Counts a run in its bucket (by ending key, or by the scene it stopped at) and keeps the shortest example path.
+function autoplayAdd(t,res){t.runs++;t.steps+=res.steps;if(res.result==='end')t.shortest=Math.min(t.shortest,res.steps);for(const id of res.visited)t.visited.add(id);const bucket=t[res.result==='end'?'endings':res.result==='stuck'?'stuck':'loops'],key=res.result==='end'?res.key:res.scene,cur=bucket.get(key);
+ if(!cur)bucket.set(key,{count:1,steps:res.steps,path:res.path});else{cur.count++;if(res.steps<cur.steps){cur.steps=res.steps;cur.path=res.path;}}}
+function autoplaySummary(p,t){const slots=endingSlots(p),keys=new Set(slots.map(x=>x.key)),endings=[...slots,...[...t.endings.keys()].filter(k=>!keys.has(k)).map(key=>({key,name:key==='@end'?'이야기 끝':key,kind:'end'}))].map(x=>({...x,count:t.endings.get(x.key)?.count||0,path:t.endings.get(x.key)?.path||null}));
+ const list=m=>[...m].map(([scene,v])=>({scene,count:v.count,path:v.path})).sort((a,b)=>b.count-a.count);
+ return {runs:t.runs,average:t.runs?t.steps/t.runs:0,shortest:Number.isFinite(t.shortest)?t.shortest:0,endings,unvisited:p.events.filter(e=>!t.visited.has(e.id)&&!e.ending).map(e=>e.id),stuck:list(t.stuck),loops:list(t.loops)};}
+// The whole check at once (tests and small games); the editor runs it in slices to stay responsive.
+function autoplayReport(p,{runs=1000,seed=1,maxSteps=500}={}){const rng=seeded(seed),t=autoplayTally();for(let i=0;i<runs;i++)autoplayAdd(t,autoplay(p,rng,maxSteps));return autoplaySummary(p,t);}
 function inspect(p){
 const issues=[],events=p.events||[],live=events.filter(e=>!e.ending),defs=p.definitions||[],ids=new Set(events.map(e=>e.id)),pool=events.filter(e=>e.kind==='encounter'),poolOf=g=>pool.filter(e=>(e.randomGroup||'')===g),groupName=g=>g?(p.randomGroups||[]).find(x=>x.id===g)?.name||'묶음':'기본';
 const add=(e,message,level='warning',choice='')=>issues.push({event:e?.id||'',choice,message,level});
@@ -206,4 +225,4 @@ Run.prototype.snapshot=function(){const out={};for(const k of ['visits','pending
 Run.prototype.restore=function(state){const copy=JSON.parse(JSON.stringify(state));copy.visited=new Set(copy.visited);Object.assign(this,copy);this.dialogueHistory=Array.isArray(copy.dialogueHistory)?copy.dialogueHistory:(copy.trail||[]).map(t=>({...t}));this.dialogueHistoryOmitted=copy.dialogueHistoryOmitted??Math.max(0,copy.turn-this.dialogueHistory.length);this.pendingReward=copy.pendingReward||null;this.endScene=copy.endScene||'';this.endNote=copy.endNote||'';
 if(!copy.visits||typeof copy.visits!=='object'){this.visits={};for(const id of this.visited)this.visits[id]=1;if(this.current)this.visits[this.current]=Math.max(1,this.visits[this.current]||0);}this.audioState=copy.audioState||{bgm:'@default',position:0};this.log=Array.isArray(copy.log)?copy.log:[];};
 
-const api={endingSlots,endingKey,TIMER,AFFINITY,affinityOf,WEIGHT,weightOf,appearOf,MORE,needsOf,whensOf,gainsOf,losesOf,setNeeds,setWhens,setItems,randomGroupOf,art,artDefault,effectKinds,inspect,resources,uid,image,audio,allowPackedMedia,STAGE,stageSettings,stageArea,stageAreaEmpty,imageOffset,fresh,event,choice,validate,Run};if(typeof module!=='undefined')module.exports=api;else root.GameCore=api})(globalThis);
+const api={seeded,autoplay,autoplayTally,autoplayAdd,autoplaySummary,autoplayReport,endingSlots,endingKey,TIMER,AFFINITY,affinityOf,WEIGHT,weightOf,appearOf,MORE,needsOf,whensOf,gainsOf,losesOf,setNeeds,setWhens,setItems,randomGroupOf,art,artDefault,effectKinds,inspect,resources,uid,image,audio,allowPackedMedia,STAGE,stageSettings,stageArea,stageAreaEmpty,imageOffset,fresh,event,choice,validate,Run};if(typeof module!=='undefined')module.exports=api;else root.GameCore=api})(globalThis);

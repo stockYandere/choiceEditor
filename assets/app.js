@@ -642,8 +642,30 @@ function update(){const t=GameThemes.get(project.theme);$('themeAbout').textCont
 $('modalBody').querySelectorAll('[data-theme-pick]').forEach(b=>b.onclick=()=>{project.theme=b.dataset.themePick;persist();update();});$('themeDone').onclick=closeForm;update();
 }
 
+// 자동 플레이 점검: AUTO_RUNS random plays in short slices (closing the sheet stops them), then where they ended.
+const AUTO_RUNS=1000;let autoplayToken=null;
+function autoplaySheet(){let p;try{p=C.validate(clone(project));}catch(e){return showChecks(e.message);}if(C.inspect(p).some(i=>i.level==='error'))return showChecks('수정 필요 항목을 먼저 고쳐 주세요.');
+ open('🎲 자동 플레이',`<p class="hint">고를 수 있는 선택지를 무작위로 골라 끝까지 ${AUTO_RUNS.toLocaleString()}판 해 봅니다. 실제 플레이어의 선택과는 다르니, 엔딩 · 확률 · 막히는 곳의 균형을 보는 데 쓰세요.</p><p id="autoProgress" class="autoProgress" role="status">0 / ${AUTO_RUNS.toLocaleString()}판</p><div id="autoReport" class="autoReport"></div>`);
+ const token={},rng=C.seeded(Date.now()),t=C.autoplayTally();autoplayToken=token;
+ const slice=()=>{if(autoplayToken!==token||!$('autoProgress'))return;const until=performance.now()+12;while(t.runs<AUTO_RUNS&&performance.now()<until)C.autoplayAdd(t,C.autoplay(p,rng));$('autoProgress').textContent=t.runs.toLocaleString()+' / '+AUTO_RUNS.toLocaleString()+'판';if(t.runs<AUTO_RUNS)return requestAnimationFrame(slice);autoplayToken=null;autoplayResult(p,C.autoplaySummary(p,t));};requestAnimationFrame(slice);}
+function autoplayResult(p,r,keep=0){const pct=n=>r.runs?Math.round(n/r.runs*1000)/10:0,title=id=>p.events.find(e=>e.id===id)?.title||'제목 없음',row=(key,label,n,note='')=>`<button type="button" class="autoRow" data-auto-path="${esc(key)}" style="--share:${pct(n)}%"><span>${label}</span><b>${pct(n)}%</b>${note?`<small>${note}</small>`:''}</button>`;
+ if(!$('autoReport'))open('🎲 자동 플레이','<p id="autoProgress" class="autoProgress" role="status"></p><div id="autoReport" class="autoReport"></div>');
+ $('autoProgress').textContent=r.runs.toLocaleString()+'판 · 평균 '+r.average.toFixed(1)+'번 선택'+(r.shortest?' · 가장 빠른 끝 '+r.shortest+'번':'');
+ const parts=['<p class="autoHead">엔딩</p>',...r.endings.map(x=>x.count?row('end:'+x.key,(x.kind==='death'?'☠ ':'🏁 ')+esc(x.name),x.count):`<p class="autoRow none"><span>${x.kind==='death'?'☠ ':'🏁 '}${esc(x.name)}</span><b>0%</b><small>한 번도 안 나옴</small></p>`)];
+ if(r.stuck.length)parts.push('<p class="autoHead loss">선택지가 모두 막혀 멈춘 판</p>',...r.stuck.map(x=>row('stuck:'+x.scene,esc(title(x.scene)),x.count,x.count+'판')));
+ if(r.loops.length)parts.push('<p class="autoHead loss">500번 넘게 골라도 끝나지 않은 판</p>',...r.loops.map(x=>row('loop:'+x.scene,esc(title(x.scene)),x.count,x.count+'판')));
+ if(r.unvisited.length)parts.push(`<p class="autoHead">한 번도 안 나온 사건 ${r.unvisited.length}개</p>`,...r.unvisited.map(id=>`<button type="button" class="autoRow" data-auto-open="${id}"><span>${esc(title(id))}</span><small>열기 ›</small></button>`));
+ if(!r.stuck.length&&!r.loops.length&&!r.unvisited.length)parts.push('<p class="hint autoClear">막힌 판 · 끝나지 않은 판 · 한 번도 안 나온 사건이 없습니다.</p>');
+ const box=$('autoReport');box.innerHTML=parts.join('');requestAnimationFrame(()=>paginate(box,keep,at=>keep=at));
+ box.querySelectorAll('[data-auto-open]').forEach(b=>b.onclick=()=>{$('modal').close();selected=b.dataset.autoOpen;part='content';page='story';render();});
+ box.querySelectorAll('[data-auto-path]').forEach(b=>b.onclick=()=>{const [kind,...rest]=b.dataset.autoPath.split(':'),key=rest.join(':'),x=kind==='end'?r.endings.find(e=>e.key===key):(kind==='stuck'?r.stuck:r.loops).find(e=>e.scene===key);autoplayPath(p,r,x,kind,keep);});}
+// The shortest run that reached it, step by step (scene → the choice taken).
+function autoplayPath(p,r,x,kind,keep){const title=id=>p.events.find(e=>e.id===id)?.title||'제목 없음',name=kind==='end'?x.name:title(x.scene);
+ open('예시 경로 · '+name,`<p class="hint">${kind==='end'?'이 엔딩에 가장 빨리 닿은 판':kind==='stuck'?'여기서 고를 수 있는 선택지가 없어 멈춘 판':'여기서 끝나지 않고 돈 판'}입니다${x.path.length>=60?' (앞 60번만)':''}.</p><ol id="autoSteps" class="autoSteps">${x.path.map(s=>`<li><b>${esc(title(s.scene))}</b><span>「${esc(s.choice)}」</span></li>`).join('')}<li class="autoEnd"><b>${esc(name)}</b><span>${kind==='end'?'도착':kind==='stuck'?'막힘':'…'}</span></li></ol><button id="autoBack" class="quiet full">← 결과로</button>`);
+ requestAnimationFrame(()=>paginate($('autoSteps')));$('autoBack').onclick=()=>{open('🎲 자동 플레이','<p id="autoProgress" class="autoProgress" role="status"></p><div id="autoReport" class="autoReport"></div>');autoplayResult(p,r,keep);};}
 function showChecks(extra=''){
-const issues=C.inspect(project);open('이야기 점검',`<p class="hint">연결·입력과 획득 항목의 사용처를 확인합니다. 보유 상태별 모든 경로를 증명하는 검사는 아니므로 조건 분기는 직접 테스트하세요.</p>${extra?`<p class="loss">${esc(extra)}</p>`:''}${issues.length?issues.map((i,n)=>`<button class="issue" data-issue="${n}"><b>${i.level==='error'?'수정 필요':'확인'} · ${esc(project.events.find(e=>e.id===i.event)?.title||'시작 설정')}</b><span>${esc(i.message)}</span></button>`).join(''):'<p>발견된 연결·입력 문제가 없습니다.</p>'}`);
+const issues=C.inspect(project);open('이야기 점검',`<p class="hint">연결·입력과 획득 항목의 사용처를 확인합니다. 보유 상태별 모든 경로를 증명하는 검사는 아니므로 조건 분기는 직접 테스트하거나 자동 플레이로 확인하세요.</p><button id="autoPlayButton" class="full">🎲 자동 플레이 ${AUTO_RUNS.toLocaleString()}판</button>${extra?`<p class="loss">${esc(extra)}</p>`:''}${issues.length?issues.map((i,n)=>`<button class="issue" data-issue="${n}"><b>${i.level==='error'?'수정 필요':'확인'} · ${esc(project.events.find(e=>e.id===i.event)?.title||'시작 설정')}</b><span>${esc(i.message)}</span></button>`).join(''):'<p>발견된 연결·입력 문제가 없습니다.</p>'}`);
+$('autoPlayButton').onclick=autoplaySheet;
 $('modalBody').querySelectorAll('[data-issue]').forEach(b=>b.onclick=()=>{const issue=issues[Number(b.dataset.issue)];$('modal').close();if(issue.event){selected=issue.event;part=issue.choice?'choices':'content';page='story';}else page='inventory';render();const choice=issue.choice&&project.events.find(x=>x.id===issue.event)?.choices.find(c=>c.id===issue.choice);if(choice)choiceForm(choice);else $('editor')?.scrollTo?.({top:0});});
 }
 $('checkStory').onclick=()=>showChecks();$('testHere').onclick=()=>{try{C.validate(clone(project));if(C.inspect(project).some(i=>i.level==='error'))return showChecks();}catch(e){return showChecks(e.message);}startTest(selected);tell('이 사건부터 테스트합니다. 보유 상태에서 수량을 바꿀 수 있어요.');};

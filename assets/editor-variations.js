@@ -27,7 +27,8 @@
   function knownName(name) {
     return V.builtinNames().includes(name)
       || project.definitions.some(d => d.name === name)
-      || (name.startsWith('@') && project.events.some(e => '@' + e.title.trim() === name));
+      || (name.startsWith('@') && project.events.some(e => '@' + e.title.trim() === name))
+      || name === '#엔딩' || (name.startsWith('#') && GameCore.endingSlots(project).some(x => x.key[0] !== '@' && '#' + x.name === name));
   }
 
   function defaultValue(name) {
@@ -35,7 +36,7 @@
     if (name === '멘탈') return project.mental ?? 3;
     if (name === '돈') return project.money ?? 3;
     if (name === '방문') return 1;
-    if (name.startsWith('@')) return 0;
+    if (name.startsWith('@') || name.startsWith('#')) return 0;
     return project.definitions.find(d => d.name === name)?.initial ?? 0;
   }
 
@@ -72,6 +73,8 @@
     if (nameText === '방문') return '방문 ' + value + '번째';
     if (['체력', '멘탈', '돈'].includes(nameText)) return nameText + ' ' + value;
     if (nameText.startsWith('@')) return nameText.slice(1) + (value ? ' 지나옴' : ' 안 지나옴');
+    if (nameText === '#엔딩') return '본 엔딩 ' + value + '개';
+    if (nameText.startsWith('#')) return nameText.slice(1) + (value ? ' 본 적 있음' : ' 처음');
     const d = project.definitions.find(x => x.name === nameText);
     if (d?.type === 'affinity') return nameText + ' ♥ ' + value;
     const kind = d ? TYPE_LABEL[d.type] + ' · ' : '';
@@ -81,6 +84,7 @@
 
   function nextChipValue(nameText, value, needValue) {
     if (nameText === '방문') return value >= 4 ? 1 : value + 1;
+    if (nameText === '#엔딩') return value >= GameCore.endingSlots(project).length ? 0 : value + 1;
     if (nameText === '체력') return value >= project.maxHp ? 0 : value + 1;
     // 호감도 steps through its whole range.
     if (project.definitions.find(x => x.name === nameText)?.type === 'affinity') return value >= GameCore.AFFINITY[1] ? GameCore.AFFINITY[0] : value + 1;
@@ -161,6 +165,8 @@
 <p><code>{~비가 온다|바람이 분다}</code><br>무작위.</p>
 <p><code>{@다리 위? 다리에서 본 그 사람이다.}</code><br>그 사건을 지나왔을 때.</p>
 <p><code>{방문>=3? 단골이네.}</code> · <code>{=돈}</code><br>방문 횟수 조건 · 현재 값 표시.</p>
+<p><code>{민준>=3? 민준이 웃는다.}</code> <code>{서연<=-2? …}</code><br>호감도 비교 (-5~5, 음수도 됩니다).</p>
+<p><code>{#진엔딩? 또 만났네.}</code> · <code>{#엔딩>=1? 두 번째 여행이다.}</code><br>2회차: 이전 플레이에서 그 엔딩을 봤을 때 · 본 엔딩 수.</p>
 <p><code>{용기? {~씩 웃으며|담담하게} 들어간다|도망친다}</code><br>겹쳐 쓸 수 있습니다.</p>
 </div>
 <p class="hint"><b>기억</b>은 가방에 보이지 않는 표시입니다. 선택지 창 → <b>이 선택을 기억</b>으로 만들고, 조건·대사 변주·선택지 숨김에 씁니다. 같은 사건도 지난 선택에 따라 한두 문장, 선택지 하나가 달라지게 할 수 있어요.</p>`;

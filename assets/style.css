@@ -432,3 +432,12 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 .choiceTimer.paused .timerTrack i{opacity:.45}
 .choiceTimer .timerLeft{flex:0 0 auto;font-size:11px;min-width:28px;text-align:right}
 .choiceTimer button{min-height:28px;padding:0 8px;flex:0 0 auto}
+.gameCard>[data-endings-game]{flex:0 0 auto;min-height:62px;font-size:11.5px;padding:0 8px;white-space:nowrap}
+.endingCount{margin:0 0 8px;font-size:13px}
+.endingCount b{font-size:18px;margin-right:4px}
+.endingList{max-height:min(52dvh,380px);overflow:hidden}
+.endingRow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:6px;min-height:44px;border-bottom:1px solid #2f4258;font-size:14px}
+.endingRow b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.endingRow small{font-size:11px;color:#9fb0c4}
+.endingRow:not(.seen){color:#8c9bb0}
+.endingRow.seen small{color:#9ed6b8}

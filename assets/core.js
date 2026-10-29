@@ -128,10 +128,12 @@ return true;
 }
 // An ending scene (엔딩 장면 / 사망 장면) ends the run on its own text and picture; a 사망 장면 is a special death, apart from 체력·멘탈 0.
 enterEnding(e){if(!e?.ending)return;this.ended=true;this.dead=e.ending==='death';this.endScene=e.id;this.endNote=(e.endLabel||'').trim()||e.title.trim();}
+// 2회차: '#엔딩' counts the endings seen in earlier plays, '#<엔딩 이름>' is 1 once that ending was seen (this.seen is set by the app).
+seenValue(name){const seen=this.seen||new Set();if(name==='엔딩')return endingSlots(this.p).filter(x=>seen.has(x.key)).length;const slot=endingSlots(this.p).find(x=>x.key[0]!=='@'&&x.name===name);return slot?(seen.has(slot.key)?1:0):undefined;}
 name(id){return resources[id]||this.p.definitions.find(d=>d.id===id)?.name||'';}
 isMemory(id){return this.p.definitions.find(d=>d.id===id)?.type==='memory';}
 // Values a line of text can read: 체력/멘탈/돈, 방문, item names and @scene titles.
-textValue(name,e){if(name==='체력')return this.hp;if(name==='멘탈')return this.mental;if(name==='돈')return this.money;if(name==='방문')return this.visits?.[e?.id]||(e?.id===this.current?1:0);
+textValue(name,e){if(name.startsWith('#'))return this.seenValue(name.slice(1).trim());if(name==='체력')return this.hp;if(name==='멘탈')return this.mental;if(name==='돈')return this.money;if(name==='방문')return this.visits?.[e?.id]||(e?.id===this.current?1:0);
 if(name.startsWith('@')){const scene=this.p.events.find(x=>x.title.trim()===name.slice(1).trim());return scene?(this.visits?.[scene.id]||(this.visited.has(scene.id)?1:0)):undefined;}
 const d=this.p.definitions.find(d=>d.name===name);return d?(this.bag[d.id]||0):undefined;}
 say(text,e=this.p.events.find(x=>x.id===this.current)){return Variations.render(text||'',{value:n=>this.textValue(n,e),visits:this.visits?.[e?.id]||1,seed:(e?.id||'')+':'+this.turn});}
@@ -141,6 +143,12 @@ visibleChoices(e){return (e?.choices||[]).filter(c=>!(c.hideLocked&&this.blocked
 timeoutChoice(e){if(!e?.timer)return null;const open=this.visibleChoices(e).filter(c=>!this.blocked(c));return open.find(c=>c.id===e.timer.choice)||open[0]||null;}
 }
 
+// 엔딩 모음: every way a run can end — 엔딩·사망 장면 by scene id, '@end' (이야기 끝, when a choice ends the story or the
+// story order runs out; an emptied 🎲 pool also ends there but is not counted as a slot), '@hp'/'@mental' (체력·멘탈 0).
+function endingSlots(p){const events=p.events||[],scenes=events.filter(e=>e.ending).map(e=>({key:e.id,name:(e.endLabel||'').trim()||e.title.trim()||'이름 없는 엔딩',kind:e.ending}));
+ const lastStory=events.map((e,i)=>e.kind==='story'?i:-1).filter(i=>i>=0).pop(),open=events.some((e,i)=>!e.ending&&e.choices.some(c=>[c,c.branch].some(o=>o&&(o.next==='end'||o.next==='sequence'&&e.kind==='story'&&i===lastStory))));
+ return [...scenes,...(open?[{key:'@end',name:'이야기 끝',kind:'end'}]:[]),{key:'@hp',name:'체력 0',kind:'death'},{key:'@mental',name:'멘탈 0',kind:'death'}];}
+function endingKey(run){if(!run.ended||run.pendingReward)return '';if(run.endScene)return run.endScene;if(run.dead)return run.deathReason==='멘탈'?'@mental':'@hp';return '@end';}
 function inspect(p){
 const issues=[],events=p.events||[],live=events.filter(e=>!e.ending),defs=p.definitions||[],ids=new Set(events.map(e=>e.id)),pool=events.filter(e=>e.kind==='encounter'),poolOf=g=>pool.filter(e=>(e.randomGroup||'')===g),groupName=g=>g?(p.randomGroups||[]).find(x=>x.id===g)?.name||'묶음':'기본';
 const add=(e,message,level='warning',choice='')=>issues.push({event:e?.id||'',choice,message,level});
@@ -170,8 +178,8 @@ for(const e of events)if(!reachable.has(e.id))add(e,'첫 사건에서 이 사건
 // Conservative path analysis: warns only when no structural route can supply a used item.
 const allOutcomes=live.flatMap(e=>e.choices.flatMap(c=>[c,...(c.branch?[c.branch]:[])]));
 // Text variations: report broken braces and unknown names, and count names used in lines.
-const titles=new Set(events.map(e=>'@'+e.title.trim())),defNames=new Set(defs.map(d=>d.name)),textUses=new Set();
-const knownName=n=>Variations.builtinNames().includes(n)||defNames.has(n)||titles.has(n);
+const titles=new Set(events.map(e=>'@'+e.title.trim())),defNames=new Set(defs.map(d=>d.name)),textUses=new Set(),endingNames=new Set(['#엔딩',...endingSlots(p).filter(x=>x.key[0]!=='@').map(x=>'#'+x.name)]);
+const knownName=n=>Variations.builtinNames().includes(n)||defNames.has(n)||titles.has(n)||endingNames.has(n);
 for(const e of events){const reported=new Set();for(const [text,choice]of[[e.text,''],[e.speaker,''],...e.choices.map(c=>[c.text,c.id])]){const info=Variations.inspect(text,knownName);for(const n of info.names)textUses.add(n);
 for(const m of info.errors)if(!reported.has(m)){reported.add(m);add(e,'대사 변주 · '+m,'warning',choice);}
 for(const n of info.misread||[]){const m='대사 변주 · \''+n+'\' 항목이 없어 조건이 아니라 방문마다 바뀌는 문장으로 읽힙니다. 조건이라면 이름을 확인하세요.';if(!reported.has(m)){reported.add(m);add(e,m,'warning',choice);}}
@@ -198,4 +206,4 @@ Run.prototype.snapshot=function(){const out={};for(const k of ['visits','pending
 Run.prototype.restore=function(state){const copy=JSON.parse(JSON.stringify(state));copy.visited=new Set(copy.visited);Object.assign(this,copy);this.dialogueHistory=Array.isArray(copy.dialogueHistory)?copy.dialogueHistory:(copy.trail||[]).map(t=>({...t}));this.dialogueHistoryOmitted=copy.dialogueHistoryOmitted??Math.max(0,copy.turn-this.dialogueHistory.length);this.pendingReward=copy.pendingReward||null;this.endScene=copy.endScene||'';this.endNote=copy.endNote||'';
 if(!copy.visits||typeof copy.visits!=='object'){this.visits={};for(const id of this.visited)this.visits[id]=1;if(this.current)this.visits[this.current]=Math.max(1,this.visits[this.current]||0);}this.audioState=copy.audioState||{bgm:'@default',position:0};this.log=Array.isArray(copy.log)?copy.log:[];};
 
-const api={TIMER,AFFINITY,affinityOf,WEIGHT,weightOf,appearOf,MORE,needsOf,whensOf,gainsOf,losesOf,setNeeds,setWhens,setItems,randomGroupOf,art,artDefault,effectKinds,inspect,resources,uid,image,audio,allowPackedMedia,STAGE,stageSettings,stageArea,stageAreaEmpty,imageOffset,fresh,event,choice,validate,Run};if(typeof module!=='undefined')module.exports=api;else root.GameCore=api})(globalThis);
+const api={endingSlots,endingKey,TIMER,AFFINITY,affinityOf,WEIGHT,weightOf,appearOf,MORE,needsOf,whensOf,gainsOf,losesOf,setNeeds,setWhens,setItems,randomGroupOf,art,artDefault,effectKinds,inspect,resources,uid,image,audio,allowPackedMedia,STAGE,stageSettings,stageArea,stageAreaEmpty,imageOffset,fresh,event,choice,validate,Run};if(typeof module!=='undefined')module.exports=api;else root.GameCore=api})(globalThis);

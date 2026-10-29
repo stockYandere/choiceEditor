@@ -1,10 +1,10 @@
 {
- "versionCode": 57,
- "versionName": "0.1.56",
+ "versionCode": 64,
+ "versionName": "0.1.63",
  "apk": "editor.apk",
- "size": 12434313,
- "sha256": "70e53edcee138dcc9f901088bf5f09cf54a1dd17feeac51c972711f570284775",
- "notes": "사건 게임 에디터 v0.1.56 — 기능 둘러보기 예제",
+ "size": 12446601,
+ "sha256": "7f0ae9de5d2fedbe895506d095c7d93595c524081a1f908ae063a90d61651e3e",
+ "notes": "사건 게임 에디터 v0.1.63 — 자동 플레이 점검",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
- "publishedAt": "2026-10-23"
+ "publishedAt": "2026-10-29"
 }

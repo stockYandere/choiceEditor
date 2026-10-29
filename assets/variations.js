@@ -73,7 +73,7 @@
       const at = text.indexOf(op);
       if (at > 0) {
         const name = text.slice(0, at).trim(), number = text.slice(at + op.length).trim();
-        if (/^\d{1,3}$/.test(number)) return { name, not, op, count: Number(number) };
+        if (/^-?\d{1,3}$/.test(number)) return { name, not, op, count: Number(number) };
       }
     }
     const level = text.match(/^(.+?)\s+(\d{1,3})$/);

@@ -15,7 +15,7 @@
 
   const V = root.GameVariations;
   const RESOURCE_BY_ID = { '@hp': '체력', '@mental': '멘탈', '@money': '돈' };
-  const TYPE_LABEL = { ability: '능력', item: '아이템', state: '상태', memory: '기억' };
+  const TYPE_LABEL = { ability: '능력', item: '아이템', state: '상태', memory: '기억', affinity: '호감도' };
 
   // Preview values survive scene changes so "용기 있음" stays on while browsing.
   const previewValues = new Map();
@@ -27,7 +27,8 @@
   function knownName(name) {
     return V.builtinNames().includes(name)
       || project.definitions.some(d => d.name === name)
-      || (name.startsWith('@') && project.events.some(e => '@' + e.title.trim() === name));
+      || (name.startsWith('@') && project.events.some(e => '@' + e.title.trim() === name))
+      || name === '#엔딩' || (name.startsWith('#') && GameCore.endingSlots(project).some(x => x.key[0] !== '@' && '#' + x.name === name));
   }
 
   function defaultValue(name) {
@@ -35,7 +36,7 @@
     if (name === '멘탈') return project.mental ?? 3;
     if (name === '돈') return project.money ?? 3;
     if (name === '방문') return 1;
-    if (name.startsWith('@')) return 0;
+    if (name.startsWith('@') || name.startsWith('#')) return 0;
     return project.definitions.find(d => d.name === name)?.initial ?? 0;
   }
 
@@ -61,7 +62,7 @@
       notes.unknown.push(...info.unknown);
       notes.misread.push(...info.misread);
     }
-    for (const c of e.choices) if (c.requires) need(RESOURCE_BY_ID[c.requires] || name(c.requires), c.requiresCount ?? 1);
+    for (const c of e.choices) for (const x of GameCore.needsOf(c)) need(RESOURCE_BY_ID[x.id] || name(x.id), x.count);
     if (notes.visits) need('방문', 2);
     notes.errors = [...new Set(notes.errors)];
     notes.unknown = [...new Set(notes.unknown)];
@@ -72,7 +73,10 @@
     if (nameText === '방문') return '방문 ' + value + '번째';
     if (['체력', '멘탈', '돈'].includes(nameText)) return nameText + ' ' + value;
     if (nameText.startsWith('@')) return nameText.slice(1) + (value ? ' 지나옴' : ' 안 지나옴');
+    if (nameText === '#엔딩') return '본 엔딩 ' + value + '개';
+    if (nameText.startsWith('#')) return nameText.slice(1) + (value ? ' 본 적 있음' : ' 처음');
     const d = project.definitions.find(x => x.name === nameText);
+    if (d?.type === 'affinity') return nameText + ' ♥ ' + value;
     const kind = d ? TYPE_LABEL[d.type] + ' · ' : '';
     if (!value) return kind + nameText + ' 없음';
     return kind + nameText + (needValue > 1 || value > 1 ? ' ' + value : ' 있음');
@@ -80,17 +84,23 @@
 
   function nextChipValue(nameText, value, needValue) {
     if (nameText === '방문') return value >= 4 ? 1 : value + 1;
+    if (nameText === '#엔딩') return value >= GameCore.endingSlots(project).length ? 0 : value + 1;
     if (nameText === '체력') return value >= project.maxHp ? 0 : value + 1;
+    // 호감도 steps through its whole range.
+    if (project.definitions.find(x => x.name === nameText)?.type === 'affinity') return value >= GameCore.AFFINITY[1] ? GameCore.AFFINITY[0] : value + 1;
     if (['멘탈', '돈'].includes(nameText)) return value >= 3 ? 0 : value + 1;
     return value >= needValue ? 0 : needValue;
   }
 
   function choiceState(c) {
-    if (!c.requires) return { ok: true, label: '' };
-    const n = c.requiresCount ?? 1, label = RESOURCE_BY_ID[c.requires] || name(c.requires);
-    const value = valueOf(label) ?? 0, ok = (value >= n) !== !!c.requiresNot;
-    const text = label + (n > 1 ? ' ' + n : '') + (c.requiresNot ? ' 없을 때만' : ' 필요');
-    return { ok, label: text, hidden: !ok && c.hideLocked };
+    const needs = GameCore.needsOf(c);
+    if (!needs.length) return { ok: true, label: '' };
+    const parts = needs.map(x => {
+      const label = RESOURCE_BY_ID[x.id] || name(x.id), ok = ((valueOf(label) ?? 0) >= x.count) !== x.not;
+      return { ok, text: label + (x.count > 1 ? ' ' + x.count : '') + (x.not ? ' 없을 때만' : ' 필요') };
+    });
+    const ok = c.requiresAny ? parts.some(x => x.ok) : parts.every(x => x.ok);
+    return { ok, label: parts.map(x => x.text).join(c.requiresAny ? ' 또는 ' : ' · '), hidden: !ok && c.hideLocked };
   }
 
   function finalConsonant(word) {
@@ -155,6 +165,8 @@
 <p><code>{~비가 온다|바람이 분다}</code><br>무작위.</p>
 <p><code>{@다리 위? 다리에서 본 그 사람이다.}</code><br>그 사건을 지나왔을 때.</p>
 <p><code>{방문>=3? 단골이네.}</code> · <code>{=돈}</code><br>방문 횟수 조건 · 현재 값 표시.</p>
+<p><code>{민준>=3? 민준이 웃는다.}</code> <code>{서연<=-2? …}</code><br>호감도 비교 (-5~5, 음수도 됩니다).</p>
+<p><code>{#진엔딩? 또 만났네.}</code> · <code>{#엔딩>=1? 두 번째 여행이다.}</code><br>2회차: 이전 플레이에서 그 엔딩을 봤을 때 · 본 엔딩 수.</p>
 <p><code>{용기? {~씩 웃으며|담담하게} 들어간다|도망친다}</code><br>겹쳐 쓸 수 있습니다.</p>
 </div>
 <p class="hint"><b>기억</b>은 가방에 보이지 않는 표시입니다. 선택지 창 → <b>이 선택을 기억</b>으로 만들고, 조건·대사 변주·선택지 숨김에 씁니다. 같은 사건도 지난 선택에 따라 한두 문장, 선택지 하나가 달라지게 할 수 있어요.</p>`;
@@ -357,13 +369,16 @@ ${symbolPopHtml('symbolPop')}
     for (const e of project.events) {
       for (const c of e.choices) {
         const label = c.text || '선택지';
-        if (c.gain === d.id || c.branch?.gain === d.id) sources.push({ e, text: label + ' · 획득' });
+        const has = list => list.some(x => x.id === d.id);
+        if (has(GameCore.gainsOf(c)) || has(GameCore.gainsOf(c.branch))) sources.push({ e, text: label + ' · 획득' });
         if (c.reward?.pool.includes(d.id)) sources.push({ e, text: label + ' · 랜덤 보상 후보' });
         if (c.remember === d.id) sources.push({ e, text: label + ' · 기억' });
-        if (c.requires === d.id) uses.push({ e, text: label + (c.requiresNot ? ' · 없을 때만' : ' · 필요') + (c.hideLocked ? ' · 숨김' : '') });
-        if (c.lose === d.id || c.branch?.lose === d.id) uses.push({ e, text: label + ' · 소모' });
-        if (c.branch?.when === d.id) uses.push({ e, text: label + ' · 보유 시 다른 결과' });
+        const need = GameCore.needsOf(c).find(x => x.id === d.id);
+        if (need) uses.push({ e, text: label + (need.not ? ' · 없을 때만' : ' · 필요') + (c.hideLocked ? ' · 숨김' : '') });
+        if (has(GameCore.losesOf(c)) || has(GameCore.losesOf(c.branch))) uses.push({ e, text: label + ' · 소모' });
+        if (has(GameCore.whensOf(c.branch))) uses.push({ e, text: label + ' · 보유 시 다른 결과' });
       }
+      if (e.kind === 'encounter' && GameCore.appearOf(e).some(x => x.id === d.id)) uses.push({ e, text: '🎲 등장 조건' });
       const lines = [e.speaker, e.text, ...e.choices.map(c => c.text)].filter(t => V.inspect(t, knownName).names.includes(d.name));
       if (lines.length) uses.push({ e, text: '대사 변주 ' + lines.length + '곳' });
     }

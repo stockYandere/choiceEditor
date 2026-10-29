@@ -89,6 +89,7 @@ details .row{margin-top:7px}
 .eventResult{display:flex;width:100%;gap:8px;align-items:center;text-align:left;min-height:44px;margin-bottom:5px}
 .eventResult span{flex:1;min-width:0;overflow-wrap:anywhere}
 .eventResult small{flex-shrink:0;color:#bfd0e3;font-size:11px}
+.eventResult small.matchIn{color:#9ed6b8}
 .choiceRow .iconButton{min-width:36px;width:36px;min-height:42px;font-size:19px;padding:3px;flex-shrink:0}
 .choiceRow{gap:3px}
 .choiceRow>button:first-child{min-width:0;overflow-wrap:anywhere}
@@ -203,7 +204,7 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 
 /* Save slots remain inside the existing bag sheet. */
 .savePermission{display:flex;align-items:center;gap:8px}.savePermission input{width:18px;height:18px;margin:0}
-#stateTabs button{min-width:0}.saveHint{font-size:11px;line-height:1.5;margin:5px 0 9px;color:var(--t-muted,#b8c7db)}
+#stateTabs button{min-width:0;white-space:nowrap;padding-inline:2px}.saveHint{font-size:11px;line-height:1.5;margin:5px 0 9px;color:var(--t-muted,#b8c7db)}
 .saveSlot{display:flex;align-items:center;gap:6px;min-height:66px;padding:9px 0;border-bottom:1px solid var(--t-edge,#526176)}
 .saveSlot>div{flex:1;min-width:0}.saveSlot b{display:block;font-size:13px}.saveSlot small{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}.saveSlot time{display:block;font-size:10px;opacity:.75;margin-top:2px}
 .saveSlot button{font-size:11px;min-height:36px;padding:5px 8px;flex-shrink:0}.autoSlot>span{font-size:11px;opacity:.65}
@@ -238,6 +239,13 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 .incoming .linkJump small{font-size:11px;color:#9fb0c6}
 .fieldHint{display:block;margin:-6px 0 8px;font-size:11px}
 .requiresExtra{align-items:center}
+#modalBody .modeField{max-width:96px}
+#modalBody .modeField select{padding-left:6px;padding-right:2px;font-size:15px}
+.moreField{margin-top:6px}
+.moreField>select{flex:1}
+.moreField .modeField select,.moreField .countField input{margin-top:0}
+#modalBody .addMore{min-height:30px;padding-block:0;margin-top:2px;font-size:12.5px}
+#modalBody .itemField>.addMore.inRow{flex:0 0 40px;align-self:flex-end;min-height:44px;margin:0;padding:0;font-size:18px}
 .requiresExtra .checkLine{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .compareLine{font-size:12px;line-height:1.6;white-space:pre-wrap;border-left:3px solid #41546c;padding-left:8px;color:#d3deeb}
 .definitionName[data-usage-def]{cursor:pointer}
@@ -346,6 +354,7 @@ body.keyboardOpen #editorNav{display:none}
 .sheetHead{flex-wrap:nowrap}.sheetHead>b{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#stateItems .libCount{color:inherit}
 #sheetHealth{white-space:nowrap}
 .playerSettings{padding:8px 0;border-bottom:1px solid var(--t-edge,#34485f)}.playerSettings>b{display:block;font-size:13px;margin-bottom:6px}
+.playerVolume .audioVolume{margin:0;font-size:13px;font-weight:700}
 .choiceStates .varLine{display:none}.choiceStates{flex:none;margin:0}
 .choicesLayout{height:100%;min-height:0}.choicesLayout #sceneChoiceList{flex:1 1 auto;min-height:0;overflow:hidden}.choicesLayout #sceneChoiceList>.autoPager{margin:auto 0 0}.choicesLayout #addChoice{flex:none}
 .formPanel #acquisitionPreview{margin:4px auto}.formPanel #acquisitionSettings>.hint{margin:0 0 4px}
@@ -396,3 +405,54 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 @media (max-width:340px){.varTools{gap:3px}.varTools>.chip{padding-left:7px;padding-right:7px}}
 .fieldSymbols{display:flex;align-items:center;gap:8px;margin:-6px 0 8px}.fieldSymbols .fieldHint{flex:1;margin:0}.fieldSymbols .chip{flex:none}
 .docLink{color:#9fc9ff;font-weight:600}
+.sceneBar .appearButton{flex:0 0 auto;white-space:nowrap;font-size:12px;padding-inline:6px}
+.appearHint{margin:4px 0 0}
+.appearWeightRow{align-items:flex-end}
+.appearWeightRow .hint{margin:0 0 10px}
+.poolChance{flex:0 0 auto;color:#9ed6b8;font-size:11px;margin-right:4px}
+.stateKind.affinity{color:#f2a8c0}
+.affinityItem{flex-wrap:wrap}
+.affinityBar{flex:1 0 100%;display:flex;align-items:center;gap:2px;margin-top:4px}
+.affinityBar i{flex:1;height:7px;border-radius:2px;background:#33465e}
+.affinityBar i.up.on{background:#f08aa8}
+.affinityBar i.down.on{background:#8aa2c8}
+.affinityBar em{width:2px;height:11px;background:#9fb0c4}
+#modalBody .affinityRow .countField{max-width:118px}
+.affinityRow .signed{display:flex;gap:4px}
+.costOptions .checkLine{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px}
+.choiceFoot{gap:6px}
+.choiceFoot #addChoice{flex:1}
+.choiceFoot #timerButton{flex:0 0 auto;white-space:nowrap}
+#timerButton.on{color:#ffd99b}
+.choiceTimer{display:flex;align-items:center;gap:6px;margin:10px 0 -4px}
+#box.typing .choiceTimer{visibility:hidden}
+.choiceTimer .timerTrack{flex:1;height:6px;border-radius:3px;background:#33465e;overflow:hidden}
+.choiceTimer .timerTrack i{display:block;height:100%;width:100%;background:#9cdbb3}
+.choiceTimer.urgent .timerTrack i{background:#f2a3aa}
+.choiceTimer.paused .timerTrack i{opacity:.45}
+.choiceTimer .timerLeft{flex:0 0 auto;font-size:11px;min-width:28px;text-align:right}
+.choiceTimer button{min-height:28px;padding:0 8px;flex:0 0 auto}
+.gameCard>[data-endings-game]{flex:0 0 auto;min-height:62px;font-size:11.5px;padding:0 8px;white-space:nowrap}
+.endingCount{margin:0 0 8px;font-size:13px}
+.endingCount b{font-size:18px;margin-right:4px}
+.endingList{max-height:min(52dvh,380px);overflow:hidden}
+.endingRow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:6px;min-height:44px;border-bottom:1px solid #2f4258;font-size:14px}
+.endingRow b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.endingRow small{font-size:11px;color:#9fb0c4}
+.endingRow:not(.seen){color:#8c9bb0}
+.endingRow.seen small{color:#9ed6b8}
+#autoPlayButton{margin:4px 0 10px}
+.autoProgress{font-size:13px;margin:6px 0}
+.autoReport,.autoSteps{max-height:min(56dvh,420px);overflow:hidden}
+.autoHead{font-size:12px;color:#9fb0c4;margin:10px 0 4px}
+.autoHead.loss{color:#ffadad}
+.autoRow{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;min-height:44px;margin:0 0 4px;text-align:left;font-size:14px;overflow:hidden}
+.autoRow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--share,0%);background:#35537a66;pointer-events:none}
+.autoRow span{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.autoRow b{position:relative;font-size:13px}
+.autoRow small{position:relative;grid-column:1/-1;font-size:11px;color:#9fb0c4}
+p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c9bb0;box-sizing:border-box}
+.autoSteps{padding-left:22px;margin:4px 0}
+.autoSteps li{margin:0 0 6px;font-size:13px}
+.autoSteps li b{display:block;font-size:12px;color:#9fb0c4;font-weight:600}
+.autoSteps li.autoEnd b{color:#9ed6b8}

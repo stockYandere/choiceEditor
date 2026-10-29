@@ -115,6 +115,8 @@
 [data-game-theme] :is(#playerSoundSettings,#playerTextSettings) summary{color:var(--t-accent)}
 #playerTextSettings .textSizeRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 #playerTextSettings .textSizeRow button{min-height:44px}
+#playerSpeedSettings .textSpeedRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+#playerSpeedSettings .textSpeedRow button{min-height:44px;padding-inline:4px}
 #playerTextSettings .textSizeRow button span{display:block;font-family:var(--t-prose);font-weight:400}
 
 /* ── 테마 고르기 (에디터) ───────────────────────────── */
@@ -297,3 +299,11 @@
 :is(.life,.themeSamplesIcons):is(.empty,.lost) svg{stroke-width:70}
 /* Mood faces carry their own outline variant; no stroke. */
 #mental .resourceUnit svg,.themeSamplesIcons svg[data-icon=mood]{stroke:none!important;fill:currentColor!important}
+[data-game-theme] .affinityBar i{background:var(--t-edge,#d8c9b3)}
+[data-game-theme] .affinityBar i.up.on{background:#d9668a}
+[data-game-theme] .affinityBar i.down.on{background:#6f86ad}
+[data-game-theme] .affinityBar em{background:var(--t-muted,#8a7a66)}
+[data-game-theme] .choiceTimer .timerTrack{background:var(--t-edge,#d8c9b3)}
+[data-game-theme] .choiceTimer .timerTrack i{background:var(--t-accent)}
+[data-game-theme] .choiceTimer.urgent .timerTrack i{background:#d9534f}
+[data-game-theme] .choiceTimer .timerLeft{color:var(--t-muted)}

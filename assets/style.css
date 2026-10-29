@@ -204,7 +204,7 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 
 /* Save slots remain inside the existing bag sheet. */
 .savePermission{display:flex;align-items:center;gap:8px}.savePermission input{width:18px;height:18px;margin:0}
-#stateTabs button{min-width:0}.saveHint{font-size:11px;line-height:1.5;margin:5px 0 9px;color:var(--t-muted,#b8c7db)}
+#stateTabs button{min-width:0;white-space:nowrap;padding-inline:2px}.saveHint{font-size:11px;line-height:1.5;margin:5px 0 9px;color:var(--t-muted,#b8c7db)}
 .saveSlot{display:flex;align-items:center;gap:6px;min-height:66px;padding:9px 0;border-bottom:1px solid var(--t-edge,#526176)}
 .saveSlot>div{flex:1;min-width:0}.saveSlot b{display:block;font-size:13px}.saveSlot small{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}.saveSlot time{display:block;font-size:10px;opacity:.75;margin-top:2px}
 .saveSlot button{font-size:11px;min-height:36px;padding:5px 8px;flex-shrink:0}.autoSlot>span{font-size:11px;opacity:.65}
@@ -410,3 +410,13 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 .appearWeightRow{align-items:flex-end}
 .appearWeightRow .hint{margin:0 0 10px}
 .poolChance{flex:0 0 auto;color:#9ed6b8;font-size:11px;margin-right:4px}
+.stateKind.affinity{color:#f2a8c0}
+.affinityItem{flex-wrap:wrap}
+.affinityBar{flex:1 0 100%;display:flex;align-items:center;gap:2px;margin-top:4px}
+.affinityBar i{flex:1;height:7px;border-radius:2px;background:#33465e}
+.affinityBar i.up.on{background:#f08aa8}
+.affinityBar i.down.on{background:#8aa2c8}
+.affinityBar em{width:2px;height:11px;background:#9fb0c4}
+#modalBody .affinityRow .countField{max-width:118px}
+.affinityRow .signed{display:flex;gap:4px}
+.costOptions .checkLine{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px}

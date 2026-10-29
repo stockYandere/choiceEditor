@@ -299,3 +299,7 @@
 :is(.life,.themeSamplesIcons):is(.empty,.lost) svg{stroke-width:70}
 /* Mood faces carry their own outline variant; no stroke. */
 #mental .resourceUnit svg,.themeSamplesIcons svg[data-icon=mood]{stroke:none!important;fill:currentColor!important}
+[data-game-theme] .affinityBar i{background:var(--t-edge,#d8c9b3)}
+[data-game-theme] .affinityBar i.up.on{background:#d9668a}
+[data-game-theme] .affinityBar i.down.on{background:#6f86ad}
+[data-game-theme] .affinityBar em{background:var(--t-muted,#8a7a66)}

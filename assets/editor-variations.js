@@ -15,7 +15,7 @@
 
   const V = root.GameVariations;
   const RESOURCE_BY_ID = { '@hp': '체력', '@mental': '멘탈', '@money': '돈' };
-  const TYPE_LABEL = { ability: '능력', item: '아이템', state: '상태', memory: '기억' };
+  const TYPE_LABEL = { ability: '능력', item: '아이템', state: '상태', memory: '기억', affinity: '호감도' };
 
   // Preview values survive scene changes so "용기 있음" stays on while browsing.
   const previewValues = new Map();
@@ -73,6 +73,7 @@
     if (['체력', '멘탈', '돈'].includes(nameText)) return nameText + ' ' + value;
     if (nameText.startsWith('@')) return nameText.slice(1) + (value ? ' 지나옴' : ' 안 지나옴');
     const d = project.definitions.find(x => x.name === nameText);
+    if (d?.type === 'affinity') return nameText + ' ♥ ' + value;
     const kind = d ? TYPE_LABEL[d.type] + ' · ' : '';
     if (!value) return kind + nameText + ' 없음';
     return kind + nameText + (needValue > 1 || value > 1 ? ' ' + value : ' 있음');
@@ -81,6 +82,8 @@
   function nextChipValue(nameText, value, needValue) {
     if (nameText === '방문') return value >= 4 ? 1 : value + 1;
     if (nameText === '체력') return value >= project.maxHp ? 0 : value + 1;
+    // 호감도 steps through its whole range.
+    if (project.definitions.find(x => x.name === nameText)?.type === 'affinity') return value >= GameCore.AFFINITY[1] ? GameCore.AFFINITY[0] : value + 1;
     if (['멘탈', '돈'].includes(nameText)) return value >= 3 ? 0 : value + 1;
     return value >= needValue ? 0 : needValue;
   }

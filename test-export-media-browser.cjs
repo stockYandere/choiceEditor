@@ -1,7 +1,7 @@
 // APK export media: WebP import, export-time recompression and WAV→Opus, media files in a real signed APK,
 // theme-based font selection, and the exported player reading pictures and sounds from media/ files.
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),{execFileSync}=require('node:child_process');
-const TOOLS=process.env.ANDROID_TOOLS,EDITOR_APK=path.join(__dirname,'v0.1.56-Event-Game-Editor.apk'),work=path.join(__dirname,'export-qa/media-work'),player=path.join(work,'player');
+const TOOLS=process.env.ANDROID_TOOLS,EDITOR_APK=path.join(__dirname,'v0.1.63-Event-Game-Editor.apk'),work=path.join(__dirname,'export-qa/media-work'),player=path.join(work,'player');
 function wav(sec,channels,rate){const n=Math.round(sec*rate),b=Buffer.alloc(44+n*channels*2);b.write('RIFF',0);b.writeUInt32LE(36+n*channels*2,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(channels,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*channels*2,28);b.writeUInt16LE(channels*2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*channels*2,40);
  for(let i=0;i<n;i++)for(let c=0;c<channels;c++)b.writeInt16LE(Math.round(Math.sin(i/rate*2*Math.PI*(220+c*110))*12000),44+(i*channels+c)*2);return 'data:audio/wav;base64,'+b.toString('base64');}
 (async()=>{fs.rmSync(work,{recursive:true,force:true});fs.mkdirSync(path.join(work,'media'),{recursive:true});

@@ -369,6 +369,7 @@ ${symbolPopHtml('symbolPop')}
         if (has(GameCore.losesOf(c)) || has(GameCore.losesOf(c.branch))) uses.push({ e, text: label + ' · 소모' });
         if (has(GameCore.whensOf(c.branch))) uses.push({ e, text: label + ' · 보유 시 다른 결과' });
       }
+      if (e.kind === 'encounter' && GameCore.appearOf(e).some(x => x.id === d.id)) uses.push({ e, text: '🎲 등장 조건' });
       const lines = [e.speaker, e.text, ...e.choices.map(c => c.text)].filter(t => V.inspect(t, knownName).names.includes(d.name));
       if (lines.length) uses.push({ e, text: '대사 변주 ' + lines.length + '곳' });
     }

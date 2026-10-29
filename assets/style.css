@@ -240,6 +240,7 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 .fieldHint{display:block;margin:-6px 0 8px;font-size:11px}
 .requiresExtra{align-items:center}
 #modalBody .modeField{max-width:96px}
+#modalBody .modeField select{padding-left:6px;padding-right:2px;font-size:15px}
 .moreField{margin-top:6px}
 .moreField>select{flex:1}
 .moreField .modeField select,.moreField .countField input{margin-top:0}
@@ -404,3 +405,8 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 @media (max-width:340px){.varTools{gap:3px}.varTools>.chip{padding-left:7px;padding-right:7px}}
 .fieldSymbols{display:flex;align-items:center;gap:8px;margin:-6px 0 8px}.fieldSymbols .fieldHint{flex:1;margin:0}.fieldSymbols .chip{flex:none}
 .docLink{color:#9fc9ff;font-weight:600}
+.sceneBar .appearButton{flex:0 0 auto;white-space:nowrap;font-size:12px;padding-inline:6px}
+.appearHint{margin:4px 0 0}
+.appearWeightRow{align-items:flex-end}
+.appearWeightRow .hint{margin:0 0 10px}
+.poolChance{flex:0 0 auto;color:#9ed6b8;font-size:11px;margin-right:4px}

@@ -20,7 +20,7 @@ root=Path(os.environ['TASK_DIR'])
 with zipfile.ZipFile(root/'assets/player-shell.apk','a',zipfile.ZIP_DEFLATED) as z:z.write(root/'player-dex/classes.dex','classes.dex')
 # Regenerate the player entry whenever the shared UI changes.
 html=(root/'assets/index.html').read_text().replace('<body>','<body class="standalone">').replace('<title>사건 게임 에디터</title>','<title>내 게임</title>')
-for name in ['sample.js','variation-sample.js','examples.js','media-pack.js','stage-editor.js','sound-library.js','story-map.js','brace-input.js','art-library.js','art-picker.js','showcase-sample.js']:html=html.replace('<script src="'+name+'"></script>','')
+for name in ['sample.js','variation-sample.js','examples.js','media-pack.js','stage-editor.js','sound-library.js','story-map.js','brace-input.js','art-library.js','art-picker.js','showcase-sample.js','festival-sample.js']:html=html.replace('<script src="'+name+'"></script>','')
 html=html.replace('<script src="app.js">','<script src="player-bootstrap.js"></script><script src="app.js">')
 (root/'assets/player-index.html').write_text(html)
 SHELL

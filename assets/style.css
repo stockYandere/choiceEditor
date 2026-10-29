@@ -420,3 +420,15 @@ body.keyboardOpen .contentLayout.writing .varPreview,body.keyboardOpen .contentL
 #modalBody .affinityRow .countField{max-width:118px}
 .affinityRow .signed{display:flex;gap:4px}
 .costOptions .checkLine{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px}
+.choiceFoot{gap:6px}
+.choiceFoot #addChoice{flex:1}
+.choiceFoot #timerButton{flex:0 0 auto;white-space:nowrap}
+#timerButton.on{color:#ffd99b}
+.choiceTimer{display:flex;align-items:center;gap:6px;margin:10px 0 -4px}
+#box.typing .choiceTimer{visibility:hidden}
+.choiceTimer .timerTrack{flex:1;height:6px;border-radius:3px;background:#33465e;overflow:hidden}
+.choiceTimer .timerTrack i{display:block;height:100%;width:100%;background:#9cdbb3}
+.choiceTimer.urgent .timerTrack i{background:#f2a3aa}
+.choiceTimer.paused .timerTrack i{opacity:.45}
+.choiceTimer .timerLeft{flex:0 0 auto;font-size:11px;min-width:28px;text-align:right}
+.choiceTimer button{min-height:28px;padding:0 8px;flex:0 0 auto}

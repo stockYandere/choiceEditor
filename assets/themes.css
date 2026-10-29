@@ -303,3 +303,7 @@
 [data-game-theme] .affinityBar i.up.on{background:#d9668a}
 [data-game-theme] .affinityBar i.down.on{background:#6f86ad}
 [data-game-theme] .affinityBar em{background:var(--t-muted,#8a7a66)}
+[data-game-theme] .choiceTimer .timerTrack{background:var(--t-edge,#d8c9b3)}
+[data-game-theme] .choiceTimer .timerTrack i{background:var(--t-accent)}
+[data-game-theme] .choiceTimer.urgent .timerTrack i{background:#d9534f}
+[data-game-theme] .choiceTimer .timerLeft{color:var(--t-muted)}

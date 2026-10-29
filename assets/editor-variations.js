@@ -61,7 +61,7 @@
       notes.unknown.push(...info.unknown);
       notes.misread.push(...info.misread);
     }
-    for (const c of e.choices) if (c.requires) need(RESOURCE_BY_ID[c.requires] || name(c.requires), c.requiresCount ?? 1);
+    for (const c of e.choices) for (const x of GameCore.needsOf(c)) need(RESOURCE_BY_ID[x.id] || name(x.id), x.count);
     if (notes.visits) need('방문', 2);
     notes.errors = [...new Set(notes.errors)];
     notes.unknown = [...new Set(notes.unknown)];
@@ -86,11 +86,14 @@
   }
 
   function choiceState(c) {
-    if (!c.requires) return { ok: true, label: '' };
-    const n = c.requiresCount ?? 1, label = RESOURCE_BY_ID[c.requires] || name(c.requires);
-    const value = valueOf(label) ?? 0, ok = (value >= n) !== !!c.requiresNot;
-    const text = label + (n > 1 ? ' ' + n : '') + (c.requiresNot ? ' 없을 때만' : ' 필요');
-    return { ok, label: text, hidden: !ok && c.hideLocked };
+    const needs = GameCore.needsOf(c);
+    if (!needs.length) return { ok: true, label: '' };
+    const parts = needs.map(x => {
+      const label = RESOURCE_BY_ID[x.id] || name(x.id), ok = ((valueOf(label) ?? 0) >= x.count) !== x.not;
+      return { ok, text: label + (x.count > 1 ? ' ' + x.count : '') + (x.not ? ' 없을 때만' : ' 필요') };
+    });
+    const ok = c.requiresAny ? parts.some(x => x.ok) : parts.every(x => x.ok);
+    return { ok, label: parts.map(x => x.text).join(c.requiresAny ? ' 또는 ' : ' · '), hidden: !ok && c.hideLocked };
   }
 
   function finalConsonant(word) {
@@ -357,12 +360,14 @@ ${symbolPopHtml('symbolPop')}
     for (const e of project.events) {
       for (const c of e.choices) {
         const label = c.text || '선택지';
-        if (c.gain === d.id || c.branch?.gain === d.id) sources.push({ e, text: label + ' · 획득' });
+        const has = list => list.some(x => x.id === d.id);
+        if (has(GameCore.gainsOf(c)) || has(GameCore.gainsOf(c.branch))) sources.push({ e, text: label + ' · 획득' });
         if (c.reward?.pool.includes(d.id)) sources.push({ e, text: label + ' · 랜덤 보상 후보' });
         if (c.remember === d.id) sources.push({ e, text: label + ' · 기억' });
-        if (c.requires === d.id) uses.push({ e, text: label + (c.requiresNot ? ' · 없을 때만' : ' · 필요') + (c.hideLocked ? ' · 숨김' : '') });
-        if (c.lose === d.id || c.branch?.lose === d.id) uses.push({ e, text: label + ' · 소모' });
-        if (c.branch?.when === d.id) uses.push({ e, text: label + ' · 보유 시 다른 결과' });
+        const need = GameCore.needsOf(c).find(x => x.id === d.id);
+        if (need) uses.push({ e, text: label + (need.not ? ' · 없을 때만' : ' · 필요') + (c.hideLocked ? ' · 숨김' : '') });
+        if (has(GameCore.losesOf(c)) || has(GameCore.losesOf(c.branch))) uses.push({ e, text: label + ' · 소모' });
+        if (has(GameCore.whensOf(c.branch))) uses.push({ e, text: label + ' · 보유 시 다른 결과' });
       }
       const lines = [e.speaker, e.text, ...e.choices.map(c => c.text)].filter(t => V.inspect(t, knownName).names.includes(d.name));
       if (lines.length) uses.push({ e, text: '대사 변주 ' + lines.length + '곳' });

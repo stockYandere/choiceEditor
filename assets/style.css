@@ -239,6 +239,12 @@ body.standalone :is(#home,#gameList,#story,#inventory,#appHeader,#editorNav,#tes
 .incoming .linkJump small{font-size:11px;color:#9fb0c6}
 .fieldHint{display:block;margin:-6px 0 8px;font-size:11px}
 .requiresExtra{align-items:center}
+#modalBody .modeField{max-width:96px}
+.moreField{margin-top:6px}
+.moreField>select{flex:1}
+.moreField .modeField select,.moreField .countField input{margin-top:0}
+#modalBody .addMore{min-height:30px;padding-block:0;margin-top:2px;font-size:12.5px}
+#modalBody .itemField>.addMore.inRow{flex:0 0 40px;align-self:flex-end;min-height:44px;margin:0;padding:0;font-size:18px}
 .requiresExtra .checkLine{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .compareLine{font-size:12px;line-height:1.6;white-space:pre-wrap;border-left:3px solid #41546c;padding-left:8px;color:#d3deeb}
 .definitionName[data-usage-def]{cursor:pointer}

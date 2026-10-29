@@ -1,10 +1,10 @@
 {
- "versionCode": 64,
- "versionName": "0.1.63",
+ "versionCode": 65,
+ "versionName": "0.1.64",
  "apk": "editor.apk",
- "size": 12446601,
- "sha256": "7f0ae9de5d2fedbe895506d095c7d93595c524081a1f908ae063a90d61651e3e",
- "notes": "사건 게임 에디터 v0.1.63 — 자동 플레이 점검",
+ "size": 14846928,
+ "sha256": "16481eb1c241025943b43bdaa7cd60c38cc7e260b4f9f1c6e68a6325a6ad9434",
+ "notes": "사건 게임 에디터 v0.1.64 — 축제 전날 밤 예제",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-10-29"
 }

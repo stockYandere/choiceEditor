@@ -31,6 +31,6 @@ await walk(['g-hi','s-buy','c-key','n-roof','rn-edge'],{ended:true,dead:true,sce
 // 예제로 새 게임 adds a fresh copy.
 const before=await p.evaluate(()=>store.games.length);await p.evaluate(()=>{appBack();appBack();appBack();});await p.evaluate(()=>{showList('editor');});
 await p.evaluate(async t=>{await openGame(store.games.find(g=>g.draft.title===t).id);},title);await p.locator('#files').click();const tabs=p.locator('#modal[open] [data-form-tab]');for(let i=0;i<await tabs.count();i++){await tabs.nth(i).click();if(await p.locator('#loadSample').isVisible())break;}
-await p.locator('#loadSample').click();await p.waitForFunction(n=>store.games.length===n+1,before);assert.equal(await p.evaluate(()=>project.title),title);
+await p.locator('#loadSample').click();await p.locator('[data-sample=SHOWCASE_SAMPLE]').click();await p.waitForFunction(n=>store.games.length===n+1,before);assert.equal(await p.evaluate(()=>project.title),title);
 assert.deepEqual(errors,[]);await browser.close();console.log('PASS 기능 둘러보기 예제: installed once, covers every feature kind, story check clean, plays to an ending and to a 사망 장면 with pictures, 예제로 새 게임 copies it.');
 })().catch(e=>{console.error(e);process.exit(1)});

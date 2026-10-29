@@ -115,6 +115,8 @@
 [data-game-theme] :is(#playerSoundSettings,#playerTextSettings) summary{color:var(--t-accent)}
 #playerTextSettings .textSizeRow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 #playerTextSettings .textSizeRow button{min-height:44px}
+#playerSpeedSettings .textSpeedRow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+#playerSpeedSettings .textSpeedRow button{min-height:44px;padding-inline:4px}
 #playerTextSettings .textSizeRow button span{display:block;font-family:var(--t-prose);font-weight:400}
 
 /* ── 테마 고르기 (에디터) ───────────────────────────── */

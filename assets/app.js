@@ -129,13 +129,15 @@ function randomPoolSheet(gid=''){let pageAt=0;const per=Math.max(3,Math.floor((i
 // Leaving the map by back (or 닫기) drops it from the screen history; back returns to 사건 찾기 when that is where it was opened.
 function leaveStoryMap(back){placing=true;try{StoryMap.close({silent:true});if(places[places.length-1]?.map)places.pop();renderEditor();}finally{placing=false;syncPlace();}if(back&&mapFrom==='picker')showEventPicker();}
 function showEventPicker(reopen={}){
- open('사건 찾기',`<div class="eventSearchRow"><input id="eventSearch" type="search" placeholder="사건 이름·대사 검색" aria-label="사건 이름·대사 검색"><button id="openStoryMap" class="quiet">구조도</button></div><div id="eventResults"></div>`);$('openStoryMap').onclick=()=>{$('modal').close();openStoryMap('picker');};
+ open('사건 찾기',`<div class="eventSearchRow"><input id="eventSearch" type="search" placeholder="사건 이름·대사·선택지 검색" aria-label="사건 이름·대사·선택지 검색"><button id="openStoryMap" class="quiet">구조도</button></div><div id="eventResults"></div>`);$('openStoryMap').onclick=()=>{$('modal').close();openStoryMap('picker');};
  // Pages instead of a long list; it opens on the page of the current scene.
  const per=Math.max(4,Math.floor((innerHeight-210)/48));let pageAt=Math.floor(Math.max(0,project.events.findIndex(e=>e.id===selected))/per);
- const draw=()=>{const q=$('eventSearch').value.trim().toLocaleLowerCase(),found=project.events.map((e,i)=>({e,i})).filter(({e})=>[e.title,e.speaker,e.text].some(v=>String(v||'').toLocaleLowerCase().includes(q))),pages=Math.max(1,Math.ceil(found.length/per));pageAt=Math.min(pageAt,pages-1);
-  $('eventResults').innerHTML=(found.slice(pageAt*per,pageAt*per+per).map(({e,i})=>`<div class="eventRow"><button class="eventResult ${e.id===selected?'active':''}" data-jump-event="${e.id}"><span><i>${i+1}</i> ${esc(e.title||'제목 없음')}</span><small>${e.ending==='death'?'☠ 사망':e.ending==='end'?'🏁 엔딩':e.kind==='story'?'스토리':e.kind==='encounter'?'🎲 '+esc(groupName(e.randomGroup||'')):'분기'}</small></button><button class="quiet iconButton danger" data-delete-event="${e.id}" aria-label="${esc(e.title||'제목 없음')} 삭제"${project.events.length>1?'':' disabled'}>✕</button></div>`).join('')||'<p class="hint">일치하는 사건이 없습니다.</p>')+(pages>1?`<div class="libPager"><button data-event-page="${pageAt-1}" aria-label="이전 쪽"${pageAt?'':' disabled'}>‹</button><span class="libCount">${pageAt+1} / ${pages}</span><button data-event-page="${pageAt+1}" aria-label="다음 쪽"${pageAt<pages-1?'':' disabled'}>›</button></div>`:'');
+ // Where a scene matched: nothing for its name, else the first other place (a choice match opens the 선택지 tab).
+ const matchIn=(e,q)=>{const has=v=>String(v||'').toLocaleLowerCase().includes(q);if(has(e.title))return {};if(has(e.speaker))return {label:'말하는 사람'};if(has(e.text))return {label:'대사'};if(e.ending&&has(e.endLabel))return {label:e.ending==='death'?'사망 사유':'엔딩 이름'};const c=e.choices.find(c=>has(c.text));return c?{label:'선택지',part:'choices'}:null;};
+ const draw=()=>{const q=$('eventSearch').value.trim().toLocaleLowerCase(),found=project.events.map((e,i)=>({e,i,m:matchIn(e,q)})).filter(({m})=>m),pages=Math.max(1,Math.ceil(found.length/per));pageAt=Math.min(pageAt,pages-1);
+  $('eventResults').innerHTML=(found.slice(pageAt*per,pageAt*per+per).map(({e,i,m})=>`<div class="eventRow"><button class="eventResult ${e.id===selected?'active':''}" data-jump-event="${e.id}"${m.part?` data-jump-part="${m.part}"`:''}><span><i>${i+1}</i> ${esc(e.title||'제목 없음')}</span>${q&&m.label?`<small class="matchIn">${m.label}에서</small>`:''}<small>${e.ending==='death'?'☠ 사망':e.ending==='end'?'🏁 엔딩':e.kind==='story'?'스토리':e.kind==='encounter'?'🎲 '+esc(groupName(e.randomGroup||'')):'분기'}</small></button><button class="quiet iconButton danger" data-delete-event="${e.id}" aria-label="${esc(e.title||'제목 없음')} 삭제"${project.events.length>1?'':' disabled'}>✕</button></div>`).join('')||'<p class="hint">일치하는 사건이 없습니다.</p>')+(pages>1?`<div class="libPager"><button data-event-page="${pageAt-1}" aria-label="이전 쪽"${pageAt?'':' disabled'}>‹</button><span class="libCount">${pageAt+1} / ${pages}</span><button data-event-page="${pageAt+1}" aria-label="다음 쪽"${pageAt<pages-1?'':' disabled'}>›</button></div>`:'');
   $('eventResults').querySelectorAll('[data-event-page]').forEach(b=>b.onclick=()=>{pageAt=Number(b.dataset.eventPage);draw();});
-  $('eventResults').querySelectorAll('[data-jump-event]').forEach(b=>b.onclick=()=>{selected=b.dataset.jumpEvent;$('modal').close();renderEditor();});
+  $('eventResults').querySelectorAll('[data-jump-event]').forEach(b=>b.onclick=()=>{selected=b.dataset.jumpEvent;if(b.dataset.jumpPart)part=b.dataset.jumpPart;$('modal').close();renderEditor();});
   // Delete straight from the list; the picker comes back on the same page (connected scenes ask where their links go first).
   $('eventResults').querySelectorAll('[data-delete-event]').forEach(b=>b.onclick=()=>{const e=project.events.find(x=>x.id===b.dataset.deleteEvent),q=$('eventSearch').value,at=pageAt;if(e)deleteEvent(e,()=>showEventPicker({q,page:at}));});};$('eventSearch').oninput=()=>{pageAt=0;draw();};if(reopen.q){$('eventSearch').value=reopen.q;}if(reopen.page!==undefined)pageAt=reopen.page;draw();
 }
@@ -393,7 +395,7 @@ function startDialogue(text,key){
 if(dialogueRun===run&&dialogueKey===key)return;
 finishDialogue();dialogueRun=run;dialogueKey=key;dialogueFull=text;choiceReadyAt=0;
 const target=$('dialogue');target.textContent=text;
-if(!text||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+const perLetter=letterTime();if(!text||!perLetter||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
 const units=graphemes?Array.from(graphemes.segment(text),s=>s.segment):Array.from(text);
 const reserve=document.createElement('span');reserve.className='dialogueReserve';reserve.textContent=text;reserve.setAttribute('aria-hidden','true');
 const visible=document.createElement('span');visible.className='dialogueTyping';visible.setAttribute('aria-hidden','true');
@@ -403,7 +405,7 @@ let started=performance.now(),previous=started,count=0;
 function tick(now){
 if(!dialogueTyping)return;
 if(acquisitionActive||artViewing||$('historySheet').open){started+=now-previous;previous=now;dialogueFrame=requestAnimationFrame(tick);return;}previous=now;
-const next=Math.min(units.length,Math.floor((now-started)/30));
+const next=Math.min(units.length,Math.floor((now-started)/perLetter));
 if(next!==count){visible.textContent=units.slice(0,next).join('');count=next;}
 if(count===units.length){finishDialogue();return;}
 dialogueFrame=requestAnimationFrame(tick);
@@ -484,6 +486,10 @@ let stateTab='all';
 // Player reading size: one setting for the dialogue box and the history sheet.
 const TEXT_SIZES=[['small','작게',.9],['normal','보통',1],['large','크게',1.15]];
 function textSizeKey(){return TEXT_SIZES.some(([k])=>k===store?.preferences?.textSize)?store.preferences.textSize:'normal';}
+// 글자 속도: milliseconds per letter while a line types out; 0 shows the whole line at once.
+const TEXT_SPEEDS=[['slow','느리게',60],['normal','보통',30],['fast','빠르게',12],['instant','바로',0]];
+function textSpeedKey(){return TEXT_SPEEDS.some(([k])=>k===store?.preferences?.textSpeed)?store.preferences.textSpeed:'normal';}
+function letterTime(){return TEXT_SPEEDS.find(([k])=>k===textSpeedKey())[2];}
 function applyTextSize(){const scale=TEXT_SIZES.find(([k])=>k===textSizeKey())[2];for(const id of ['stage','historySheet'])$(id)?.style.setProperty('--story-scale',String(scale));}
 // Splits a list that does not fit into pages (‹ 1/3 ›) instead of scrolling it; blocks keep their order.
 function paginate(box,keep=0,onPage){box.querySelector(':scope>.autoPager')?.remove();const items=[...box.children];items.forEach(x=>x.hidden=false);if(box.scrollHeight<=box.clientHeight+1||items.length<2)return;
@@ -500,11 +506,14 @@ $('stateItems').scrollTop=0;
 // A long list pages instead of scrolling.
 const items=$('stateItems');items.dataset.page=0;requestAnimationFrame(()=>paginate(items));
 }
-// 설정 tab of the bag sheet: text size and playback volumes.
-function renderPlayerSettings(){$('stateItems').innerHTML=`<section id="playerTextSettings" class="playerSettings"><b>글자 크기</b><div class="textSizeRow" role="group" aria-label="대사 글자 크기">${TEXT_SIZES.map(([key,label,scale])=>`<button type="button" data-text-size="${key}" aria-pressed="${textSizeKey()===key}"><span style="font-size:${Math.round(15*scale)}px">가</span>${label}</button>`).join('')}</div></section><section id="playerSoundSettings" class="playerSettings"><b>재생 음량</b>${[['voiceVolume','대사'],['effectsVolume','효과음'],['bgmVolume','BGM']].map(([key,label])=>`<label class="audioVolume">${label}<output>${store.preferences?.[key]??100}%</output><input data-player-volume="${key}" type="range" min="0" max="100" value="${store.preferences?.[key]??100}"></label>`).join('')}</section>`;
+// 설정 tab of the bag sheet: text size, text speed and playback volumes.
+function renderPlayerSettings(){$('stateItems').innerHTML=`<section id="playerTextSettings" class="playerSettings"><b>글자 크기</b><div class="textSizeRow" role="group" aria-label="대사 글자 크기">${TEXT_SIZES.map(([key,label,scale])=>`<button type="button" data-text-size="${key}" aria-pressed="${textSizeKey()===key}"><span style="font-size:${Math.round(15*scale)}px">가</span>${label}</button>`).join('')}</div></section><section id="playerSpeedSettings" class="playerSettings"><b>글자 속도</b><div class="textSpeedRow" role="group" aria-label="대사 글자 속도">${TEXT_SPEEDS.map(([key,label])=>`<button type="button" data-text-speed="${key}" aria-pressed="${textSpeedKey()===key}">${label}</button>`).join('')}</div></section>${[['voiceVolume','대사'],['effectsVolume','효과음'],['bgmVolume','BGM']].map(([key,label])=>`<section class="playerSettings playerVolume"><label class="audioVolume">${label} 음량<output>${store.preferences?.[key]??100}%</output><input data-player-volume="${key}" type="range" min="0" max="100" value="${store.preferences?.[key]??100}"></label></section>`).join('')}`;
 $('stateItems').querySelectorAll('[data-text-size]').forEach(b=>b.onclick=()=>{store.preferences||={};store.preferences.textSize=b.dataset.textSize;applyTextSize();$('stateItems').querySelectorAll('[data-text-size]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(playing)saveProgress();else persist();});
+$('stateItems').querySelectorAll('[data-text-speed]').forEach(b=>b.onclick=()=>{store.preferences||={};store.preferences.textSpeed=b.dataset.textSpeed;$('stateItems').querySelectorAll('[data-text-speed]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(playing)saveProgress();else persist();});
 $('stateItems').querySelectorAll('[data-player-volume]').forEach(input=>input.oninput=()=>{store.preferences||={};store.preferences[input.dataset.playerVolume]=Number(input.value);input.previousElementSibling.textContent=input.value+'%';GameAudio.configure(run.p,store.preferences);if(playing)saveProgress();else persist();});
-$('stateItems').scrollTop=0;}
+$('stateItems').scrollTop=0;
+// Settings page like the other tabs when they do not fit (each volume is its own block).
+const items=$('stateItems');items.dataset.page=0;requestAnimationFrame(()=>paginate(items));}
 
 function renderSoundButton(){const enabled=store.preferences?.soundEnabled!==false,b=$('soundToggle');b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9H7L13 4V20L7 15H3Z"/>'+(enabled?'<path d="M16 8Q21 12 16 16M18 4Q27 12 18 20"/>':'<path d="M16 8L22 16M22 8L16 16"/>')+'</svg>';b.setAttribute('aria-pressed',String(enabled));b.setAttribute('aria-label','소리 '+(enabled?'켜짐 · 눌러서 끄기':'꺼짐 · 눌러서 켜기'));b.title='소리 '+(enabled?'켜짐':'꺼짐');}
 $('soundToggle').onclick=()=>{store.preferences||={};store.preferences.soundEnabled=store.preferences.soundEnabled===false;GameAudio.configure(run?.p||project,store.preferences);renderSoundButton();if(playing)saveProgress();else persist();};

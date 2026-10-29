@@ -89,6 +89,7 @@ details .row{margin-top:7px}
 .eventResult{display:flex;width:100%;gap:8px;align-items:center;text-align:left;min-height:44px;margin-bottom:5px}
 .eventResult span{flex:1;min-width:0;overflow-wrap:anywhere}
 .eventResult small{flex-shrink:0;color:#bfd0e3;font-size:11px}
+.eventResult small.matchIn{color:#9ed6b8}
 .choiceRow .iconButton{min-width:36px;width:36px;min-height:42px;font-size:19px;padding:3px;flex-shrink:0}
 .choiceRow{gap:3px}
 .choiceRow>button:first-child{min-width:0;overflow-wrap:anywhere}
@@ -346,6 +347,7 @@ body.keyboardOpen #editorNav{display:none}
 .sheetHead{flex-wrap:nowrap}.sheetHead>b{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#stateItems .libCount{color:inherit}
 #sheetHealth{white-space:nowrap}
 .playerSettings{padding:8px 0;border-bottom:1px solid var(--t-edge,#34485f)}.playerSettings>b{display:block;font-size:13px;margin-bottom:6px}
+.playerVolume .audioVolume{margin:0;font-size:13px;font-weight:700}
 .choiceStates .varLine{display:none}.choiceStates{flex:none;margin:0}
 .choicesLayout{height:100%;min-height:0}.choicesLayout #sceneChoiceList{flex:1 1 auto;min-height:0;overflow:hidden}.choicesLayout #sceneChoiceList>.autoPager{margin:auto 0 0}.choicesLayout #addChoice{flex:none}
 .formPanel #acquisitionPreview{margin:4px auto}.formPanel #acquisitionSettings>.hint{margin:0 0 4px}

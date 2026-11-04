@@ -358,9 +358,11 @@ function insertTemplate(kind,from){const p=host.project(),need={merge:5,random:5
  if(from&&!linkScene(from,entry.id))toast('지금 사건에 선택지를 더 달 수 없어 연결은 하지 않았어요.');
  fitted=true;done('뼈대 「'+label+'」 · 사건 '+made.length+'개를 넣었어요.').then(()=>focus(entry.id));}
 
-function open(h){host=h;if(!wrap)build();setMode(mode);setLevelSilently(level);wrap.hidden=false;fitted=false;pointers.clear();stroke=pinch=null;locked=false;closeSheet();render();}
+// The map reopens where it was left for the same game (back from a scene, or opened again); another game starts on the whole map.
+let lastView=null;
+function open(h){host=h;if(!wrap)build();setMode(mode);setLevelSilently(level);wrap.hidden=false;const key=h.key?.();if(key&&lastView?.key===key){view={...lastView.view};fitted=true;}else fitted=false;pointers.clear();stroke=pinch=null;locked=false;closeSheet();render();}
 function setLevelSilently(l){const b=wrap.querySelector('#mapLevel');b.textContent=l==='overview'?'상세':'개요';b.setAttribute('aria-pressed',String(l==='overview'));wrap.dataset.level=l;hint();}
-function close(o){if(!wrap||wrap.hidden)return false;closeSheet();wrap.hidden=true;pointers.clear();stroke=pinch=pan=null;if(!o?.silent)host?.closed?.();return true;}
+function close(o){if(!wrap||wrap.hidden)return false;const key=host?.key?.();if(key)lastView={key,view:{...view}};closeSheet();wrap.hidden=true;pointers.clear();stroke=pinch=pan=null;if(!o?.silent)host?.closed?.();return true;}
 function isOpen(){return !!wrap&&!wrap.hidden;}
 // Back closes an open sheet first (closeSheet() is true), then the app closes the map.
 const api={open,close,isOpen,setMode,setLevel,level:()=>level,focus,closeSheet,mode:()=>mode,busy:()=>busy>0,render:()=>isOpen()&&render(),classify,layout,overview,preview,_view:()=>view};

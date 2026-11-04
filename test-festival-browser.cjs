@@ -35,7 +35,7 @@ await p.evaluate(gid=>playGame(gid,true),id);await p.waitForFunction(()=>playing
 await p.evaluate(()=>appBack());await p.waitForFunction(()=>page==='gameList');
 // 예제로 새 게임 → 축제 전날 밤.
 await p.evaluate(async gid=>{await openGame(gid);},id);await p.locator('#files').click();const tabs=p.locator('#modal[open] [data-form-tab]');for(let i=0;i<await tabs.count();i++){await tabs.nth(i).click();if(await p.locator('#loadSample').isVisible())break;}
-const before=await p.evaluate(()=>store.games.length);await p.locator('#loadSample').click();assert.deepEqual(await p.locator('[data-sample] b').allInnerTexts(),['축제 전날 밤','기능 둘러보기 · 비 오는 학교']);
+const before=await p.evaluate(()=>store.games.length);await p.locator('#loadSample').click();assert.deepEqual(await p.locator('[data-sample] b').allInnerTexts(),['일곱 번째 괴담','축제 전날 밤','기능 둘러보기 · 비 오는 학교']);assert.equal(await p.evaluate(()=>{const m=document.getElementById('modalBody');return m.scrollHeight-m.clientHeight<=2;}),true,'three examples fit');
 await p.locator('[data-sample=FESTIVAL_SAMPLE]').click();await p.waitForFunction(n=>store.games.length===n+1,before);assert.equal(await p.evaluate(()=>project.title),title);
 assert.deepEqual(errors,[]);await browser.close();console.log('PASS 축제 전날 밤 in the app: installed once, 점검 clean, 자동 플레이 sees the 진엔딩, 호감도 notice + 호감 tab (의심 hidden), timed gate runs out, 진엔딩 recorded (1/9), 2회차 line, 예제로 새 게임 chooser.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -12,7 +12,9 @@ await card.locator('[data-play-game]').click();await p.waitForFunction(()=>playi
 await reach(0);assert.deepEqual(await p.evaluate(gid=>store.games.find(g=>g.id===gid).endings,id),[await p.evaluate(gid=>store.games.find(g=>g.id===gid).published.events[1].id,id)]);
 await p.evaluate(()=>appBack());await p.waitForFunction(()=>page==='gameList');assert.equal(await card.locator('[data-endings-game]').innerText(),'엔딩 1/4');
 await card.locator('[data-endings-game]').click();assert.equal(await p.locator('.endingCount b').innerText(),'1 / 4');assert.deepEqual(await p.locator('.endingRow b').allInnerTexts(),['진엔딩','???','???','???']);
-assert.equal(await p.evaluate(()=>{const m=document.getElementById('modalBody');return m.scrollHeight-m.clientHeight<=2;}),true);await p.locator('#closeModal').click();
+assert.equal(await p.evaluate(()=>{const m=document.getElementById('endingsBody');return m.scrollHeight-m.clientHeight<=2;}),true);
+// The sheet wears the game's theme (like 크레딧), and back closes it.
+assert.equal(await p.locator('#endingsSheet').getAttribute('data-game-theme'),await p.evaluate(gid=>store.games.find(g=>g.id===gid).published.theme,id));assert.equal(await p.evaluate(()=>appBack()),'HANDLED');assert.equal(await p.locator('#endingsSheet').isVisible(),false);
 // The next play reads it.
 await card.locator('[data-play-game]').click();await p.waitForFunction(()=>playing);await p.evaluate(()=>finishDialogue(true));assert.equal(await p.locator('#dialogue').innerText(),'끝.','an ended run reopens on its ending');
 await p.evaluate(gid=>playGame(gid,true),id);await p.waitForFunction(()=>playing&&run.turn===0);await p.evaluate(()=>finishDialogue(true));assert.equal(await p.locator('#dialogue').innerText(),'또 왔네.');

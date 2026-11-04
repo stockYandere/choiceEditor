@@ -129,11 +129,17 @@ function boxEdge(b,from){const dx=from.x-b.x,dy=from.y-b.y;if(!dx&&!dy)return {x
 function circleEdge(c,to,r=R){const d=Math.hypot(to.x-c.x,to.y-c.y)||1;return {x:c.x+(to.x-c.x)/d*r,y:c.y+(to.y-c.y)/d*r};}
 // 이야기 점검 per scene (the warnings, not notes), and scenes no path reaches from the first one.
 function checkIssues(p){issues=new Map();try{for(const x of root.GameCore?.inspect(p)||[])if(x.event&&x.level!=='info'){if(!issues.has(x.event))issues.set(x.event,[]);issues.get(x.event).push(x.message);}}catch(e){}}
+function sceneMeta(e){const p=host.project(),out=[];if(e.kind==='encounter'&&!e.ending){const W=root.GameCore,pool=p.events.filter(x=>x.kind==='encounter'&&(x.randomGroup||'')===(e.randomGroup||'')),w=x=>W?W.weightOf(x):5,total=pool.reduce((n,x)=>n+w(x),0);if(total)out.push(Math.round(w(e)/total*100)+'%'+(e.appear?.length?'*':''));}if(e.timer&&!e.ending)out.push('⏱'+e.timer.seconds);return out.join(' ');}
+// 🔒 the choice has conditions, ♥ it moves or reads 호감도 (its 다른 결과 included).
+function choiceMeta(p,c){const W=root.GameCore;if(!W)return '';const aff=new Set(p.definitions.filter(d=>d.type==='affinity').map(d=>d.id)),outs=[c,c.branch].filter(Boolean),conds=[...W.needsOf(c),...W.whensOf(c.branch)];
+ return (W.needsOf(c).length?'🔒':'')+(outs.some(o=>W.affinityOf(o).length)||conds.some(x=>aff.has(x.id))?'♥':'');}
 function sceneBox(parent,b,id,opts={}){const e=b.e,kind=e.ending==='death'?'death':e.ending?'ending':e.kind;
  const g=el('g',{class:'mapBox k-'+kind+(id===host.selected()?' current':'')+(issues.has(id)?' warn':'')+(opts.orphan?' orphan':'')+(flashId===id?' flash':''),'data-map-event':id},parent);
  el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2,width:BOX.w,height:BOX.h,rx:9},g);el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2+6,width:4,height:BOX.h-12,rx:2,class:'mapKind'},g);
  const n=el('text',{x:b.x-BOX.w/2+9,y:b.y-BOX.h/2+14,class:'mapNum'},g);n.textContent=(b.i+1)+(e.ending==='death'?' ☠':e.ending==='end'?' 🏁':'')+(e.kind==='encounter'?' 🎲'+(e.once?' 1회':''):'')+(opts.badge||'');
  if(issues.has(id)||opts.orphan){const w=el('text',{x:b.x+BOX.w/2-8,y:b.y-BOX.h/2+14,class:'mapWarn','text-anchor':'end'},g);w.textContent=opts.orphan?'⛔':'!';}
+ // 🎲 chance in its 묶음 (* = 등장 조건) and ⏱ seconds, at the top right beside the warning mark.
+ const meta=sceneMeta(e);if(meta){const m=el('text',{x:b.x+BOX.w/2-(issues.has(id)||opts.orphan?24:8),y:b.y-BOX.h/2+14,class:'mapMeta','text-anchor':'end'},g);m.textContent=meta;}
  const t=el('text',{x:b.x,y:b.y+3,class:'mapTitle','text-anchor':'middle'},g);t.textContent=short(e.title||'제목 없음',9);
  const l=el('text',{x:b.x,y:b.y+20,class:'mapLine','text-anchor':'middle'},g);l.textContent=short(preview(e.text)||(e.ending?'끝 장면':'대사 없음'),13);}
 function render(){if(level==='overview')return renderOverview();renderDetail();}
@@ -169,6 +175,7 @@ function renderDetail(){
  for(const [id,b]of nodes.boxes)sceneBox(boxes,b,id,{orphan:!nodes.depth.has(id)&&b.i>0});
  for(const n of nodes.circles){const g=el('g',{class:'mapChoice','data-map-choice':n.c.id},circles);el('circle',{cx:n.x,cy:n.y,r:R},g);
   const k=el('text',{x:n.x,y:n.y+5,class:'mapChoiceNum','text-anchor':'middle'},g);k.textContent=n.k+1;
+  const mark=choiceMeta(p,n.c);if(mark){const m=el('text',{x:n.x+R-2,y:n.y-R+4,class:'mapChoiceMeta','text-anchor':'start'},g);m.textContent=mark;}
   const l=el('text',{x:n.x,y:n.y+R+14,class:'mapChoiceText','text-anchor':'middle'},g);l.textContent=short(n.c.text||'문구 없음',6);}
  if(!fitted){fit();fitted=true;}apply();renderMini();
 }

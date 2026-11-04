@@ -9,7 +9,7 @@ assert.equal(r.runs,3000);const share=k=>r.endings.find(x=>x.key===k).count/r.ru
 assert(Math.abs(share('good')-1/3)<.03&&Math.abs(share('bad')-1/3)<.03,JSON.stringify(r.endings.map(x=>[x.key,x.count])));
 assert.equal(r.stuck.length,1);assert.equal(r.stuck[0].scene,'hall');assert(Math.abs(r.stuck[0].count/r.runs-1/3)<.03);assert.deepEqual(r.stuck[0].path,[{scene:'start',choice:'복도로'}]);
 assert.deepEqual(r.endings.find(x=>x.key==='good').path,[{scene:'start',choice:'웃는다'}]);assert.equal(r.shortest,1);
-assert.deepEqual(r.unvisited,['island'],'never reached');assert.equal(r.endings.find(x=>x.key==='@hp').count,0,'slots never reached stay at 0');
+assert.deepEqual(r.unvisited,['island'],'never reached');assert.deepEqual(r.neverOpen,[{scene:'hall',choice:'locked'}],'the locked door can never be opened');assert.equal(r.endings.find(x=>x.key==='@hp').count,0,'slots never reached stay at 0');
 // The same seed gives the same report.
 assert.deepEqual(C.autoplayReport(p,{runs:200,seed:9}),C.autoplayReport(p,{runs:200,seed:9}));
 // A scene that only loops back is reported as endless at maxSteps.

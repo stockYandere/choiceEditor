@@ -489,3 +489,5 @@ p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c
 #endingsSheet .endingRow:not(.seen){color:var(--t-muted,#8c9bb0)}
 #endingsSheet .endingRow small{color:var(--t-muted,#9fb0c4)}
 #endingsSheet .endingRow.seen small{color:var(--t-gain,#9ed6b8)}
+.mapMeta{font-size:10.5px;fill:#ffd99b}
+.mapChoiceMeta{font-size:11px;fill:#f2a8c0}

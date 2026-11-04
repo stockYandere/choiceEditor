@@ -1,10 +1,10 @@
 {
- "versionCode": 66,
- "versionName": "0.1.65",
+ "versionCode": 67,
+ "versionName": "0.1.66",
  "apk": "editor.apk",
- "size": 14855120,
- "sha256": "fedbcff37a520d17454dac869cc316ef21deb8dee580f247e5206c66ca6f615c",
- "notes": "사건 게임 에디터 v0.1.65 — 구조도로 전체 구조 짜기",
+ "size": 16280598,
+ "sha256": "7bf928b1ac23c35fec03d81bd08769cbe183549be0a3304e25e5eae608524c63",
+ "notes": "사건 게임 에디터 v0.1.66 — 「일곱 번째 괴담」 예제",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-11-04"
 }

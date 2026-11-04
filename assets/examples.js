@@ -7,7 +7,9 @@ const releases=[
  // 기능 둘러보기: every feature with the built-in pictures and sounds (make-showcase.py).
  {release:'showcase-rainy-school-v1',data:()=>root.SHOWCASE_SAMPLE,full:'기능 둘러보기 예제를 추가할 게임 공간이 없습니다.',size:'저장 용량 때문에 기능 둘러보기 예제를 추가하지 못했습니다.'},
  // 축제 전날 밤: the v0.1.57~v0.1.63 features (호감도, 여러 조건, 랜덤 무게·등장 조건, 시간 제한, 엔딩 모음) in one story (make-festival.py).
- {release:'festival-night-v1',data:()=>root.FESTIVAL_SAMPLE,full:'축제 전날 밤 예제를 추가할 게임 공간이 없습니다.',size:'저장 용량 때문에 축제 전날 밤 예제를 추가하지 못했습니다.'}
+ {release:'festival-night-v1',data:()=>root.FESTIVAL_SAMPLE,full:'축제 전날 밤 예제를 추가할 게임 공간이 없습니다.',size:'저장 용량 때문에 축제 전날 밤 예제를 추가하지 못했습니다.'},
+ // 일곱 번째 괴담: a long example whose chapters are the classic branching shapes, with 구조도 메모 (make-mystery.py).
+ {release:'seven-rumors-v1',data:()=>root.MYSTERY_SAMPLE,full:'일곱 번째 괴담 예제를 추가할 게임 공간이 없습니다.',size:'저장 용량 때문에 일곱 번째 괴담 예제를 추가하지 못했습니다.'}
 ];
 const release=releases[0].release;
 // Never replace a user's drafts, releases, active game, progress or preferences.

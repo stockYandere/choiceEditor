@@ -458,3 +458,24 @@ p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c
 .autoSteps li.autoEnd b{color:#9ed6b8}
 .sampleChoice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;margin:0 0 8px;min-height:56px}
 .sampleChoice small{font-size:11.5px;color:#b3c5db}
+/* 구조도 다듬기: 개요/상세, 카드 미리보기·상태, 바로가기, 🎲 줄 정리, 메모, 미니맵, 메뉴·뼈대·찾기 */
+.mapBar{gap:4px;padding:6px 8px}.mapBar button{min-height:38px;padding:6px 9px;font-size:12px}.mapBar #mapLevel[aria-pressed=true]{background:#365d8e;border-color:#92b6e8}
+@media(max-width:380px){.mapBar b{display:none}.mapBar{justify-content:space-between}}
+.mapBox.k-death rect:first-child{stroke:#e07a7a}.mapBox.k-ending rect:first-child{stroke:#e2c26e}
+.mapKind{stroke:none!important}.k-story .mapKind{fill:#7fb0e6}.k-encounter .mapKind{fill:#c9a8f0}.k-branch .mapKind{fill:#6fd3c1}.k-ending .mapKind{fill:#e2c26e}.k-death .mapKind{fill:#e07a7a}
+.mapLine{font-size:10px;fill:#9fb2c8}.mapWarn{font-size:13px;font-weight:700;fill:#ff9a9a}
+.mapBox.warn rect:first-child{stroke:#ff7b7b}.mapBox.orphan rect:first-child{stroke-dasharray:6 4;opacity:.85}
+@keyframes mapFlash{0%,100%{stroke-width:2}40%{stroke-width:7;stroke:#ffd166}}.mapBox.flash rect:first-child,.mapHub.flash circle{animation:mapFlash .8s ease 2}
+.mapJump rect{fill:#22344d;stroke:#a9c8ee;stroke-width:1.2}.mapJump text{font-size:11px;fill:#dfeaff}
+.mapNote rect{fill:#f7e08a;stroke:#d4b54a;stroke-width:1.2}.mapNote text{font-size:12px;fill:#3a3020}
+.mapLink.skip{stroke:#8fb3df}.mapLink.skip.back{stroke-dasharray:7 5}.mapLink.ending{stroke:#e2c26e88}.mapLink.bus{marker-end:none}
+.mapMini{position:absolute;right:10px;bottom:14px;width:104px;height:76px;border-radius:8px;background:#0b1119e6;border:1px solid #33465e;z-index:2;touch-action:none}
+.miniBox{fill:#4a6a92}.miniBox.end{fill:#e2c26e}.miniHub{fill:#c9a8f0}.miniView{fill:#ffd16614;stroke:#ffd166;stroke-width:1.5}
+.mapSheet{position:absolute;left:8px;right:8px;bottom:8px;max-height:62%;overflow:auto;z-index:5;padding:10px 12px 12px;border-radius:12px;background:#172435;border:1px solid #516b8b;box-shadow:0 8px 28px #000a}
+.mapSheetTop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.mapSheetTop b{font-size:14px}
+.mapMenu{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 0}.mapMenu button{min-height:42px;font-size:13px}
+.mapKinds{display:flex;gap:6px;margin-top:6px}.mapKinds button{flex:1;font-size:12px}.mapKinds button.on{background:#365d8e;border-color:#92b6e8}
+.mapWhy{margin:0 0 6px;font-size:12px;line-height:1.5;color:#ffb3b3}
+.mapTemplates,.mapFindList{display:flex;flex-direction:column;gap:6px;margin-top:6px}.mapTemplates button,.mapFindList button{text-align:left;display:flex;flex-direction:column;gap:2px;padding:8px 10px}
+.mapTemplates small,.mapFindList small{font-size:11px;color:#aebbd0}.mapCheck{display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0}.mapCheck input{width:auto;margin:0}
+.mapSheet textarea,.mapSheet input:not([type=checkbox]){width:100%;margin:4px 0}

@@ -95,7 +95,7 @@ function reuseEvent(source=current(),kind='story'){
 function addEditorEvent(){if(project.events.length>=1000)return tell('사건은 최대 1000개까지 만들 수 있습니다.');const e=reuseEvent();project.events.push(e);selected=e.id;part='content';persist();renderEditor();$('eventTitle').focus();$('eventTitle').select();}
 // 구조도: the story drawn as boxes and circles; drawing there edits the same project (one undo step per stroke).
 let mapFrom='';
-function openStoryMap(from=''){mapFrom=from;StoryMap.open({project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
+function openStoryMap(from=''){mapFrom=from;StoryMap.open({key:()=>store.active,project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
  commit:async()=>{persist();await flushEditor();},undo:async()=>{await flushEditor();if(!history.past.length)return false;clearTimeout(saveTimer);restoreEdit(history.undo(project),'되돌렸습니다.');return true;},
  openEvent:(id,to)=>{StoryMap.close({silent:true});selected=id;part=to||'content';renderEditor();},openPool:gid=>randomPoolSheet(gid||''),deleteEvent:id=>{const e=project.events.find(x=>x.id===id);if(e)deleteEvent(e,()=>StoryMap.render());},closed:()=>leaveStoryMap(false)});notePlace();}
 // 🎲 묶음: 'random' rolls 기본, 'random:<id>' a named 묶음 (project.randomGroups); a scene joins one with randomGroup.

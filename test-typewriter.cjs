@@ -7,7 +7,8 @@ for(const viewport of [{width:412,height:850},{width:360,height:640},{width:320,
  const p=await browser.newPage({viewport,hasTouch:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto(url);await p.waitForFunction(()=>!document.getElementById('openPlayer').disabled);
  if(process.env.QA_FONT)await p.addStyleTag({content:'@font-face{font-family:QA;src:url(data:font/ttf;base64,'+fs.readFileSync(process.env.QA_FONT).toString('base64')+')} :root{font-family:QA,sans-serif}'});
- await p.evaluate(()=>{store.games[0].published.randomStart=0;store.games[0].published.events[0].text='비를 피하던 고양이가 다가왔어.\n잠깐 같이 있어 줄까?';Math.random=()=>0;return playGame(store.games[0].id)});
+ // 느리게 (60ms a letter) so a busy machine still catches the first line mid-way.
+ await p.evaluate(()=>{store.preferences||={};store.preferences.textSpeed='slow';store.games[0].published.randomStart=0;store.games[0].published.events[0].text='비를 피하던 고양이가 다가왔어.\n잠깐 같이 있어 줄까?';Math.random=()=>0;return playGame(store.games[0].id)});
  assert.equal(await p.evaluate(()=>dialogueTyping),true);
  const original=await p.evaluate(()=>dialogueFull),turn=await p.evaluate(()=>run.turn);
  const before=await p.evaluate(()=>({box:document.getElementById('box').getBoundingClientRect().toJSON(),height:document.getElementById('box').scrollHeight,scroll:document.getElementById('box').scrollTop,answer:document.getElementById('answers').getBoundingClientRect().toJSON()}));
@@ -34,7 +35,7 @@ for(const viewport of [{width:412,height:850},{width:360,height:640},{width:320,
  // Reveal complete composed characters, not UTF-16 halves or emoji fragments.
  await p.evaluate(()=>{run.p.events.find(e=>e.id===run.current).text='👩🏽‍🚀가\u0301🇰🇷안녕하세요🙂👨‍👩‍👧‍👦반가워요';renderTest();});
  const prefixes=await p.evaluate(()=>{let s='';return Array.from(new Intl.Segmenter('ko',{granularity:'grapheme'}).segment(dialogueFull),x=>s+=x.segment);});
- for(let i=0;i<3;i++){await p.waitForTimeout(55);const s=await p.locator('.dialogueTyping').textContent();assert(s===''||prefixes.includes(s));}
+ for(let i=0;i<3;i++){await p.waitForTimeout(55);const s=await p.evaluate(()=>document.querySelector('.dialogueTyping')?.textContent??null);assert(s===null||s===''||prefixes.includes(s),s);}// null: already fully shown
  await p.waitForFunction(()=>!dialogueTyping);assert.equal(await p.locator('#dialogue').textContent(),prefixes.at(-1));
  await p.evaluate(()=>{run.p.events.find(e=>e.id===run.current).text='';renderTest();});assert.equal(await p.evaluate(()=>dialogueTyping),false);assert.equal(await p.locator('#answers button').first().isVisible(),true);
  // Back saves/exits during animation rather than requiring an extra skip tap.

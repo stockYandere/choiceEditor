@@ -27,7 +27,7 @@ assert.deepEqual(C.inspect(p).map(i=>i.message),[]);
 // 자동 플레이: every slot reached, nothing stuck, endless or unseen.
 const r=C.autoplayReport(p,{runs:20000,seed:3});
 for(const x of r.endings)if(x.key!=='@end')assert(x.count>0,x.name+' never reached');
-assert.deepEqual(r.unvisited,[]);assert.deepEqual(r.stuck,[]);assert.deepEqual(r.loops,[]);
+assert.deepEqual(r.unvisited,[]);assert.deepEqual(r.stuck,[]);assert.deepEqual(r.loops,[]);assert.deepEqual(r.neverOpen,[],'every choice can be taken in some run');
 const trio=r.endings.find(x=>x.name==='셋이 함께 본 등불');assert(trio.count/r.runs<.05,'진엔딩 stays rare for random play');
 // 2회차: the first scene reads the collection.
 const run=new C.Run(p);assert(!run.say(ev[0].text).includes('본 적 있는'));run.seen=new Set([trio.key,'@hp']);assert(run.say(ev[0].text).includes('본 적 있는')&&run.say(ev[0].text).includes('몇 번째'));

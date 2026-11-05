@@ -367,14 +367,15 @@ body.keyboardOpen #editorNav{display:none}
 .mapBar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #2a3a4f}.mapBar b{flex:1;font-size:16px}.mapBar button{min-height:40px}
 .mapHint{margin:0;padding:4px 10px;font-size:11px;line-height:1.5;color:#9fb2c8}
 .mapCanvas{flex:1;min-height:0;width:100%;touch-action:none;display:block;background-image:radial-gradient(#22324a 1px,transparent 1px);background-size:22px 22px}
-.mapBox rect{fill:#1d2b3d;stroke:#7fb0e6;stroke-width:2}.mapBox.current rect{fill:#2b4466;stroke:#cfe3ff;stroke-width:3}.mapBox.death rect{stroke:#e07a7a}.mapBox.ending rect{stroke:#e2c26e}
+.mapBox rect{fill:#1d2b3d;stroke:#7fb0e6;stroke-width:2}.mapBox.current rect{fill:#2b4466;stroke:#cfe3ff;stroke-width:3}
+.mapBox.sel rect{stroke:#ffd27a;stroke-width:3;stroke-dasharray:7 4}.storyMap.erase svg{cursor:crosshair}.mapBox.death rect{stroke:#e07a7a}.mapBox.ending rect{stroke:#e2c26e}
 .mapNum{font-size:11px;fill:#9fb2c8}.mapTitle{font-size:14px;fill:#eff3f8;font-weight:600}
 .mapChoice circle{fill:#2b4466;stroke:#a9c8ee;stroke-width:2}.mapChoiceNum{font-size:14px;font-weight:700;fill:#fff}.mapChoiceText{font-size:10px;fill:#bcd0e6}
 .mapLink{stroke:#a9c8ee;stroke-width:2;fill:none}.mapLink.sequence{stroke:#7c8ea5;stroke-dasharray:6 5}.mapLink.branch{stroke-dasharray:2 4}.mapStem{stroke:#5d7594;stroke-width:2}
 .mapArrowHead{fill:#a9c8ee}.mapBadge{font-size:16px}.mapInk{fill:none;stroke:#ffd166;stroke-linecap:round;stroke-linejoin:round;stroke-width:3}
 .mapToast{position:absolute;left:12px;right:12px;bottom:14px;padding:10px 12px;border-radius:10px;background:#24364dee;color:#fff;font-size:13px;text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}.mapToast.show{opacity:1}
-.storyMap{position:fixed}.mapModes{position:absolute;left:12px;bottom:14px;display:flex;gap:4px;padding:4px;border-radius:999px;background:#18263aee;border:1px solid #33465e;z-index:2}.mapModes button{min-height:44px;padding:0 16px;border-radius:999px;border-color:transparent;background:transparent;color:#cfe0f3}.mapModes button.on{background:#3f6aa1;color:#fff;border-color:#8fb6e8}
-.mapToast{bottom:76px}.storyMap[data-mode=move] .mapCanvas{cursor:grab}
+.storyMap{position:fixed}.mapModes{position:absolute;left:12px;bottom:14px;display:flex;gap:4px;padding:4px;border-radius:999px;background:#18263aee;border:1px solid #33465e;z-index:2}.mapModes button{min-height:44px;padding:0 11px;border-radius:999px;border-color:transparent;background:transparent;color:#cfe0f3}.mapModes button.on{background:#3f6aa1;color:#fff;border-color:#8fb6e8}
+.mapToast{bottom:152px}.storyMap[data-mode=move] .mapCanvas{cursor:grab}
 .mapHub circle{fill:#3a2f52;stroke:#c9a8f0;stroke-width:2}.mapHubIcon{font-size:16px}.mapLink.random{stroke:#c9a8f0;stroke-dasharray:3 5}
 .poolCount{margin:0 0 6px;font-size:12px;color:#bfd0e3}.poolRow{display:flex;align-items:center;gap:6px;min-height:48px;margin-bottom:4px;padding:0 4px 0 8px;border:1px solid #33465e;border-radius:10px}.poolRow.on{border-color:#c9a8f0;background:#2a2340}
 .poolName{flex:1;min-width:0;margin:0!important}.poolName span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.poolOnce{flex:0 0 auto;margin:0!important;font-size:12px}.poolRow [data-pool-open]{flex:0 0 auto;padding:0 8px}
@@ -469,7 +470,7 @@ p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c
 .mapJump rect{fill:#22344d;stroke:#a9c8ee;stroke-width:1.2}.mapJump text{font-size:11px;fill:#dfeaff}
 .mapNote rect{fill:#f7e08a;stroke:#d4b54a;stroke-width:1.2}.mapNote text{font-size:12px;fill:#3a3020}
 .mapLink.skip{stroke:#8fb3df}.mapLink.skip.back{stroke-dasharray:7 5}.mapLink.ending{stroke:#e2c26e88}.mapLink.bus{marker-end:none}
-.mapMini{position:absolute;right:10px;bottom:14px;width:104px;height:76px;border-radius:8px;background:#0b1119e6;border:1px solid #33465e;z-index:2;touch-action:none}
+.mapMini{position:absolute;right:10px;bottom:70px;width:104px;height:76px;border-radius:8px;background:#0b1119e6;border:1px solid #33465e;z-index:2;touch-action:none}
 .miniBox{fill:#4a6a92}.miniBox.end{fill:#e2c26e}.miniHub{fill:#c9a8f0}.miniView{fill:#ffd16614;stroke:#ffd166;stroke-width:1.5}
 .mapSheet{position:absolute;left:8px;right:8px;bottom:8px;max-height:62%;overflow:auto;z-index:5;padding:10px 12px 12px;border-radius:12px;background:#172435;border:1px solid #516b8b;box-shadow:0 8px 28px #000a}
 .mapSheetTop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.mapSheetTop b{font-size:14px}

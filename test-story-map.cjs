@@ -14,9 +14,18 @@ assert.equal(kind(wob(Array.from({length:40},(_,i)=>({x:i*6,y:i*9})),3)),'line')
 assert.equal(kind(Array.from({length:40},(_,i)=>({x:i*7,y:Math.sin(i/12)*80}))),'line');
 assert.equal(kind(Array.from({length:30},(_,i)=>({x:Math.sin(i/9)*90,y:i*8}))),'line');
 assert.equal(kind([{x:5,y:5},{x:7,y:6}]),'tap');assert.equal(kind([{x:5,y:5}]),'tap');
+// 지그재그 (scratch = erase), ✓ (check = 끝 장면); an L, a long sweeping line and a triangle are neither.
+const poly=(vs,per=12)=>vs.slice(1).flatMap((v,k)=>Array.from({length:per},(_,i)=>({x:vs[k].x+(v.x-vs[k].x)*(i+1)/per,y:vs[k].y+(v.y-vs[k].y)*(i+1)/per}))).concat([]).reduce((o,q)=>(o.push(q),o),[{...vs[0]}]);
+const zig=(w,h,n)=>poly(Array.from({length:n+1},(_,i)=>({x:i%2?w:0,y:i*h/n})));
+for(const [w,h,n]of[[80,30,5],[60,20,4],[120,50,7],[40,14,4]])for(const deg of [0,10,-25,90])assert.equal(kind(wob(rot(zig(w,h,n),deg),2)),'scratch',`scratch ${w}x${h}×${n} ${deg}°`);
+for(const [a,b]of[[18,40],[25,60],[12,30],[30,48]])for(const deg of [0,-10,12])for(const z of [1,1.6])assert.equal(kind(wob(rot(poly([{x:0,y:0},{x:a*z,y:a*z},{x:a*z+b*z*.55,y:a*z-b*z}]),deg),1.5)),'check',`check ${a}/${b}×${z} ${deg}°`);
+assert.equal(kind(poly([{x:0,y:0},{x:0,y:80},{x:90,y:80}])),'line','L');
+assert.equal(kind(poly([{x:0,y:0},{x:150,y:40},{x:300,y:60}])),'line','gentle bend');
+assert.equal(kind(poly([{x:0,y:0},{x:60,y:50},{x:120,y:0}])),'line','wide V up is not a check (ends level)');
+assert.notEqual(kind(poly([{x:0,y:0},{x:80,y:0},{x:40,y:70},{x:0,y:2}])),'scratch','triangle');
 // Layout: first scene on top, choices as circles under a scene with two of them, drawn positions kept.
 const p=C.fresh(),a=C.event(),b=C.event(),c=C.event();a.title='A';b.title='B';c.title='C';a.choices.push({...C.choice(),text:'둘'});a.choices[0].next=b.id;a.choices[1].next=c.id;c.map={x:900,y:-40};p.events=[a,b,c];C.validate(p);
 const L=M.layout(p);assert(L.boxes.get(b.id).y>L.boxes.get(a.id).y);assert.equal(L.circles.length,2);assert.deepEqual([L.boxes.get(c.id).x,L.boxes.get(c.id).y],[900,-40]);
 // Bad positions are rejected by validation.
 const bad=structuredClone(p);bad.events[0].map={x:'1',y:0};assert.throws(()=>C.validate(bad),/구조도/);
-console.log('PASS story map: boxes (tilted, rounded, gaps, overshoot), circles/ellipses, straight/curved lines, taps, layered layout with drawn positions, position validation.');
+console.log('PASS story map: boxes (tilted, rounded, gaps, overshoot), circles/ellipses, straight/curved lines, taps, 지그재그 scratches, ✓ checks (not an L or a V), layered layout with drawn positions, position validation.');

@@ -14,16 +14,28 @@ function hull(pts){const p=[...pts].sort((a,b)=>a.x-b.x||a.y-b.y),cross=(o,a,b)=
 function area(poly){let a=0;for(let i=0;i<poly.length;i++){const p=poly[i],q=poly[(i+1)%poly.length];a+=p.x*q.y-q.x*p.y;}return Math.abs(a)/2;}
 // Smallest rotated rectangle around the points (a tilted box is still a box).
 function minRect(pts){let best=Infinity;for(let d=0;d<90;d+=3){const t=d*Math.PI/180,c=Math.cos(t),s=Math.sin(t);let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;for(const p of pts){const x=p.x*c-p.y*s,y=p.x*s+p.y*c;x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}best=Math.min(best,(x1-x0)*(y1-y0));}return best;}
-// tap · box (closed, square-ish corners) · circle (closed, round) · line (open), in the stroke's own coordinates.
+// Points every `step` along the stroke, so corners are measured the same however fast the finger moved.
+function resample(pts,step){const out=[{...pts[0]}];let prev=pts[0],carry=0;for(let i=1;i<pts.length;i++){let a=prev,b=pts[i],d=dist(a,b);while(d>0&&carry+d>=step){const t=(step-carry)/d,q={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};out.push(q);a=q;d=dist(a,b);carry=0;}carry+=d;prev=b;}if(dist(out[out.length-1],pts[pts.length-1])>step/3)out.push({...pts[pts.length-1]});return out;}
+// How sharply the stroke turns at each point (degrees between the chords k points before and after), and its clear corners.
+function turnAngles(r,k=3){const out=[];for(let i=k;i<r.length-k;i++){const u={x:r[i].x-r[i-k].x,y:r[i].y-r[i-k].y},v={x:r[i+k].x-r[i].x,y:r[i+k].y-r[i].y},nu=Math.hypot(u.x,u.y),nv=Math.hypot(v.x,v.y);if(!nu||!nv)continue;out.push({i,p:r[i],a:Math.acos(Math.max(-1,Math.min(1,(u.x*v.x+u.y*v.y)/(nu*nv))))*180/Math.PI});}return out;}
+function corners(list,min,sep=3){const res=[];for(const t of list){if(t.a<min)continue;const last=res[res.length-1];if(last&&t.i-last.i<=sep){if(t.a>last.a)res[res.length-1]=t;}else res.push(t);}return res;}
+// tap · scratch (back and forth: erase) · box (closed, square-ish corners) · circle (closed, round) · check ✓ · line (open),
+// in the stroke's own (screen) coordinates.
 function classify(pts){
  if(!pts||!pts.length)return {type:'none'};
  const b=bounds(pts),diag=Math.hypot(b.w,b.h),len=pathLength(pts);
  if(diag<14&&len<28)return {type:'tap',x:pts[0].x,y:pts[0].y};
+ const r=resample(pts,Math.max(5,diag/28)),turns=turnAngles(r);
+ // 지그재그: three or more U-turns over a small area (a box's corners are 90°, a circle never turns sharply).
+ if(corners(turns,115).length>=3&&len>=2.2*diag&&diag>=24)return {type:'scratch',x:b.cx,y:b.cy,w:b.w,h:b.h};
  const gap=dist(pts[0],pts[pts.length-1]);
  if(gap<=Math.max(22,.32*diag)&&len>1.5*diag&&Math.max(b.w,b.h)>=16){
   const h=hull(pts),fill=area(h)/Math.max(1,minRect(h));
   return {type:fill>=.87?'box':'circle',x:b.cx,y:b.cy,w:b.w,h:b.h,fill};
  }
+ // ✓: one clear corner at the bottom, a short straight stroke down to it and a longer one up and to the right.
+ if(diag>=20&&diag<=260){const c=corners(turns,50);if(c.length===1){const v=c[0].p,first=r.slice(0,c[0].i+1),second=r.slice(c[0].i),straight=s=>dist(s[0],s[s.length-1])/Math.max(1,pathLength(s)),a=pts[0],z=pts[pts.length-1],l1=pathLength(first),l2=pathLength(second);
+  if(straight(first)>.85&&straight(second)>.85&&l1>=8&&l2>=1.15*l1&&v.y>=Math.max(a.y,z.y)-.12*diag&&z.y<v.y-.25*l2&&a.x<v.x&&z.x>v.x)return {type:'check',x:v.x,y:v.y,from:a,to:z};}}
  return {type:'line',from:pts[0],to:pts[pts.length-1]};
 }
 
@@ -89,18 +101,19 @@ const escHtml=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>'
 // First line of a scene for its card: variation braces read as their first part, so the line stays readable.
 const preview=t=>String(t||'').split('\n').find(x=>x.trim())?.replace(/\{[^{}?]*\?\s*([^{}|]*)\|?[^{}]*\}/g,'$1').replace(/\{[~&=@!]?([^{}|]*)[^{}]*\}/g,'$1').trim()||'';
 let host=null,wrap=null,svg=null,world=null,ink=null,mini=null,view={s:1,x:0,y:0},nodes=null,toastTimer=0,fitted=false,level='detail',issues=new Map(),flashId='';
+const selection=new Set();
 const pointers=new Map();let stroke=null,pinch=null,pan=null,drag=null,frame=0,locked=false,busy=0,mode='move';
 
 function build(){
  wrap=document.createElement('div');wrap.id='storyMap';wrap.className='storyMap';wrap.hidden=true;wrap.setAttribute('role','dialog');wrap.setAttribute('aria-label','구조도');
- wrap.innerHTML='<div class="mapBar"><b>구조도</b><button id="mapLevel" class="quiet" aria-pressed="false">개요</button><button id="mapTemplates" class="quiet">뼈대</button><button id="mapFind" class="quiet" aria-label="사건 찾기">🔍</button><button id="mapUndo" class="quiet" aria-label="되돌리기">↶</button><button id="mapFit" class="quiet">전체</button><button id="mapClose">닫기</button></div><p class="mapHint" id="mapHint"></p><div class="mapModes" role="group" aria-label="손가락 모드"><button data-map-mode="move">✋ 이동</button><button data-map-mode="draw">✏ 그리기</button></div><svg id="mapMini" class="mapMini" aria-label="미니맵 · 눌러서 이동"></svg><div id="mapSheet" class="mapSheet" hidden></div><div id="mapToast" class="mapToast" role="status" aria-live="polite"></div>';
+ wrap.innerHTML='<div class="mapBar"><b>구조도</b><button id="mapLevel" class="quiet" aria-pressed="false">개요</button><button id="mapTemplates" class="quiet">뼈대</button><button id="mapFind" class="quiet" aria-label="사건 찾기">🔍</button><button id="mapUndo" class="quiet" aria-label="되돌리기">↶</button><button id="mapFit" class="quiet">전체</button><button id="mapCompact" class="quiet" aria-label="간격 줄이기">간격</button><button id="mapClose">닫기</button></div><p class="mapHint" id="mapHint"></p><div class="mapModes" role="group" aria-label="손가락 모드"><button data-map-mode="move">✋ 이동</button><button data-map-mode="draw">✏ 그리기</button><button data-map-mode="erase">🧽 지우개</button></div><svg id="mapMini" class="mapMini" aria-label="미니맵 · 눌러서 이동"></svg><div id="mapSheet" class="mapSheet" hidden></div><div id="mapToast" class="mapToast" role="status" aria-live="polite"></div>';
  svg=el('svg',{id:'mapCanvas',class:'mapCanvas'});const defs=el('defs',{},svg);const m=el('marker',{id:'mapArrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:7,markerHeight:7,orient:'auto-start-reverse'},defs);el('path',{d:'M0 0L10 5L0 10z',class:'mapArrowHead'},m);
  world=el('g',{id:'mapWorld'},svg);wrap.insertBefore(svg,wrap.querySelector('.mapModes'));document.body.append(wrap);mini=wrap.querySelector('#mapMini');
  wrap.querySelectorAll('[data-map-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mapMode));
  wrap.querySelector('#mapClose').onclick=close;wrap.querySelector('#mapFit').onclick=()=>{fit();apply();};
  wrap.querySelector('#mapUndo').onclick=async()=>{if(await host.undo())render();};
  wrap.querySelector('#mapLevel').onclick=()=>setLevel(level==='overview'?'detail':'overview');
- wrap.querySelector('#mapTemplates').onclick=templateSheet;wrap.querySelector('#mapFind').onclick=findSheet;
+ wrap.querySelector('#mapTemplates').onclick=templateSheet;wrap.querySelector('#mapCompact').onclick=compactMap;wrap.querySelector('#mapFind').onclick=findSheet;
  svg.addEventListener('pointerdown',down);svg.addEventListener('pointermove',move);svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',cancel);
  svg.addEventListener('wheel',e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,view.s*Math.exp(-e.deltaY/300));},{passive:false});
  // 미니맵: touch or drag a spot to bring it to the middle of the screen.
@@ -109,9 +122,10 @@ function build(){
  for(const t of ['pointerup','pointercancel'])mini.addEventListener(t,()=>{mini._down=false;});
 }
 // 이동: one finger drags the map. 그리기: one finger draws. Two fingers always zoom and move; a tap opens in both.
-function setMode(m){mode=m==='draw'?'draw':'move';wrap.dataset.mode=mode;wrap.querySelectorAll('[data-map-mode]').forEach(b=>{const on=b.dataset.mapMode===mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));});hint();}
+function setMode(m){mode=m==='draw'||m==='erase'?m:'move';wrap.dataset.mode=mode;wrap.querySelectorAll('[data-map-mode]').forEach(b=>{const on=b.dataset.mapMode===mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));});hint();}
 function hint(){wrap.querySelector('#mapHint').innerHTML=level==='overview'?'개요 — 스토리 · 🎲 묶음 · 엔딩만 보여요. 블록을 누르면 상세로 펼쳐요.<br>분기 사건은 그 스토리에 접혀 「+N 분기」로 표시돼요.'
- :mode==='draw'?'그리기 — ▭ 사건 · ◯ 선택지 · ─ 연결 · 빈 곳까지 그은 선은 새 사건 · 톡 누르면 열기<br>두 손가락: 벌리고 좁혀 확대·축소, 끌어서 이동'
+ :mode==='draw'?'그리기 — ▭ 사건 · ◯ 선택지 · ─ 연결(빈 곳까지면 새 사건) · ✓ 끝 장면 · 지그재그 지우기 · 크게 둘러싸면 여러 개 고르기<br>두 손가락: 벌리고 좁혀 확대·축소, 끌어서 이동'
+ :mode==='erase'?'지우개 — 톡 누르면 그것을 지워요(사건·선택지·연결·메모) · 문지르면 지나간 연결·선택지·메모를 지워요<br>두 손가락: 확대·축소, 끌어서 이동 · ↶ 되돌리기'
  :'이동 — 빈 곳을 끌면 화면 이동, 네모·동그라미·메모를 끌면 옮기기 · 톡 누르면 열기 · 꾹 누르면 메뉴<br>두 손가락: 벌리고 좁혀 확대·축소 · 그리려면 ✏ 그리기';}
 function setLevel(l,focusId){level=l==='overview'?'overview':'detail';const b=wrap.querySelector('#mapLevel');b.textContent=level==='overview'?'상세':'개요';b.setAttribute('aria-pressed',String(level==='overview'));wrap.dataset.level=level;closeSheet();fitted=!!focusId;hint();render();if(focusId)focus(focusId);}
 function apply(){world.setAttribute('transform',`translate(${view.x} ${view.y}) scale(${view.s})`);miniView();}
@@ -134,7 +148,7 @@ function sceneMeta(e){const p=host.project(),out=[];if(e.kind==='encounter'&&!e.
 function choiceMeta(p,c){const W=root.GameCore;if(!W)return '';const aff=new Set(p.definitions.filter(d=>d.type==='affinity').map(d=>d.id)),outs=[c,c.branch].filter(Boolean),conds=[...W.needsOf(c),...W.whensOf(c.branch)];
  return (W.needsOf(c).length?'🔒':'')+(outs.some(o=>W.affinityOf(o).length)||conds.some(x=>aff.has(x.id))?'♥':'');}
 function sceneBox(parent,b,id,opts={}){const e=b.e,kind=e.ending==='death'?'death':e.ending?'ending':e.kind;
- const g=el('g',{class:'mapBox k-'+kind+(id===host.selected()?' current':'')+(issues.has(id)?' warn':'')+(opts.orphan?' orphan':'')+(flashId===id?' flash':''),'data-map-event':id},parent);
+ const g=el('g',{class:'mapBox k-'+kind+(opts.sel?' sel':'')+(id===host.selected()?' current':'')+(issues.has(id)?' warn':'')+(opts.orphan?' orphan':'')+(flashId===id?' flash':''),'data-map-event':id},parent);
  el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2,width:BOX.w,height:BOX.h,rx:9},g);el('rect',{x:b.x-BOX.w/2,y:b.y-BOX.h/2+6,width:4,height:BOX.h-12,rx:2,class:'mapKind'},g);
  const n=el('text',{x:b.x-BOX.w/2+9,y:b.y-BOX.h/2+14,class:'mapNum'},g);n.textContent=(b.i+1)+(e.ending==='death'?' ☠':e.ending==='end'?' 🏁':'')+(e.kind==='encounter'?' 🎲'+(e.once?' 1회':''):'')+(opts.badge||'');
  if(issues.has(id)||opts.orphan){const w=el('text',{x:b.x+BOX.w/2-8,y:b.y-BOX.h/2+14,class:'mapWarn','text-anchor':'end'},g);w.textContent=opts.orphan?'⛔':'!';}
@@ -144,35 +158,36 @@ function sceneBox(parent,b,id,opts={}){const e=b.e,kind=e.ending==='death'?'deat
  const l=el('text',{x:b.x,y:b.y+20,class:'mapLine','text-anchor':'middle'},g);l.textContent=short(preview(e.text)||(e.ending?'끝 장면':'대사 없음'),13);}
 function render(){if(level==='overview')return renderOverview();renderDetail();}
 function renderDetail(){
- const p=host.project();nodes=layout(p);nodes.jumps=[];nodes.notes=[];if(!drag)checkIssues(p);world.replaceChildren();
+ const p=host.project();nodes=layout(p);nodes.jumps=[];nodes.notes=[];nodes.links=[];if(!drag)checkIssues(p);if(selection.size){for(const id of [...selection])if(!nodes.boxes.has(id))selection.delete(id);}world.replaceChildren();
  const notesG=el('g',{},world),links=el('g',{class:'mapLinks'},world),boxes=el('g',{},world),circles=el('g',{},world),stubs=el('g',{},world);ink=el('path',{class:'mapInk'},world);
  const circleOf=new Map(nodes.circles.map(n=>[n.c.id,n])),hubOf=new Map(nodes.hubs.map(h=>[h.gid,h]));
- const arrow=(a,b,cls)=>el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:cls,'marker-end':'url(#mapArrow)'},links);
+ // Every drawn link remembers how to cut it (지우기); the plain 다음 스토리 arrow has nothing to cut.
+ const arrow=(a,b,cls,cut)=>{el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:cls,'marker-end':'url(#mapArrow)'},links);nodes.links.push({a,b,cut});};
  const badge=(at,text)=>{const t=el('text',{x:at.x,y:at.y,class:'mapBadge','text-anchor':'middle'},links);t.textContent=text;};
  // A link that would cross the whole map (or climb back up) becomes a small 「→ 사건」 tag; tapping it goes there.
- const jump=(at,target,stack)=>{const label='→ '+(target.i+1)+'·'+short(target.e.title||'사건',7),w=label.length*7.2+14,x=at.x-w/2,y=at.y+stack*22;
-  const g=el('g',{class:'mapJump','data-map-jump':target.e.id},stubs);el('rect',{x,y,width:w,height:18,rx:9},g);const t=el('text',{x:at.x,y:y+13,'text-anchor':'middle'},g);t.textContent=label;nodes.jumps.push({id:target.e.id,x,y,w,h:18});};
+ const jump=(at,target,stack,cut)=>{const label='→ '+(target.i+1)+'·'+short(target.e.title||'사건',7),w=label.length*7.2+14,x=at.x-w/2,y=at.y+stack*22;
+  const g=el('g',{class:'mapJump','data-map-jump':target.e.id},stubs);el('rect',{x,y,width:w,height:18,rx:9},g);const t=el('text',{x:at.x,y:y+13,'text-anchor':'middle'},g);t.textContent=label;nodes.jumps.push({id:target.e.id,x,y,w,h:18,cut});};
  for(const n of p.mapNotes||[]){const lines=[];let s=String(n.text||'메모');while(s.length&&lines.length<4){lines.push(s.slice(0,11));s=s.slice(11);}if(s.length)lines[3]=lines[3].slice(0,10)+'…';const h=lines.length*NOTE.line+14;
   const g=el('g',{class:'mapNote','data-map-note':n.id},notesG);el('rect',{x:n.x,y:n.y,width:NOTE.w,height:h,rx:4},g);lines.forEach((x,k)=>{const t=el('text',{x:n.x+8,y:n.y+18+k*NOTE.line},g);t.textContent=x;});nodes.notes.push({n,x:n.x,y:n.y,w:NOTE.w,h});}
  for(const e of p.events){if(e.ending)continue;const box=nodes.boxes.get(e.id);let stack=0;
   // Several choices of one scene rolling the same 🎲: one arrow from the scene, a 🎲 under each of those choices.
   const rolls=new Map();for(const c of e.choices)if(circleOf.has(c.id))for(const o of outcomes(c)){const g=groupOf(o.next);if(g!==null&&hubOf.has(g))rolls.set(g,(rolls.get(g)||0)+1);}
-  for(const [g,n]of rolls)if(n>1){const h=hubOf.get(g),a=boxEdge(box,h);arrow(a,circleEdge(h,a,HUB),'mapLink random merged');}
+  for(const [g,n]of rolls)if(n>1){const h=hubOf.get(g),a=boxEdge(box,h);arrow(a,circleEdge(h,a,HUB),'mapLink random merged',()=>{for(const c of e.choices)for(const o of outcomes(c))if(groupOf(o.next)===g)o.next='sequence';});}
   for(const c of e.choices){const circ=circleOf.get(c.id);
    if(circ){const a=boxEdge(box,circ),b=circleEdge(circ,box);el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'mapStem'},links);}
    for(const o of outcomes(c)){const branch=o!==c,from=circ||box,target=o.next==='sequence'?storyNext(p,e):p.events.find(x=>x.id===o.next),cls='mapLink'+(o.next==='sequence'?' sequence':'')+(branch?' branch':''),under={x:from.x+(circ?0:BOX.w/2+12),y:from.y+(circ?R+30:4)};
     if(target){const tb=nodes.boxes.get(target.id),start=circ?circleEdge(circ,tb):boxEdge(box,tb),far=Math.hypot(tb.x-from.x,tb.y-from.y)>FAR||tb.y<from.y-LAYER*.6;
-     if(far&&target.id!==e.id)jump(circ?{x:circ.x,y:circ.y+R+22}:{x:box.x,y:box.y+BOX.h/2+6},tb,stack++);else arrow(start,boxEdge(tb,start),cls);}
+     const cut=o.next==='sequence'?null:()=>{o.next='sequence';};if(far&&target.id!==e.id)jump(circ?{x:circ.x,y:circ.y+R+22}:{x:box.x,y:box.y+BOX.h/2+6},tb,stack++,cut);else arrow(start,boxEdge(tb,start),cls,cut);}
     else if(o.next==='sequence')badge(under,'⏭');
-    else if(groupOf(o.next)!==null&&hubOf.has(groupOf(o.next))){const g=groupOf(o.next);if(circ&&rolls.get(g)>1)badge({x:circ.x,y:circ.y+R+30},'🎲');else{const h=hubOf.get(g),start=circ?circleEdge(circ,h):boxEdge(box,h);arrow(start,circleEdge(h,start,HUB),'mapLink random'+(branch?' branch':''));}}
+    else if(groupOf(o.next)!==null&&hubOf.has(groupOf(o.next))){const g=groupOf(o.next);if(circ&&rolls.get(g)>1)badge({x:circ.x,y:circ.y+R+30},'🎲');else{const h=hubOf.get(g),start=circ?circleEdge(circ,h):boxEdge(box,h);arrow(start,circleEdge(h,start,HUB),'mapLink random'+(branch?' branch':''),()=>{o.next='sequence';});}}
     else if(groupOf(o.next)!==null)badge(under,'🎲');
     else if(o.next==='end')badge(under,'🏁');}}}
  for(const h of nodes.hubs){const mb=h.members.map(e=>nodes.boxes.get(e.id)),below=mb.length>1&&mb.every(b=>b.y-BOX.h/2>h.y+HUB+30);
   // Two or more scenes in a 🎲 hang from one bar under it instead of a fan of crossing lines.
-  if(below){const busY=Math.min(...mb.map(b=>b.y-BOX.h/2))-22,xs=mb.map(b=>b.x);el('line',{x1:h.x,y1:h.y+HUB,x2:h.x,y2:busY,class:'mapLink random bus'},links);el('line',{x1:Math.min(h.x,...xs),y1:busY,x2:Math.max(h.x,...xs),y2:busY,class:'mapLink random bus'},links);for(const b of mb)arrow({x:b.x,y:busY},{x:b.x,y:b.y-BOX.h/2},'mapLink random');}
-  else for(const e of h.members){const tb=nodes.boxes.get(e.id),start=circleEdge(h,tb,HUB);arrow(start,boxEdge(tb,start),'mapLink random');}
+  if(below){const busY=Math.min(...mb.map(b=>b.y-BOX.h/2))-22,xs=mb.map(b=>b.x);el('line',{x1:h.x,y1:h.y+HUB,x2:h.x,y2:busY,class:'mapLink random bus'},links);el('line',{x1:Math.min(h.x,...xs),y1:busY,x2:Math.max(h.x,...xs),y2:busY,class:'mapLink random bus'},links);mb.forEach((b,k)=>arrow({x:b.x,y:busY},{x:b.x,y:b.y-BOX.h/2},'mapLink random',()=>leaveGroup(h.members[k])));}
+  else for(const e of h.members){const tb=nodes.boxes.get(e.id),start=circleEdge(h,tb,HUB);arrow(start,boxEdge(tb,start),'mapLink random',()=>leaveGroup(e));}
   hubNode(circles,h,short(h.name,10)+' '+(h.members.length?h.members.length+'개 · 눌러서 목록':'· 비어 있음 (눌러서 추가)'));}
- for(const [id,b]of nodes.boxes)sceneBox(boxes,b,id,{orphan:!nodes.depth.has(id)&&b.i>0});
+ for(const [id,b]of nodes.boxes)sceneBox(boxes,b,id,{orphan:!nodes.depth.has(id)&&b.i>0,sel:selection.has(id)});
  for(const n of nodes.circles){const g=el('g',{class:'mapChoice','data-map-choice':n.c.id},circles);el('circle',{cx:n.x,cy:n.y,r:R},g);
   const k=el('text',{x:n.x,y:n.y+5,class:'mapChoiceNum','text-anchor':'middle'},g);k.textContent=n.k+1;
   const mark=choiceMeta(p,n.c);if(mark){const m=el('text',{x:n.x+R-2,y:n.y-R+4,class:'mapChoiceMeta','text-anchor':'start'},g);m.textContent=mark;}
@@ -219,7 +234,7 @@ function hit(pt,slack=0){let best=null,d=Infinity;
 
 // ---- Gestures: one pointer draws, a second one turns it into pinch zoom + move; holding still opens a menu ----
 function down(ev){ev.preventDefault();try{svg.setPointerCapture(ev.pointerId);}catch(e){}pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
- if(pointers.size===1&&!locked){if(mode==='draw'&&level==='detail'){stroke={id:ev.pointerId,pts:[toWorld(ev.clientX,ev.clientY)]};ink.setAttribute('d','');}else{const at=toWorld(ev.clientX,ev.clientY),h=hit(at,6/view.s);
+ if(pointers.size===1&&!locked){if((mode==='draw'||mode==='erase')&&level==='detail'){stroke={id:ev.pointerId,pts:[toWorld(ev.clientX,ev.clientY)]};ink.setAttribute('d','');}else{const at=toWorld(ev.clientX,ev.clientY),h=hit(at,6/view.s);
   pan={id:ev.pointerId,x:ev.clientX,y:ev.clientY,view:{...view},moved:0,grab:level==='detail'&&h&&['box','circle','hub','note'].includes(h.kind)?h:null,at,target:h};
   pan.timer=setTimeout(()=>{if(pan&&pan.moved<8&&!drag&&pointers.size===1){pan.long=true;menuAt(pan.at,pan.target);}},520);}}
  else if(pointers.size===2){stroke=null;if(drag)undrag();if(pan)clearTimeout(pan.timer);pan=null;ink.setAttribute('d','');locked=true;const [a,b]=[...pointers.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2,my:(a.y+b.y)/2,view:{...view}};}}
@@ -251,19 +266,26 @@ function startDrag(h){const p=host.project(),before=p.events.map(e=>[e,e.map,e.c
  for(const [id,b]of nodes.boxes)if(!b.e.map)b.e.map={x:Math.round(b.x),y:Math.round(b.y)};
  if(h.kind==='note'){drag={before,hubBefore,noteBefore,note:h.note,from:{x:h.note.x,y:h.note.y},circles:[]};return;}
  if(h.kind==='hub'){const [obj,key]=h.h.gid?[h.h.group,'map']:[p,'hubMap'];obj[key]={x:Math.round(h.h.x),y:Math.round(h.h.y)};drag={before,hubBefore,noteBefore,hub:[obj,key],from:{...obj[key]},circles:[]};return;}
+ if(h.kind==='box'&&selection.has(h.id)&&selection.size>1){const group=[...selection].map(id=>nodes.boxes.get(id)?.e).filter(Boolean);drag={before,hubBefore,noteBefore,group:group.map(e=>[e,{...e.map}]),circles:group.flatMap(e=>e.choices.filter(c=>c.map).map(c=>[c,{...c.map}]))};return;}
  if(h.kind==='box'){const e=h.b.e;drag={before,hubBefore,noteBefore,box:e,from:{...e.map},circles:e.choices.filter(c=>c.map).map(c=>[c,{...c.map}])};}
  else{const c=h.n.c;if(!c.map)c.map={x:Math.round(h.n.x),y:Math.round(h.n.y)};drag={before,hubBefore,noteBefore,circles:[[c,{...c.map}]]};}}
-function dragTo(dx,dy){if(!drag)return;const to=f=>({x:Math.round(f.x+dx),y:Math.round(f.y+dy)});if(drag.note)Object.assign(drag.note,to(drag.from));if(drag.hub)drag.hub[0][drag.hub[1]]=to(drag.from);if(drag.box)drag.box.map=to(drag.from);for(const [c,from]of drag.circles)c.map=to(from);if(!frame)frame=requestAnimationFrame(()=>{frame=0;render();});}
+function dragTo(dx,dy){if(!drag)return;const to=f=>({x:Math.round(f.x+dx),y:Math.round(f.y+dy)});if(drag.note)Object.assign(drag.note,to(drag.from));if(drag.hub)drag.hub[0][drag.hub[1]]=to(drag.from);if(drag.box)drag.box.map=to(drag.from);for(const [e,from]of drag.group||[])e.map=to(from);for(const [c,from]of drag.circles)c.map=to(from);if(!frame)frame=requestAnimationFrame(()=>{frame=0;render();});}
 async function endDrag(){drag=null;busy++;try{await host.commit();render();}finally{busy--;}}
 function undrag(){const p=host.project(),[base,...gm]=drag.hubBefore;if(base)p.hubMap=base;else delete p.hubMap;(p.randomGroups||[]).forEach((g,i)=>{if(gm[i])g.map=gm[i];else delete g.map;});for(const [n,x,y]of drag.noteBefore)Object.assign(n,{x,y});for(const [e,map,cs]of drag.before){if(map)e.map=map;else delete e.map;for(const [c,m]of cs){if(m)c.map=m;else delete c.map;}}drag=null;render();}
 function tapAt(pt){const h=hit(pt,8/view.s);
  if(level==='overview'){if(h?.kind==='box')setLevel('detail',h.id);else if(h?.kind==='hub')setLevel('detail','hub:'+h.h.gid);return;}
+ if(!h&&selection.size){selection.clear();closeSheet();render();return;}
  if(h?.kind==='jump'){focus(h.id);return;}if(h?.kind==='hub'){host.openPool?.(h.h.gid);return;}if(h?.kind==='note'){noteSheet(h.note);return;}if(h?.kind==='box')host.openEvent(h.id,'content');else if(h?.kind==='circle')host.openEvent(h.n.e.id,'choices');}
 
 // ---- Turning a stroke into scenes, choices and links ----
 async function finish(pts){
  const shape=classify(pts.map(p=>({x:p.x*view.s,y:p.y*view.s}))),p=host.project(),W=v=>v/view.s,slack=18/view.s,clear=msg=>{ink.setAttribute('d','');if(msg)toast(msg);};
+ if(mode==='erase'){ink.setAttribute('d','');return shape.type==='tap'?eraseAt(pts[0],12/view.s,true):eraseAlong(pts);}
  if(shape.type==='tap'){ink.setAttribute('d','');tapAt(pts[0]);return;}
+ if(shape.type==='scratch'){ink.setAttribute('d','');return eraseAt({x:W(shape.x),y:W(shape.y)},Math.max(14/view.s,W(Math.min(shape.w,shape.h))/2),true);}
+ if(shape.type==='check'){const v={x:W(shape.x),y:W(shape.y)},on=[v,pts[0],pts[pts.length-1]].map(q=>hit(q,slack)).find(h=>h?.kind==='box');ink.setAttribute('d','');if(!on)return toast('✓ 는 끝낼 사건 네모 위에 그려 주세요.');return endSheet(on.b.e);}
+ // 크게 둘러싸기: a closed stroke around two or more scenes picks them up instead of drawing a scene or a choice.
+ if(shape.type==='box'||shape.type==='circle'){const inside=[...nodes.boxes].filter(([,b])=>inPolygon(b,pts)).map(([id])=>id);if(inside.length>=2){ink.setAttribute('d','');selection.clear();inside.forEach(id=>selection.add(id));render();return selectionSheet();}}
  if(shape.type==='box'){const e=newScene({x:W(shape.x),y:W(shape.y)},'story');if(!e)return clear();return done('▭ 사건 '+p.events.length+' 만들었어요.');}
  if(shape.type==='circle'){const at={x:W(shape.x),y:W(shape.y)};let best=null,score=Infinity;
   for(const [,b]of nodes.boxes){if(b.e.ending)continue;const d=Math.hypot(at.x-b.x,at.y-b.y)+(b.y>at.y?140:0);if(d<score){score=d;best=b;}}
@@ -292,6 +314,56 @@ async function finish(pts){
   return clear(a.kind==='circle'?'선택지 동그라미는 사건 네모로 이어 주세요.':'');}
  ink.setAttribute('d','');
 }
+
+// ---- 지우기: a scratch, a tap with the 지우개, or rubbing along links ----
+function inPolygon(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>pt.y)!==(b.y>pt.y)&&pt.x<(b.x-a.x)*(pt.y-a.y)/((b.y-a.y)||1e-9)+a.x)inside=!inside;}return inside;}
+function segDist(pt,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((pt.x-a.x)*dx+(pt.y-a.y)*dy)/((dx*dx+dy*dy)||1)));return Math.hypot(pt.x-a.x-t*dx,pt.y-a.y-t*dy);}
+function leaveGroup(e){e.kind=host.project().events[0]===e?'story':'branch';delete e.randomGroup;}
+function removeChoice(e,c){if(e.choices.length>1)e.choices.splice(e.choices.indexOf(c),1);else{const fresh=host.newChoice();fresh.id=c.id;e.choices[0]=fresh;}}
+// The nearest thing under `pt` within `r`: a scene (only when `scenes`), a choice, a memo, a 「→」 tag, then a link.
+function eraseTarget(pt,r,scenes){const h=hit(pt,r);if(h?.kind==='box')return scenes?h:null;if(h&&h.kind!=='hub')return h;
+ let best=null,d=Infinity;for(const l of nodes.links||[]){const k=segDist(pt,l.a,l.b);if(k<=r+6/view.s&&k<d){d=k;best={kind:'link',l};}}return best;}
+async function eraseAt(pt,r,scenes){const p=host.project(),t=eraseTarget(pt,r,scenes);
+ if(!t)return toast('지울 것을 찾지 못했어요. 사건 · 선택지 · 연결 · 메모 위에서 해 보세요.');
+ if(t.kind==='box'){host.deleteEvent?.(t.id);return;}
+ if(t.kind==='circle'){removeChoice(t.n.e,t.n.c);return done('◯ 「'+(t.n.e.title||'사건')+'」의 '+(t.n.c.text||'선택지')+' 지웠어요.');}
+ if(t.kind==='note'){p.mapNotes=(p.mapNotes||[]).filter(x=>x!==t.note);return done('📝 메모를 지웠어요.');}
+ const cut=t.kind==='jump'?nodes.jumps.find(j=>j.id===t.id)?.cut:t.l?.cut;
+ if(!cut)return toast('「다음 스토리」로 가는 기본 연결이에요. 선택지를 지우거나 다른 곳으로 이어 주세요.');
+ cut();return done('✂ 연결을 끊었어요 · 이제 「다음 스토리」로 가요.');}
+// Rubbing with the 지우개: every link, choice and memo the finger passes over (scenes only by a tap, so none goes by accident).
+async function eraseAlong(pts){const p=host.project(),r=10/view.s,cuts=new Set(),choices=new Map(),notes=new Set();
+ for(const q of pts){const h=hit(q,r);if(h?.kind==='circle')choices.set(h.n.c,h.n.e);else if(h?.kind==='note')notes.add(h.note);else if(h?.kind==='jump'){const c=nodes.jumps.find(j=>j.id===h.id)?.cut;if(c)cuts.add(c);}else if(!h)for(const l of nodes.links)if(l.cut&&segDist(q,l.a,l.b)<=r)cuts.add(l.cut);}
+ if(!cuts.size&&!choices.size&&!notes.size)return toast('지나간 곳에 지울 연결 · 선택지 · 메모가 없어요.');
+ cuts.forEach(c=>c());for(const [c,e]of choices)removeChoice(e,c);if(notes.size)p.mapNotes=(p.mapNotes||[]).filter(n=>!notes.has(n));
+ return done('🧽 '+[cuts.size&&'연결 '+cuts.size,choices.size&&'선택지 '+choices.size,notes.size&&'메모 '+notes.size].filter(Boolean).join(' · ')+'개를 지웠어요.');}
+// ✓ 끝 장면: 엔딩 or 사망 장면 (or back to an ordinary scene).
+function endSheet(e){sheet('✓ 「'+short(e.title||'사건',14)+'」 끝 장면으로',`<p class="hint">끝 장면에서는 이야기가 멈추고 ‘처음부터 다시’가 나와요. 선택지는 쓰이지 않아요.</p><div class="mapMenu"><button data-end="end" class="${e.ending==='end'?'on':''}">🏁 엔딩</button><button data-end="death" class="${e.ending==='death'?'on':''}">☠ 사망 장면</button>${e.ending?'<button data-end="">일반 사건으로</button>':''}</div>`,s=>{
+ s.querySelectorAll('[data-end]').forEach(b=>b.onclick=()=>{const k=b.dataset.end;closeSheet();if(k){e.ending=k;if(!e.endLabel)e.endLabel=(e.title||'').trim().slice(0,100)||(k==='death'?'사망':'엔딩');}else{delete e.ending;delete e.endLabel;}done(k?(k==='death'?'☠ 「':'🏁 「')+e.title+'」은 이제 '+(k==='death'?'사망 장면':'엔딩')+'이에요.':'「'+e.title+'」을 일반 사건으로 되돌렸어요.');});});}
+// 여러 개 고르기: what can be done to all of them at once. Dragging one of them (이동) moves them together.
+function selectionSheet(){const p=host.project(),ids=[...selection],list=ids.map(id=>p.events.find(e=>e.id===id)).filter(Boolean);
+ sheet(list.length+'개 고름',`<p class="hint">이동 모드에서 고른 사건 하나를 끌면 함께 옮겨져요. 빈 곳을 톡 누르면 고르기를 풀어요.</p><div class="mapKinds" role="group" aria-label="진행 방식 한꺼번에"><button data-sel-kind="story">스토리로</button><button data-sel-kind="branch">분기로</button></div>
+  <p class="mapSub">🎲 묶음에 넣기</p><div class="mapKinds">${groupsOf(p).map(g=>`<button data-sel-group="${escHtml(g.id)}">🎲 ${escHtml(short(g.name,8))}</button>`).join('')}</div>
+  <div class="mapMenu"><button data-m="note">📝 메모 달기</button><button data-m="del" class="danger">지우기</button><button data-m="off">고르기 풀기</button></div>`,s=>{
+  s.querySelectorAll('[data-sel-kind]').forEach(b=>b.onclick=()=>{const k=b.dataset.selKind;for(const e of list){if(e.ending)continue;e.kind=k;delete e.randomGroup;}done(list.length+'개를 '+(k==='story'?'스토리':'분기')+'로 바꿨어요.');selectionSheet();});
+  s.querySelectorAll('[data-sel-group]').forEach(b=>b.onclick=()=>{const g=b.dataset.selGroup;let n=0;for(const e of list){if(e.ending)continue;e.kind='encounter';if(g)e.randomGroup=g;else delete e.randomGroup;n++;}done(n+'개를 🎲 '+b.textContent.replace('🎲 ','')+'에 넣었어요.');selectionSheet();});
+  s.querySelector('[data-m=note]').onclick=()=>{closeSheet();const bs=list.map(e=>nodes.boxes.get(e.id)).filter(Boolean);addNote({x:Math.min(...bs.map(b=>b.x))-BOX.w/2,y:Math.min(...bs.map(b=>b.y))-BOX.h/2-70});};
+  s.querySelector('[data-m=off]').onclick=()=>{selection.clear();closeSheet();render();};
+  s.querySelector('[data-m=del]').onclick=()=>{if(list.length>=p.events.length)return toast('사건은 하나 이상 있어야 해요.');if(!globalThis.confirm||globalThis.confirm(list.length+'개 사건을 지울까요? 이 사건들로 오던 연결은 「다음 스토리」로 바뀌어요. ↶ 되돌리기로 복구할 수 있어요.')){const gone=new Set(list.map(e=>e.id));host.removeEvents?.(gone);selection.clear();closeSheet();done(gone.size+'개 사건을 지웠어요.');}};});}
+// ---- 간격 줄이기: keep each row and the left-to-right order, close the gaps, and stack rows as tightly as their choices allow ----
+function compactPositions(p){const L=layout(p),items=p.events.map(e=>({e,x:L.boxes.get(e.id).x,y:L.boxes.get(e.id).y})).sort((a,b)=>a.y-b.y),rows=[];
+ for(const it of items){const r=rows[rows.length-1];if(r&&it.y-r.y0<=48)r.items.push(it);else rows.push({y0:it.y,items:[it]});}
+ const wide=e=>!e.ending&&e.choices.length>1,W=e=>Math.max(BOX.w,wide(e)?e.choices.length*STEP:0),shifts=[];let y=null,below=0;
+ for(const r of rows){const oldY=r.items.reduce((n,it)=>n+it.y,0)/r.items.length,above=r.items.some(it=>it.e.kind==='encounter')?84+HUB+8:BOX.h/2,ny=y===null?oldY:y+below+38+above;
+  r.items.sort((a,b)=>a.x-b.x);const total=r.items.reduce((n,it)=>n+W(it.e),0)+GAP*(r.items.length-1),cx=r.items.reduce((n,it)=>n+it.x,0)/r.items.length;let x=cx-total/2;
+  for(const it of r.items){it.nx=Math.round(x+W(it.e)/2);it.ny=Math.round(ny);x+=W(it.e)+GAP;}
+  shifts.push([oldY,ny]);y=ny;below=Math.max(...r.items.map(it=>wide(it.e)?92+R:BOX.h/2));}
+ return {items,shifts};}
+function compactMap(){if(level==='overview')setLevel('detail');const p=host.project(),{items,shifts}=compactPositions(p);
+ for(const it of items){it.e.map={x:it.nx,y:it.ny};for(const c of it.e.choices)delete c.map;}
+ delete p.hubMap;for(const g of p.randomGroups||[])delete g.map;
+ for(const n of p.mapNotes||[]){let best=shifts[0],d=Infinity;for(const s of shifts){const k=Math.abs(s[0]-(n.y+40));if(k<d){d=k;best=s;}}if(best)n.y=Math.round(n.y+best[1]-best[0]);}
+ fitted=false;done('간격을 줄였어요 · ↶ 되돌리기로 원래대로');}
 
 // ---- Sheets: 꾹 메뉴, 뼈대, 찾기, 메모 (inside the map, above the canvas) ----
 function sheet(title,html,bind){const s=wrap.querySelector('#mapSheet');s.innerHTML=`<div class="mapSheetTop"><b>${escHtml(title)}</b><button data-sheet-close class="quiet">닫기</button></div><div class="mapSheetBody">${html}</div>`;s.hidden=false;s.querySelector('[data-sheet-close]').onclick=closeSheet;bind?.(s);return s;}
@@ -362,9 +434,9 @@ function insertTemplate(kind,from){const p=host.project(),need={merge:5,random:5
 let lastView=null;
 function open(h){host=h;if(!wrap)build();setMode(mode);setLevelSilently(level);wrap.hidden=false;const key=h.key?.();if(key&&lastView?.key===key){view={...lastView.view};fitted=true;}else fitted=false;pointers.clear();stroke=pinch=null;locked=false;closeSheet();render();}
 function setLevelSilently(l){const b=wrap.querySelector('#mapLevel');b.textContent=l==='overview'?'상세':'개요';b.setAttribute('aria-pressed',String(l==='overview'));wrap.dataset.level=l;hint();}
-function close(o){if(!wrap||wrap.hidden)return false;const key=host?.key?.();if(key)lastView={key,view:{...view}};closeSheet();wrap.hidden=true;pointers.clear();stroke=pinch=pan=null;if(!o?.silent)host?.closed?.();return true;}
+function close(o){if(!wrap||wrap.hidden)return false;const key=host?.key?.();if(key)lastView={key,view:{...view}};closeSheet();selection.clear();wrap.hidden=true;pointers.clear();stroke=pinch=pan=null;if(!o?.silent)host?.closed?.();return true;}
 function isOpen(){return !!wrap&&!wrap.hidden;}
 // Back closes an open sheet first (closeSheet() is true), then the app closes the map.
-const api={open,close,isOpen,setMode,setLevel,level:()=>level,focus,closeSheet,mode:()=>mode,busy:()=>busy>0,render:()=>isOpen()&&render(),classify,layout,overview,preview,_view:()=>view};
+const api={open,close,isOpen,setMode,setLevel,selection:()=>[...selection],compactPositions,level:()=>level,focus,closeSheet,mode:()=>mode,busy:()=>busy>0,render:()=>isOpen()&&render(),classify,layout,overview,preview,_view:()=>view};
 if(typeof module!=='undefined')module.exports=api;else root.StoryMap=api;
 })(globalThis);

@@ -97,7 +97,8 @@ function addEditorEvent(){if(project.events.length>=1000)return tell('사건은 
 let mapFrom='';
 function openStoryMap(from=''){mapFrom=from;StoryMap.open({key:()=>store.active,project:()=>project,selected:()=>selected,newEvent:()=>reuseEvent(null,'story'),newChoice:()=>C.choice(),
  commit:async()=>{persist();await flushEditor();},undo:async()=>{await flushEditor();if(!history.past.length)return false;clearTimeout(saveTimer);restoreEdit(history.undo(project),'되돌렸습니다.');return true;},
- openEvent:(id,to)=>{StoryMap.close({silent:true});selected=id;part=to||'content';renderEditor();},openPool:gid=>randomPoolSheet(gid||''),deleteEvent:id=>{const e=project.events.find(x=>x.id===id);if(e)deleteEvent(e,()=>StoryMap.render());},closed:()=>leaveStoryMap(false)});notePlace();}
+ openEvent:(id,to)=>{StoryMap.close({silent:true});selected=id;part=to||'content';renderEditor();},openPool:gid=>randomPoolSheet(gid||''),deleteEvent:id=>{const e=project.events.find(x=>x.id===id);if(e)deleteEvent(e,()=>StoryMap.render());},
+ removeEvents:ids=>{for(const x of project.events)for(const c of x.choices){if(ids.has(c.next))c.next='sequence';if(c.branch&&ids.has(c.branch.next))c.branch.next='sequence';}project.events=project.events.filter(x=>!ids.has(x.id));if(ids.has(selected))selected=project.events[0].id;},closed:()=>leaveStoryMap(false)});notePlace();}
 // 🎲 묶음: 'random' rolls 기본, 'random:<id>' a named 묶음 (project.randomGroups); a scene joins one with randomGroup.
 const groupName=gid=>gid?(project.randomGroups||[]).find(g=>g.id===gid)?.name||'묶음':(project.randomGroups||[]).length?'기본':'랜덤';
 const inGroup=(e,gid)=>e.kind==='encounter'&&(e.randomGroup||'')===gid;

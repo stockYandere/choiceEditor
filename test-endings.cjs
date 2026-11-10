@@ -15,5 +15,5 @@ assert(!C.inspect(p).some(x=>x.message.includes('대사 변주')),C.inspect(p).m
 p.events[0].text='{#없는 엔딩? 음}';assert(C.inspect(p).some(x=>x.message.includes("'#없는 엔딩'")),'unknown ending name is reported');
 // Stored per game: a list of keys.
 const s=V.create(project(),true);s.games[0].endings=['good','@hp'];assert.deepEqual(V.decode(V.encode(s)).games[0].endings,['good','@hp']);
-for(const bad of [['good','good'],'good',[1],['x'.repeat(200)]]){const t=V.create(project(),true);t.games[0].endings=bad;assert.throws(()=>V.decode(V.encode(t)),undefined,JSON.stringify(bad));}
+for(const bad of [['good','good'],'good',[1],['x'.repeat(200)]]){const t=V.create(project(),true);t.games[0].endings=bad;const r=V.decode(V.encode(t));assert.equal(r.games.length,1,JSON.stringify(bad));assert.equal(r.games[0].endings,undefined,'a damaged list is dropped alone');assert.match(r.notices[0],/엔딩 모음/);}
 console.log('PASS 엔딩 모음: slots (scenes, 이야기 끝, 체력·멘탈 0), run keys, 2회차 lines, 점검 names, stored list validated.');

@@ -1,10 +1,10 @@
 {
- "versionCode": 72,
- "versionName": "0.1.71",
+ "versionCode": 73,
+ "versionName": "0.1.72",
  "apk": "editor.apk",
- "size": 11263067,
- "sha256": "4908304b1550dd76bfc46f7b32b0a10d206a0f83b82419229509f89aa646ef82",
- "notes": "사건 게임 에디터 v0.1.71 — 구조도 손그림: 지우기 · 끝 장면 · 여러 개 고르기 · 간격 줄이기",
+ "size": 11267163,
+ "sha256": "00ca7d3d6c114dc4d0f398870053eb7303584368f5491090598c2a140942c583",
+ "notes": "사건 게임 에디터 v0.1.72 — 게임 하나가 깨져도 서재는 열립니다",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
- "publishedAt": "2026-11-05"
+ "publishedAt": "2026-11-10"
 }

@@ -1,10 +1,10 @@
 {
- "versionCode": 73,
- "versionName": "0.1.72",
+ "versionCode": 74,
+ "versionName": "0.1.73",
  "apk": "editor.apk",
- "size": 11267163,
- "sha256": "00ca7d3d6c114dc4d0f398870053eb7303584368f5491090598c2a140942c583",
- "notes": "사건 게임 에디터 v0.1.72 — 게임 하나가 깨져도 서재는 열립니다",
+ "size": 11271259,
+ "sha256": "76fc8eea35a31c7d64f4aab1b8cecf8e7ec24911a2226eaf9be6e7fa89098504",
+ "notes": "사건 게임 에디터 v0.1.73 — 서재 전체 백업 · 리뷰에서 찾은 나머지 수정",
  "apkUrl": "https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/editor.apk",
  "publishedAt": "2026-11-10"
 }

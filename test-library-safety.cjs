@@ -26,6 +26,8 @@ assert.throws(()=>V.validate({format:'event-vault',version:1,games:'no'}));asser
 {const a=lib(),b=clone(a);b.games[1].draft.title='둘 고침';const extra=V.game(base());extra.draft.title='넷';b.games.push(extra);b.quarantine=[{at:1,error:'x',game:{id:'q',draft:null}}];
  const out=V.merge(a,b,'복구');assert.deepEqual(out,{added:2,same:2,full:0,held:1});assert.deepEqual(a.games.map(g=>g.draft.title),['새 이야기','둘','셋','둘 고침 (복구)','넷']);assert.equal(new Set(a.games.map(g=>g.id)).size,5);assert.equal(a.quarantine.length,1);V.validate(clone(a));
  while(a.games.length<100)a.games.push(V.game(base()));const one=V.create(base());one.games[0].draft.title='하나 더';assert.equal(V.merge(a,one).full,1);assert.equal(a.games.length,100);}
+// A stored draft that was never tidied (missing defaults) is still the same game as its backup.
+{const a=lib();delete a.games[0].draft.events[0].choices[0].mental;delete a.games[0].draft.events[0].top;const b=V.decode(V.encode(clone(a)));assert.deepEqual(V.merge(a,b),{added:0,same:3,full:0,held:0});assert.equal(a.games[0].draft.events[0].top,undefined,'comparing does not touch the stored game');}
 // A game name must be text; a missing one gets the default and a long one is cut (stored games are not rejected for it).
 {const p=base();p.title=12345;assert.throws(()=>C.validate(p),/게임 이름/);const q=base();delete q.title;assert.equal(C.validate(q).title,'새 이야기');const l=base();l.title='가'.repeat(150);assert.equal(C.validate(l).title.length,100);}
 console.log('PASS library safety: a broken game is held apart and retried, damaged saves are dropped alone, merge adds without replacing, game names are checked.');

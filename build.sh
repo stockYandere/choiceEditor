@@ -2,6 +2,10 @@ set -eu
 TASK="$(cd "$(dirname "$0")" && pwd)"
 SDK=${ANDROID_TOOLS:?Set ANDROID_TOOLS to the build tools directory}
 ANDROID=${ANDROID_JAR:?Set ANDROID_JAR to the platform android.jar}
+# The version is written in one place, AndroidManifest.xml; the APK file name follows it.
+NAME=$(sed -n 's/.*android:versionName="\([^"]*\)".*/\1/p' "$TASK/AndroidManifest.xml")
+[ -n "$NAME" ] || { echo "No versionName in AndroidManifest.xml"; exit 1; }
+APK="$TASK/v$NAME-Event-Game-Editor.apk"
 mkdir -p "$TASK/classes" "$TASK/dex" "$TASK/player-classes" "$TASK/player-dex"
 python3 - "$TASK" <<'CLEAN'
 from pathlib import Path
@@ -40,6 +44,6 @@ if [ ! -f "$TASK/signing.jks" ] && [ -f "$TASK/signing.jks.enc" ]; then echo "si
 if [ ! -f "$TASK/signing.jks" ]; then
 keytool -genkeypair -keystore "$TASK/signing.jks" -storepass event-vn-test -keypass event-vn-test -alias eventvn -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Event Editor Test'
 fi
-"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$TASK/v0.1.72-Event-Game-Editor.apk" "$TASK/aligned.apk"
-"$SDK/apksigner" verify --verbose "$TASK/v0.1.72-Event-Game-Editor.apk"
-"$SDK/aapt" dump badging "$TASK/v0.1.72-Event-Game-Editor.apk"
+"$SDK/apksigner" sign --ks "$TASK/signing.jks" --ks-pass pass:event-vn-test --key-pass pass:event-vn-test --out "$APK" "$TASK/aligned.apk"
+"$SDK/apksigner" verify --verbose "$APK"
+"$SDK/aapt" dump badging "$APK"

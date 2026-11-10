@@ -492,3 +492,5 @@ p.autoRow{padding:7px 10px;border:1px dashed #41546c;border-radius:5px;color:#8c
 #endingsSheet .endingRow.seen small{color:var(--t-gain,#9ed6b8)}
 .mapMeta{font-size:10.5px;fill:#ffd99b}
 .mapChoiceMeta{font-size:11px;fill:#f2a8c0}
+
+.heldRow{display:flex;align-items:center;gap:6px;margin:6px 0}.heldRow>span{flex:1;min-width:0;display:flex;flex-direction:column}.heldRow b,.heldRow small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.heldRow small{opacity:.75;font-size:12px}.heldRow button{flex:none;padding:6px 8px;font-size:13px}#listHeld.heldNotice{min-height:44px;margin-bottom:6px;border:1px dashed currentColor}

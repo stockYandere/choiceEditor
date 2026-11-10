@@ -6,24 +6,32 @@ final class AppUpdater {
 static final String BASE="https://raw.githubusercontent.com/stockYandere/choiceEditor/HEAD/release/",FEED=BASE+"update.json";
 static final long CHECK_EVERY=60*60*1000L;static final int MAX_APK=60000000;
 final MainActivity activity;final SharedPreferences prefs;volatile boolean checking,installing;volatile File ready;volatile int readyCode;volatile String readyName="",notes="",error="";
-AppUpdater(MainActivity a){activity=a;prefs=a.getSharedPreferences("app-update",0);}
+// idle: the editor is on its first screen or a game list (set from the page), so an install would interrupt nothing.
+// pending: a newer version exists but was not downloaded because the connection is metered.
+volatile boolean idle=true;volatile int pendingCode;volatile String pendingName="";volatile long installStarted;static volatile AppUpdater live;
+AppUpdater(MainActivity a){activity=a;prefs=a.getSharedPreferences("app-update",0);live=this;}
+boolean metered(){try{android.net.ConnectivityManager cm=(android.net.ConnectivityManager)activity.getSystemService(Context.CONNECTIVITY_SERVICE);return cm!=null&&cm.isActiveNetworkMetered();}catch(Exception e){return false;}}
+// The install session ended without replacing the app (cancelled, failed, or waiting for a tap): the buttons work again.
+void installEnded(){if(!installing)return;installing=false;notifyJs();}
 boolean enabled(){return prefs.getBoolean("auto",true);}
 void setEnabled(boolean v){prefs.edit().putBoolean("auto",v).apply();if(v)check(true);else notifyJs();}
 PackageInfo self()throws Exception{return activity.getPackageManager().getPackageInfo(activity.getPackageName(),0);}
 boolean canInstall(){return Build.VERSION.SDK_INT<26||activity.getPackageManager().canRequestPackageInstalls();}
 // Android 12+ installs without asking once this app is the installer of record (after its first self-update).
 boolean silentPossible(){if(Build.VERSION.SDK_INT<31)return false;try{return activity.getPackageName().equals(activity.getPackageManager().getInstallSourceInfo(activity.getPackageName()).getInstallingPackageName());}catch(Exception e){return false;}}
-String status(){try{JSONObject j=new JSONObject();PackageInfo p=self();j.put("enabled",enabled());j.put("current",p.versionName);j.put("currentCode",p.versionCode);j.put("checking",checking);j.put("installing",installing);j.put("ready",ready!=null);j.put("readyName",readyName);j.put("notes",notes);j.put("canInstall",canInstall());j.put("silent",silentPossible());j.put("lastCheck",prefs.getLong("last",0));j.put("error",error.isEmpty()?prefs.getString("installError",""):error);return j.toString();}catch(Exception e){return "{}";}}
+String status(){try{if(installing&&System.currentTimeMillis()-installStarted>5*60*1000L)installing=false;JSONObject j=new JSONObject();PackageInfo p=self();j.put("enabled",enabled());j.put("current",p.versionName);j.put("currentCode",p.versionCode);j.put("checking",checking);j.put("installing",installing);j.put("ready",ready!=null);j.put("pending",ready==null&&pendingCode>0);j.put("pendingName",pendingName);j.put("readyName",readyName);j.put("notes",notes);j.put("canInstall",canInstall());j.put("silent",silentPossible());j.put("lastCheck",prefs.getLong("last",0));j.put("error",error.isEmpty()?prefs.getString("installError",""):error);return j.toString();}catch(Exception e){return "{}";}}
 void notifyJs(){final String s=status();activity.runOnUiThread(()->{if(activity.web!=null)activity.web.evaluateJavascript("window.onAppUpdate && window.onAppUpdate("+s+")",null);});}
 
 // Every app start looks for a new version right away (when auto-update is on); returning to the app checks at most hourly.
 void checkOnStart(){if(enabled())check(true);}
-void check(boolean force){if(!force&&(!enabled()||System.currentTimeMillis()-prefs.getLong("last",0)<CHECK_EVERY))return;if(checking||installing)return;checking=true;error="";notifyJs();
+void check(boolean force){check(force,false);}
+// allowMetered: the user tapped 지금 받기; otherwise a metered connection only learns that a version exists.
+void check(boolean force,boolean allowMetered){if(!force&&(!enabled()||System.currentTimeMillis()-prefs.getLong("last",0)<CHECK_EVERY))return;if(checking||installing)return;checking=true;error="";notifyJs();
  new Thread(()->{try{JSONObject j=new JSONObject(new String(get(FEED,200000),"UTF-8"));prefs.edit().putLong("last",System.currentTimeMillis()).apply();int code=j.getInt("versionCode");
-  if(code<=self().versionCode){ready=null;cleanup(-1);return;}
+  if(code<=self().versionCode){ready=null;pendingCode=0;cleanup(-1);return;}
   String name=j.getString("apk");if(!name.matches("[A-Za-z0-9._-]{1,80}\\.apk"))throw new IOException("업데이트 파일 이름");File apk=new File(activity.getCacheDir(),"editor-update-"+code+".apk");
-  if(!(apk.isFile()&&accept(apk,code,j.optString("sha256")))){cleanup(code);byte[] bytes=get(BASE+name,MAX_APK);try(FileOutputStream out=new FileOutputStream(apk)){out.write(bytes);}if(!accept(apk,code,j.optString("sha256"))){apk.delete();throw new IOException("받은 업데이트를 확인하지 못했습니다.");}}
-  ready=apk;readyCode=code;readyName=j.optString("versionName",String.valueOf(code));notes=j.optString("notes","");prefs.edit().remove("installError").apply();
+  if(!(apk.isFile()&&accept(apk,code,j.optString("sha256")))){if(!allowMetered&&metered()){pendingCode=code;pendingName=j.optString("versionName",String.valueOf(code));notes=j.optString("notes","");return;}cleanup(code);byte[] bytes=get(BASE+name,MAX_APK);try(FileOutputStream out=new FileOutputStream(apk)){out.write(bytes);}if(!accept(apk,code,j.optString("sha256"))){apk.delete();throw new IOException("받은 업데이트를 확인하지 못했습니다.");}}
+  ready=apk;pendingCode=0;readyCode=code;readyName=j.optString("versionName",String.valueOf(code));notes=j.optString("notes","");prefs.edit().remove("installError").apply();
  }catch(Exception e){error=e.getMessage()==null?"업데이트 확인 실패":e.getMessage();}finally{checking=false;notifyJs();}},"EditorUpdateCheck").start();}
 
 static byte[] get(String url,int max)throws IOException{HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setConnectTimeout(15000);c.setReadTimeout(60000);c.setInstanceFollowRedirects(true);c.setRequestProperty("Cache-Control","no-cache");
@@ -39,7 +47,7 @@ boolean accept(File apk,int code,String sha)throws Exception{if(!sha.isEmpty()){
  for(android.content.pm.Signature s:sigs)out.add(hex(MessageDigest.getInstance("SHA-256").digest(s.toByteArray())));return out;}
 
 // userVisible: the editor is on screen, so Android may show its one-time confirmation.
-void install(boolean userVisible){final File apk=ready;if(apk==null||installing)return;if(!canInstall()){if(userVisible)openInstallSettings();return;}installing=true;notifyJs();
+void install(boolean userVisible){final File apk=ready;if(apk==null||installing)return;if(!canInstall()){if(userVisible)openInstallSettings();return;}installing=true;installStarted=System.currentTimeMillis();notifyJs();
  new Thread(()->{try{PackageInstaller pi=activity.getPackageManager().getPackageInstaller();PackageInstaller.SessionParams p=new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);p.setAppPackageName(activity.getPackageName());if(Build.VERSION.SDK_INT>=31)p.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
   int id=pi.createSession(p);try(PackageInstaller.Session s=pi.openSession(id)){try(OutputStream out=s.openWrite("base.apk",0,apk.length());InputStream in=new FileInputStream(apk)){byte[] b=new byte[65536];int n;while((n=in.read(b))!=-1)out.write(b,0,n);s.fsync(out);}
    Intent cb=new Intent(activity,UpdateReceiver.class).setPackage(activity.getPackageName()).putExtra("visible",userVisible);int flags=PendingIntent.FLAG_UPDATE_CURRENT|(Build.VERSION.SDK_INT>=31?PendingIntent.FLAG_MUTABLE:0);s.commit(PendingIntent.getBroadcast(activity,id,cb,flags).getIntentSender());}

@@ -319,7 +319,7 @@ async function finish(pts){
 function inPolygon(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a.y>pt.y)!==(b.y>pt.y)&&pt.x<(b.x-a.x)*(pt.y-a.y)/((b.y-a.y)||1e-9)+a.x)inside=!inside;}return inside;}
 function segDist(pt,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((pt.x-a.x)*dx+(pt.y-a.y)*dy)/((dx*dx+dy*dy)||1)));return Math.hypot(pt.x-a.x-t*dx,pt.y-a.y-t*dy);}
 function leaveGroup(e){e.kind=host.project().events[0]===e?'story':'branch';delete e.randomGroup;}
-function removeChoice(e,c){if(e.choices.length>1)e.choices.splice(e.choices.indexOf(c),1);else{const fresh=host.newChoice();fresh.id=c.id;e.choices[0]=fresh;}}
+function removeChoice(e,c){if(e.choices.length>1){if(e.timer?.choice===c.id)delete e.timer;e.choices.splice(e.choices.indexOf(c),1);}else{const fresh=host.newChoice();fresh.id=c.id;e.choices[0]=fresh;}}
 // The nearest thing under `pt` within `r`: a scene (only when `scenes`), a choice, a memo, a 「→」 tag, then a link.
 function eraseTarget(pt,r,scenes){const h=hit(pt,r);if(h?.kind==='box')return scenes?h:null;if(h&&h.kind!=='hub')return h;
  let best=null,d=Infinity;for(const l of nodes.links||[]){const k=segDist(pt,l.a,l.b);if(k<=r+6/view.s&&k<d){d=k;best={kind:'link',l};}}return best;}
@@ -339,7 +339,7 @@ async function eraseAlong(pts){const p=host.project(),r=10/view.s,cuts=new Set()
  return done('🧽 '+[cuts.size&&'연결 '+cuts.size,choices.size&&'선택지 '+choices.size,notes.size&&'메모 '+notes.size].filter(Boolean).join(' · ')+'개를 지웠어요.');}
 // ✓ 끝 장면: 엔딩 or 사망 장면 (or back to an ordinary scene).
 function endSheet(e){sheet('✓ 「'+short(e.title||'사건',14)+'」 끝 장면으로',`<p class="hint">끝 장면에서는 이야기가 멈추고 ‘처음부터 다시’가 나와요. 선택지는 쓰이지 않아요.</p><div class="mapMenu"><button data-end="end" class="${e.ending==='end'?'on':''}">🏁 엔딩</button><button data-end="death" class="${e.ending==='death'?'on':''}">☠ 사망 장면</button>${e.ending?'<button data-end="">일반 사건으로</button>':''}</div>`,s=>{
- s.querySelectorAll('[data-end]').forEach(b=>b.onclick=()=>{const k=b.dataset.end;closeSheet();if(k){e.ending=k;if(!e.endLabel)e.endLabel=(e.title||'').trim().slice(0,100)||(k==='death'?'사망':'엔딩');}else{delete e.ending;delete e.endLabel;}done(k?(k==='death'?'☠ 「':'🏁 「')+e.title+'」은 이제 '+(k==='death'?'사망 장면':'엔딩')+'이에요.':'「'+e.title+'」을 일반 사건으로 되돌렸어요.');});});}
+ s.querySelectorAll('[data-end]').forEach(b=>b.onclick=()=>{const k=b.dataset.end;closeSheet();if(k){root.GameCore.setEnding(e,k);if(!e.endLabel)e.endLabel=(e.title||'').trim().slice(0,100)||(k==='death'?'사망':'엔딩');}else root.GameCore.setEnding(e,'');done(k?(k==='death'?'☠ 「':'🏁 「')+e.title+'」은 이제 '+(k==='death'?'사망 장면':'엔딩')+'이에요.':'「'+e.title+'」을 일반 사건으로 되돌렸어요.');});});}
 // 여러 개 고르기: what can be done to all of them at once. Dragging one of them (이동) moves them together.
 function selectionSheet(){const p=host.project(),ids=[...selection],list=ids.map(id=>p.events.find(e=>e.id===id)).filter(Boolean);
  sheet(list.length+'개 고름',`<p class="hint">이동 모드에서 고른 사건 하나를 끌면 함께 옮겨져요. 빈 곳을 톡 누르면 고르기를 풀어요.</p><div class="mapKinds" role="group" aria-label="진행 방식 한꺼번에"><button data-sel-kind="story">스토리로</button><button data-sel-kind="branch">분기로</button></div>
@@ -385,7 +385,7 @@ function menuAt(at,h){const p=host.project();
   ${e.ending?'':`<div class="mapKinds" role="group" aria-label="진행 방식">${KINDS.map(([k,l])=>`<button data-kind="${k}" class="${e.kind===k?'on':''}" aria-pressed="${e.kind===k}">${l}</button>`).join('')}</div>`}`,s=>{
   s.querySelector('[data-m=open]').onclick=()=>{closeSheet();host.openEvent(e.id,h.kind==='circle'?'choices':'content');};
   s.querySelector('[data-m=next]').onclick=()=>{closeSheet();const b=placeOf(e.id),E=newScene({x:b.x,y:b.y+LAYER},'branch');if(!E)return;if(!linkScene(e,E.id)){p.events.pop();return;}done('「'+e.title+'」 → 새 「'+E.title+'」');};
-  s.querySelector('[data-m=dup]').onclick=()=>{closeSheet();if(p.events.length>=1000)return toast('사건은 최대 1000개까지 만들 수 있습니다.');const b=placeOf(e.id),copy=JSON.parse(JSON.stringify(e));copy.id=host.newEvent().id;copy.title=(e.title||'사건')+' 복사';copy.choices.forEach(c=>{c.id=host.newChoice().id;delete c.map;});copy.map={x:round(b.x+40),y:round(b.y+40)};p.events.splice(i+1,0,copy);done('「'+copy.title+'」 만들었어요.');};
+  s.querySelector('[data-m=dup]').onclick=()=>{closeSheet();if(p.events.length>=1000)return toast('사건은 최대 1000개까지 만들 수 있습니다.');const b=placeOf(e.id),copy=root.GameCore.copyEvent(e);copy.title=(e.title||'사건')+' 복사';copy.choices.forEach(c=>{delete c.map;});copy.map={x:round(b.x+40),y:round(b.y+40)};p.events.splice(i+1,0,copy);done('「'+copy.title+'」 만들었어요.');};
   s.querySelector('[data-m=first]')?.addEventListener('click',()=>{closeSheet();p.events.splice(i,1);p.events.unshift(e);done('「'+e.title+'」이 첫 사건이에요.');});
   s.querySelector('[data-m=del]').onclick=()=>{closeSheet();host.deleteEvent?.(e.id);};
   s.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{const k=b.dataset.kind;if(k===e.kind)return;e.kind=k;if(k==='encounter'){const g=(p.randomGroups||[])[0];if(g&&!e.randomGroup)e.randomGroup=g.id;}else delete e.randomGroup;closeSheet();done('「'+e.title+'」 · '+KINDS.find(x=>x[0]===k)[1]);});});}
